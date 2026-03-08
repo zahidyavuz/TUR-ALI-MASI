@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /agency/dashboard/
+Disallow: /api/
+Disallow: /*?*
+
+Sitemap: https://melihtours.com/sitemap.xml
+Sitemap: https://melihtours.com/blog-sitemap.xml

@@ -1,0 +1,46 @@
+{
+  "name": "melih-tours",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "postbuild": "next-sitemap",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@next/bundle-analyzer": "^16.1.6",
+    "@next/third-parties": "^16.1.6",
+    "@stripe/react-stripe-js": "^5.6.0",
+    "@stripe/stripe-js": "^8.8.0",
+    "@tailwindcss/typography": "^0.5.19",
+    "dotenv": "^17.3.1",
+    "next": "16.1.6",
+    "next-sitemap": "^4.2.3",
+    "nodemailer": "^8.0.1",
+    "postcss": "^8.5.6",
+    "qrcode": "^1.5.4",
+    "react": "19.2.3",
+    "react-calendar": "^6.0.0",
+    "react-dom": "19.2.3",
+    "react-markdown": "^10.1.0",
+    "react-qr-code": "^2.0.18",
+    "stripe": "^20.4.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.1",
+    "@tailwindcss/postcss": "^4.2.1",
+    "@types/node": "^20.19.35",
+    "@types/nodemailer": "^7.0.11",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.14",
+    "@types/react-calendar": "^3.9.0",
+    "@types/react-dom": "^19",
+    "env-cmd": "^11.0.0",
+    "eslint": "^9",
+    "eslint-config-next": "16.1.6",
+    "tailwindcss": "^4",
+    "typescript": "^5.9.3"
+  }
+}
