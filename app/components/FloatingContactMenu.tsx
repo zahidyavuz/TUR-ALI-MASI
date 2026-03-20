@@ -9,7 +9,7 @@ export default function FloatingContactMenu() {
         {
             id: 'whatsapp',
             label: 'WhatsApp',
-            url: 'https://wa.me/905555555555?text=Merhaba,%20Melih%20Tours%20turları%20hakkında%20bilgi%20almak%20istiyorum.',
+            url: 'https://wa.me/905555555555?text=Merhaba,%20TourScanner%20turları%20hakkında%20bilgi%20almak%20istiyorum.',
             bgClass: 'bg-[#25D366] hover:bg-[#1ebe57]',
             icon: (
                 <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
@@ -21,7 +21,7 @@ export default function FloatingContactMenu() {
         {
             id: 'telegram',
             label: 'Telegram',
-            url: 'https://t.me/melihtours',
+            url: 'https://t.me/tourscanner',
             bgClass: 'bg-[#0088cc] hover:bg-[#0077b5]',
             icon: (
                 <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
@@ -32,7 +32,7 @@ export default function FloatingContactMenu() {
         {
             id: 'messenger',
             label: 'Messenger',
-            url: 'https://m.me/melihtours',
+            url: 'https://m.me/tourscanner',
             bgClass: 'bg-gradient-to-tr from-[#00A2F1] via-[#8D3BFF] to-[#FF555B] hover:opacity-90',
             icon: (
                 <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">

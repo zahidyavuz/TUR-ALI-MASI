@@ -206,7 +206,7 @@ export default function Chatbot() {
                         </div>
                         <div>
                             <h3 className="text-white font-bold text-sm tracking-wide">
-                                {locale === 'en-US' ? 'Melih AI Concierge' : locale === 'de-DE' ? 'Melih KI Berater' : locale === 'zh-CN' ? 'Melih 私人管家' : 'Melih AI Assistant'}
+                                {locale === 'en-US' ? 'Cappo AI Concierge' : locale === 'de-DE' ? 'Cappo KI Berater' : locale === 'zh-CN' ? 'Cappo 私人管家' : 'Cappo Asistan'}
                             </h3>
                             <p className="text-blue-100 text-xs flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
@@ -355,7 +355,7 @@ export default function Chatbot() {
                             <div className="absolute top-[-2px] right-[-2px] w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#008cb3] animate-pulse"></div>
                         </div>
                         <span className="font-extrabold text-[15px] tracking-wide whitespace-nowrap hidden sm:block">
-                            {locale === 'en-US' ? 'AI Assistant' : locale === 'de-DE' ? 'KI-Berater' : locale === 'zh-CN' ? 'AI私人管家' : 'Yapay Zeka Asistanı'}
+                            {locale === 'en-US' ? 'Cappo AI' : locale === 'de-DE' ? 'Cappo KI' : locale === 'zh-CN' ? 'Cappo AI管家' : 'Cappo Asistan'}
                         </span>
                     </>
                 )}

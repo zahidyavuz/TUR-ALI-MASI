@@ -18,7 +18,7 @@ import {
 } from '../lib/notification-smart';
 import { checkTourReminders, checkWeatherAlerts, checkDiscountAlerts } from '../lib/notification-checks';
 import { getAllOfflineTickets } from '../lib/offline-db';
-import { TOUR_DATA } from '../lib/tours';
+import { fetchTours } from '../lib/tours';
 
 function loadNotifications(): AppNotification[] {
   if (typeof window === 'undefined') return [];
@@ -141,7 +141,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const tickets = await getAllOfflineTickets();
         const locations = [...new Set(tickets.map((t) => t.location).filter(Boolean))];
         if (locations.length === 0) {
-          const fallbackLocations = Object.values(TOUR_DATA).slice(0, 3).map((t: { location?: string }) => t.location).filter(Boolean) as string[];
+          const tourData: any = await fetchTours();
+          const fallbackLocations = Object.values(tourData).slice(0, 3).map((t: any) => t.location).filter(Boolean) as string[];
           locations.push(...fallbackLocations);
         }
         const weatherAlerts = await checkWeatherAlerts(locations);
@@ -154,7 +155,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const discountAlerts = checkDiscountAlerts();
+      const discountAlerts = await checkDiscountAlerts();
       for (const n of discountAlerts) {
         if (existingIds.has(n.id)) continue;
         if (!shouldShowNotification(n, currentPrefs)) continue;

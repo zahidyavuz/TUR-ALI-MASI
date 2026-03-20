@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { TOUR_DATA } from '../../lib/tours';
+import { fetchTours } from '../../lib/tours';
 
 type Props = {
     params: { slug: string };
@@ -8,7 +8,8 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Next.js params is potentially generic, so we force it to string
     const slug = (await params).slug;
-    const tour = TOUR_DATA[slug as keyof typeof TOUR_DATA];
+    const tourData: any = await fetchTours();
+    const tour = tourData[slug];
 
     if (!tour) {
         return {
@@ -43,7 +44,8 @@ export default async function TourLayout({
     params: Promise<{ slug: string }>;
 }) {
     const slug = (await params).slug;
-    const tour = TOUR_DATA[slug as keyof typeof TOUR_DATA];
+    const tourData: any = await fetchTours();
+    const tour = tourData[slug];
 
     const jsonLd = tour ? {
         "@context": "https://schema.org/",

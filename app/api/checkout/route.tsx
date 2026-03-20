@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
-import { TOUR_DATA } from '../../lib/tours';
+import { fetchTours } from '../../lib/tours';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_4eC39HqLyjWDarjtT1zdp7dc', {
     apiVersion: '2026-02-25.clover',
@@ -15,7 +15,8 @@ export async function POST(req: NextRequest) {
             throw new Error('Sistemde geçici bir hata oluştu. Lütfen tekrar deneyin.');
         }
 
-        const tour = TOUR_DATA[tourId as keyof typeof TOUR_DATA];
+        const tourData: any = await fetchTours();
+        const tour = tourData[tourId];
         if (!tour) throw new Error('Geçersiz tur seçimi');
 
         // Reserve Now, Pay Later logic -> We use payment mode with manual capture
