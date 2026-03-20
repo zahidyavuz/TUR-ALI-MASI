@@ -8,7 +8,7 @@ import type { OfflineTicket } from './offline-types';
 import { getWeatherAndDetectChange } from './notification-weather';
 import type { AppNotification } from './notification-types';
 import { STORAGE_KEYS } from './notification-types';
-import { TOUR_DATA } from './tours';
+import { fetchTours } from './tours';
 
 const TR_MONTHS: Record<string, number> = {
   ocak: 0, şubat: 1, mart: 2, nisan: 3, mayıs: 4, haziran: 5,
@@ -167,11 +167,14 @@ function canNotifyDiscount(tourId: string): boolean {
 }
 
 /** İndirimli turları kontrol et; en fazla 1 indirim bildirimi per run (akıllı, darlamaz). */
-export function checkDiscountAlerts(): AppNotification[] {
+export async function checkDiscountAlerts(): Promise<AppNotification[]> {
   const lastNotified = getDiscountLastNotified();
   const candidates: AppNotification[] = [];
 
-  for (const [slug, tour] of Object.entries(TOUR_DATA)) {
+  const tourData: any = await fetchTours();
+  const tourMap = tourData.map || {}; // Using the newly mapped Django format
+
+  for (const [slug, tour] of Object.entries(tourMap)) {
     const t = tour as { id: string; title: string; discount?: string };
     const discount = t.discount ?? '';
     if (!discount) continue;

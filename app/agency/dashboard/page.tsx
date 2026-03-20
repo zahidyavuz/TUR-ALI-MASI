@@ -1,27 +1,78 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import QRCode from 'react-qr-code';
+import { fetchAPI } from '../../lib/api';
+import { auth } from '../../lib/auth';
+import { useRouter } from 'next/navigation';
 
 export default function AgencyDashboard() {
+    const router = useRouter();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin'>('dashboard');
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-    // Mock Veriler
-    const stats = {
+    // API Veriler
+    const [stats, setStats] = useState({
         totalSales: '₺145.500',
         activeBookings: 24,
         pendingEarnings: '₺12.400'
-    };
+    });
 
-    const [bookings, setBookings] = useState([
-        { id: 'RES-001', customer: 'Ahmet Yılmaz', tour: 'Kapadokya Balon', date: '12 Nisan 2026', status: 'Ödendi', amount: '₺2.400', checkedIn: false },
-        { id: 'RES-002', customer: 'Ayşe Demir', tour: 'Büyük İtalya Turu', date: '18 Mayıs 2026', status: 'Bekliyor', amount: '₺18.150', checkedIn: false },
-        { id: 'RES-003', customer: 'John Doe', tour: 'Mavi Yolculuk', date: '05 Haziran 2026', status: 'Ödendi', amount: '₺8.500', checkedIn: true },
-        { id: 'RES-004', customer: 'Céline Dion', tour: 'İskandinav Fiyortları', date: '22 Temmuz 2026', status: 'İptal', amount: '₺22.800', checkedIn: false },
-    ]);
+    const [bookings, setBookings] = useState<any[]>([]);
 
+    // Auth & Formatlama Helpers
     const [selectedQR, setSelectedQR] = useState<string | null>(null);
+
+    useEffect(() => {
+        const fetchDashboardData = async () => {
+            setIsLoading(true);
+            try {
+                const token = auth.getAccessToken();
+                if (!token) {
+                    router.push('/login');
+                    return;
+                }
+
+                // Call Django endpoint for agency dashboard
+                const data = await fetchAPI('/agencies/dashboard/', {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+
+                // Update Stats
+                setStats({
+                    totalSales: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(data.metrics?.total_earnings || 0),
+                    activeBookings: data.metrics?.total_bookings || 0,
+                    pendingEarnings: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format((data.metrics?.total_earnings || 0) * 0.2) // varsayımsal hakediş
+                });
+
+                // Update Bookings
+                if (data.recent_bookings) {
+                    const mappedBookings = data.recent_bookings.map((b: any) => ({
+                        id: `RES-${b.id.toString().padStart(4, '0')}`,
+                        customer: b.user_email || 'Misafir',
+                        tour: b.tour_title,
+                        date: new Date(b.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        status: b.status === 'confirmed' ? 'Ödendi' : b.status === 'completed' ? 'Tamamlandı' : b.status === 'cancelled' ? 'İptal' : 'Bekliyor',
+                        amount: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(b.total_price),
+                        checkedIn: b.status === 'completed'
+                    }));
+                    setBookings(mappedBookings);
+                }
+            } catch (err: any) {
+                console.error('Failed to fetch agency dashboard:', err);
+                setError('Panel verileri yüklenirken bir sorun oluştu.');
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchDashboardData();
+    }, [router]);
 
     const handleDownloadVoucher = (id: string) => {
         alert(`${id} numaralı rezervasyonun bileti (voucher) indiriliyor...`);
@@ -126,7 +177,7 @@ export default function AgencyDashboard() {
                         </button>
                         <div className="flex items-center gap-3 pl-4 border-l border-gray-200 cursor-pointer">
                             <div className="text-right hidden sm:block">
-                                <p className="text-sm font-bold text-slate-800 leading-tight">Melih Acentası</p>
+                                <p className="text-sm font-bold text-slate-800 leading-tight">TourScanner Acentası</p>
                                 <p className="text-[11px] font-semibold text-blue-500 uppercase tracking-widest">Premium Partner</p>
                             </div>
                             <div className="w-10 h-10 rounded-full bg-indigo-100 border-2 border-indigo-200 flex items-center justify-center text-indigo-700 font-black">
@@ -139,571 +190,585 @@ export default function AgencyDashboard() {
                 {/* Tab Content */}
                 <div className="flex-1 overflow-y-auto p-4 md:p-8">
 
-                    {/* TAB: DASHBOARD */}
-                    {activeTab === 'dashboard' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* Dashboard Kartları */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-                                {/* Kart: Toplam Satış */}
-                                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition">
-                                    <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
-                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Toplam Satış</h3>
-                                        <div className="text-2xl font-black text-slate-800">{stats.totalSales}</div>
-                                    </div>
-                                </div>
-
-                                {/* Kart: Aktif Rezervasyonlar */}
-                                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition">
-                                    <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
-                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Aktif İşlemler</h3>
-                                        <div className="text-2xl font-black text-slate-800">{stats.activeBookings}</div>
-                                    </div>
-                                </div>
-
-                                {/* Kart: Bekleyen Hakediş */}
-                                <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 p-3 opacity-10">
-                                        <svg className="w-24 h-24 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
-                                    </div>
-                                    <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center shrink-0 relative z-10">
-                                        <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                    </div>
-                                    <div className="relative z-10">
-                                        <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Bekleyen Hakediş (₺)</h3>
-                                        <div className="text-2xl font-black text-slate-800">{stats.pendingEarnings}</div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Hızlı Tablo (Son Satışlar) */}
-                            <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                    <h3 className="text-lg font-extrabold text-slate-800">Son İşlemler</h3>
-                                    <button onClick={() => setActiveTab('bookings')} className="text-sm font-bold text-blue-500 hover:text-blue-600 transition">Tümünü Gör &rarr;</button>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider">
-                                                <th className="px-6 py-4 font-bold">Müşteri</th>
-                                                <th className="px-6 py-4 font-bold">Tur</th>
-                                                <th className="px-6 py-4 font-bold">Tutar</th>
-                                                <th className="px-6 py-4 font-bold text-right">Durum</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {bookings.slice(0, 3).map((item) => (
-                                                <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                                                    <td className="px-6 py-4 text-sm font-semibold text-slate-800">{item.customer}</td>
-                                                    <td className="px-6 py-4 text-sm font-medium text-slate-600">{item.tour}</td>
-                                                    <td className="px-6 py-4 text-sm font-bold text-slate-800">{item.amount}</td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${item.status === 'Ödendi' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
-                                                            }`}>
-                                                            {item.status}
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+                    {isLoading ? (
+                        <div className="flex flex-col items-center justify-center h-[50vh] text-slate-400 gap-4">
+                            <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
+                            <p className="font-bold">Veriler Yükleniyor...</p>
                         </div>
-                    )}
+                    ) : error ? (
+                        <div className="flex flex-col items-center justify-center h-[50vh] text-red-500 gap-4">
+                            <div className="text-4xl text-red-400">⚠️</div>
+                            <p className="font-bold">{error}</p>
+                            <button onClick={() => window.location.reload()} className="mt-2 text-blue-500 underline text-sm">Tekrar Dene</button>
+                        </div>
+                    ) : (
+                        <>
+                            {/* TAB: DASHBOARD */}
+                            {activeTab === 'dashboard' && (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    {/* Dashboard Kartları */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-                    {/* TAB: BOOKINGS (REZERvasyonlar Tablosu) */}
-                    {activeTab === 'bookings' && (
-                        <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col h-full min-h-[500px]">
-                            <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
-                                <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
-                                    <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                    Tüm Rezervasyonlar
-                                </h3>
-                                <div className="relative w-full sm:w-64">
-                                    <input type="text" placeholder="Müşteri veya PNR Ara..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition" />
-                                    <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                        {/* Kart: Toplam Satış */}
+                                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition">
+                                            <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
+                                                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Toplam Satış</h3>
+                                                <div className="text-2xl font-black text-slate-800">{stats.totalSales}</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Kart: Aktif Rezervasyonlar */}
+                                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition">
+                                            <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
+                                                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Aktif İşlemler</h3>
+                                                <div className="text-2xl font-black text-slate-800">{stats.activeBookings}</div>
+                                            </div>
+                                        </div>
+
+                                        {/* Kart: Bekleyen Hakediş */}
+                                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 p-3 opacity-10">
+                                                <svg className="w-24 h-24 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
+                                            </div>
+                                            <div className="w-14 h-14 rounded-2xl bg-orange-50 text-orange-500 flex items-center justify-center shrink-0 relative z-10">
+                                                <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                            </div>
+                                            <div className="relative z-10">
+                                                <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1">Bekleyen Hakediş (₺)</h3>
+                                                <div className="text-2xl font-black text-slate-800">{stats.pendingEarnings}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Hızlı Tablo (Son Satışlar) */}
+                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
+                                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                            <h3 className="text-lg font-extrabold text-slate-800">Son İşlemler</h3>
+                                            <button onClick={() => setActiveTab('bookings')} className="text-sm font-bold text-blue-500 hover:text-blue-600 transition">Tümünü Gör &rarr;</button>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider">
+                                                        <th className="px-6 py-4 font-bold">Müşteri</th>
+                                                        <th className="px-6 py-4 font-bold">Tur</th>
+                                                        <th className="px-6 py-4 font-bold">Tutar</th>
+                                                        <th className="px-6 py-4 font-bold text-right">Durum</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {bookings.slice(0, 3).map((item) => (
+                                                        <tr key={item.id} className="hover:bg-slate-50/50 transition">
+                                                            <td className="px-6 py-4 text-sm font-semibold text-slate-800">{item.customer}</td>
+                                                            <td className="px-6 py-4 text-sm font-medium text-slate-600">{item.tour}</td>
+                                                            <td className="px-6 py-4 text-sm font-bold text-slate-800">{item.amount}</td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${item.status === 'Ödendi' ? 'bg-emerald-100 text-emerald-700' : 'bg-orange-100 text-orange-700'
+                                                                    }`}>
+                                                                    {item.status}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="overflow-x-auto flex-1 p-2">
-                                <table className="w-full text-left border-collapse">
-                                    <thead>
-                                        <tr className="border-b-2 border-slate-100 text-xs text-gray-400 uppercase tracking-widest">
-                                            <th className="px-6 py-4 font-bold">PNR</th>
-                                            <th className="px-6 py-4 font-bold">Müşteri Detayı</th>
-                                            <th className="px-6 py-4 font-bold">Tur & Tarih</th>
-                                            <th className="px-6 py-4 font-bold text-center">QR Bilet</th>
-                                            <th className="px-6 py-4 font-bold">Durum</th>
-                                            <th className="px-6 py-4 font-bold text-right">İşlem</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody className="divide-y divide-gray-100">
-                                        {bookings.map((item) => (
-                                            <tr key={item.id} className="hover:bg-slate-50/80 transition-colors group">
-                                                <td className="px-6 py-5 text-xs font-black text-slate-500 uppercase">{item.id}</td>
-                                                <td className="px-6 py-5">
-                                                    <p className="text-sm font-bold text-slate-800">{item.customer}</p>
-                                                    <p className="text-xs text-slate-400 mt-0.5">Ahmet.y@gmail.com</p>
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <p className="text-sm font-bold text-slate-700">{item.tour}</p>
-                                                    <p className="text-xs text-blue-500 font-semibold mt-0.5">{item.date}</p>
-                                                </td>
-                                                <td className="px-6 py-5 text-center">
-                                                    {item.status !== 'İptal' ? (
-                                                        <button
-                                                            onClick={() => setSelectedQR(item.id)}
-                                                            className={`p-2 rounded-xl transition-all shadow-sm flex flex-col items-center justify-center gap-1 mx-auto ${item.checkedIn ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-white border border-gray-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'}`}
-                                                        >
-                                                            <QRCode value={`https://melihtours.com/checkin/${item.id}`} size={28} />
-                                                            <span className="text-[9px] font-black uppercase tracking-widest">{item.checkedIn ? 'GELDİ' : 'BİLET QR'}</span>
-                                                        </button>
-                                                    ) : (
-                                                        <span className="text-xs text-gray-400 font-semibold">-</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-5">
-                                                    <div className="flex flex-col gap-2 items-start">
-                                                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${item.status === 'Ödendi' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
-                                                            item.status === 'Bekliyor' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
-                                                                'bg-red-50 text-red-600 border border-red-100'
-                                                            }`}>
-                                                            {item.status}
-                                                        </span>
-                                                        {item.checkedIn && (
-                                                            <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-sm">
-                                                                ✓ Checked-In
-                                                            </span>
-                                                        )}
+                            {/* TAB: BOOKINGS (REZERvasyonlar Tablosu) */}
+                            {activeTab === 'bookings' && (
+                                <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col h-full min-h-[500px]">
+                                    <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
+                                        <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
+                                            <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+                                            Tüm Rezervasyonlar
+                                        </h3>
+                                        <div className="relative w-full sm:w-64">
+                                            <input type="text" placeholder="Müşteri veya PNR Ara..." className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:ring-1 focus:ring-blue-400 transition" />
+                                            <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                        </div>
+                                    </div>
+
+                                    <div className="overflow-x-auto flex-1 p-2">
+                                        <table className="w-full text-left border-collapse">
+                                            <thead>
+                                                <tr className="border-b-2 border-slate-100 text-xs text-gray-400 uppercase tracking-widest">
+                                                    <th className="px-6 py-4 font-bold">PNR</th>
+                                                    <th className="px-6 py-4 font-bold">Müşteri Detayı</th>
+                                                    <th className="px-6 py-4 font-bold">Tur & Tarih</th>
+                                                    <th className="px-6 py-4 font-bold text-center">QR Bilet</th>
+                                                    <th className="px-6 py-4 font-bold">Durum</th>
+                                                    <th className="px-6 py-4 font-bold text-right">İşlem</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100">
+                                                {bookings.map((item) => (
+                                                    <tr key={item.id} className="hover:bg-slate-50/80 transition-colors group">
+                                                        <td className="px-6 py-5 text-xs font-black text-slate-500 uppercase">{item.id}</td>
+                                                        <td className="px-6 py-5">
+                                                            <p className="text-sm font-bold text-slate-800">{item.customer}</p>
+                                                            <p className="text-xs text-slate-400 mt-0.5">Ahmet.y@gmail.com</p>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <p className="text-sm font-bold text-slate-700">{item.tour}</p>
+                                                            <p className="text-xs text-blue-500 font-semibold mt-0.5">{item.date}</p>
+                                                        </td>
+                                                        <td className="px-6 py-5 text-center">
+                                                            {item.status !== 'İptal' ? (
+                                                                <button
+                                                                    onClick={() => setSelectedQR(item.id)}
+                                                                    className={`p-2 rounded-xl transition-all shadow-sm flex flex-col items-center justify-center gap-1 mx-auto ${item.checkedIn ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-white border border-gray-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'}`}
+                                                                >
+                                                                    <QRCode value={`https://tourscanner.com/checkin/${item.id}`} size={28} />
+                                                                    <span className="text-[9px] font-black uppercase tracking-widest">{item.checkedIn ? 'GELDİ' : 'BİLET QR'}</span>
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-xs text-gray-400 font-semibold">-</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <div className="flex flex-col gap-2 items-start">
+                                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${item.status === 'Ödendi' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' :
+                                                                    item.status === 'Bekliyor' ? 'bg-orange-50 text-orange-600 border border-orange-100' :
+                                                                        'bg-red-50 text-red-600 border border-red-100'
+                                                                    }`}>
+                                                                    {item.status}
+                                                                </span>
+                                                                {item.checkedIn && (
+                                                                    <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-500 text-white shadow-sm">
+                                                                        ✓ Checked-In
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-5 text-right">
+                                                            <button
+                                                                onClick={() => handleDownloadVoucher(item.id)}
+                                                                className="bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ml-auto shadow-sm active:scale-95"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                                                                Voucher İndir
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* QR Modal */}
+                            {selectedQR && (
+                                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
+                                    <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative flex flex-col items-center animate-in zoom-in-95 duration-200">
+                                        <button onClick={() => setSelectedQR(null)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition">
+                                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
+                                        </button>
+
+                                        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-4">
+                                            <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
+                                        </div>
+                                        <h3 className="text-xl font-black text-slate-800 mb-1 text-center">Misafir Bilet QR Kodu</h3>
+                                        <p className="text-xs font-semibold text-gray-400 mb-6 text-center">PNR: {selectedQR}</p>
+
+                                        <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 mb-6 shadow-sm">
+                                            <QRCode value={`https://tourscanner.com/checkin/${selectedQR}`} size={200} />
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                setBookings(prev => prev.map(b => b.id === selectedQR ? { ...b, checkedIn: true } : b));
+                                                setSelectedQR(null);
+                                                alert(`${selectedQR} numaralı rezervasyon Check-in yapıldı (Rehber Simülasyonu)`);
+                                            }}
+                                            className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
+                                        >
+                                            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                            Rehber Olarak Okut & Onayla
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB: QUICK BOOK */}
+                            {activeTab === 'quick_book' && (
+                                <div className="max-w-4xl mx-auto bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="bg-[#0f172a] p-8 text-white relative overflow-hidden">
+                                        <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
+                                        <h2 className="text-2xl font-black mb-2 relative z-10">B2B Hızlı Satış Ekranı</h2>
+                                        <p className="text-slate-400 text-sm font-medium relative z-10">Müşteriniz yanındayken saniyeler içinde tur satışını gerçekleştirin ve PDF Voucher oluşturun.</p>
+                                    </div>
+
+                                    <form className="p-8 space-y-6" onSubmit={(e) => { e.preventDefault(); alert('Voucher oluşturuluyor...'); }}>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            {/* Tur & Tarih */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">Tur Detayları</h4>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-700 mb-1">Tur Seçimi <span className="text-red-500">*</span></label>
+                                                    <select className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800">
+                                                        <option>Kapadokya Balon Turu</option>
+                                                        <option>Büyük İtalya Turu</option>
+                                                        <option>Mavi Yolculuk - Fethiye</option>
+                                                        <option>Kıbrıs Tatili</option>
+                                                    </select>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-slate-700 mb-1">Tarih <span className="text-red-500">*</span></label>
+                                                        <input type="date" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800 uppercase" />
                                                     </div>
-                                                </td>
-                                                <td className="px-6 py-5 text-right">
-                                                    <button
-                                                        onClick={() => handleDownloadVoucher(item.id)}
-                                                        className="bg-white border border-gray-200 text-gray-600 hover:text-blue-600 hover:border-blue-300 hover:bg-blue-50 px-3 py-2 rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 ml-auto shadow-sm active:scale-95"
-                                                    >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                                                        Voucher İndir
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* QR Modal */}
-                    {selectedQR && (
-                        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-[99999] flex items-center justify-center p-4">
-                            <div className="bg-white rounded-[32px] p-8 max-w-sm w-full shadow-2xl relative flex flex-col items-center animate-in zoom-in-95 duration-200">
-                                <button onClick={() => setSelectedQR(null)} className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 transition">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
-                                </button>
-
-                                <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-4">
-                                    <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm14 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" /></svg>
-                                </div>
-                                <h3 className="text-xl font-black text-slate-800 mb-1 text-center">Misafir Bilet QR Kodu</h3>
-                                <p className="text-xs font-semibold text-gray-400 mb-6 text-center">PNR: {selectedQR}</p>
-
-                                <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 mb-6 shadow-sm">
-                                    <QRCode value={`https://melihtours.com/checkin/${selectedQR}`} size={200} />
-                                </div>
-
-                                <button
-                                    onClick={() => {
-                                        setBookings(prev => prev.map(b => b.id === selectedQR ? { ...b, checkedIn: true } : b));
-                                        setSelectedQR(null);
-                                        alert(`${selectedQR} numaralı rezervasyon Check-in yapıldı (Rehber Simülasyonu)`);
-                                    }}
-                                    className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-3.5 rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20"
-                                >
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                    Rehber Olarak Okut & Onayla
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB: QUICK BOOK */}
-                    {activeTab === 'quick_book' && (
-                        <div className="max-w-4xl mx-auto bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-                            <div className="bg-[#0f172a] p-8 text-white relative overflow-hidden">
-                                <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
-                                <h2 className="text-2xl font-black mb-2 relative z-10">B2B Hızlı Satış Ekranı</h2>
-                                <p className="text-slate-400 text-sm font-medium relative z-10">Müşteriniz yanındayken saniyeler içinde tur satışını gerçekleştirin ve PDF Voucher oluşturun.</p>
-                            </div>
-
-                            <form className="p-8 space-y-6" onSubmit={(e) => { e.preventDefault(); alert('Voucher oluşturuluyor...'); }}>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {/* Tur & Tarih */}
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">Tur Detayları</h4>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1">Tur Seçimi <span className="text-red-500">*</span></label>
-                                            <select className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800">
-                                                <option>Kapadokya Balon Turu</option>
-                                                <option>Büyük İtalya Turu</option>
-                                                <option>Mavi Yolculuk - Fethiye</option>
-                                                <option>Kıbrıs Tatili</option>
-                                            </select>
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 mb-1">Tarih <span className="text-red-500">*</span></label>
-                                                <input type="date" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800 uppercase" />
+                                                    <div>
+                                                        <label className="block text-sm font-bold text-slate-700 mb-1">Kişi Sayısı <span className="text-red-500">*</span></label>
+                                                        <input type="number" min="1" defaultValue="1" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800 [&::-webkit-inner-spin-button]:appearance-none text-center" />
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <label className="block text-sm font-bold text-slate-700 mb-1">Kişi Sayısı <span className="text-red-500">*</span></label>
-                                                <input type="number" min="1" defaultValue="1" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800 [&::-webkit-inner-spin-button]:appearance-none text-center" />
+
+                                            {/* Müşteri Bilgileri */}
+                                            <div className="space-y-4">
+                                                <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">Müşteri Bilgileri</h4>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-700 mb-1">Ad Soyad (Misafir 1) <span className="text-red-500">*</span></label>
+                                                    <input type="text" placeholder="Örn: Ahmet Yılmaz" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800" />
+                                                </div>
+                                                <div>
+                                                    <label className="block text-sm font-bold text-slate-700 mb-1">İletişim Numarası <span className="text-red-500">*</span></label>
+                                                    <input type="tel" placeholder="+90 555 555 55 55" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800" />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
 
-                                    {/* Müşteri Bilgileri */}
-                                    <div className="space-y-4">
-                                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-2">Müşteri Bilgileri</h4>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1">Ad Soyad (Misafir 1) <span className="text-red-500">*</span></label>
-                                            <input type="text" placeholder="Örn: Ahmet Yılmaz" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800" />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-bold text-slate-700 mb-1">İletişim Numarası <span className="text-red-500">*</span></label>
-                                            <input type="tel" placeholder="+90 555 555 55 55" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800" />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Alt Bölüm */}
-                                <div className="pt-6 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
-                                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 w-full md:w-auto">
-                                        <div className="flex-1">
-                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">Net Acenta Fiyatı</span>
-                                            <span className="text-2xl font-black text-slate-800 leading-none">₺2.400</span>
-                                        </div>
-                                        <div className="h-10 w-px bg-emerald-200"></div>
-                                        <div className="flex-1 pl-2">
-                                            <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">Kazanılacak Hakediş</span>
-                                            <span className="text-lg font-black text-emerald-600 leading-none">+₺240</span>
-                                        </div>
-                                    </div>
-
-                                    <button type="submit" className="w-full md:w-auto px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
-                                        Rezervasyonu Tamamla & Voucher Kes
-                                    </button>
-                                </div>
-
-                            </form>
-                        </div>
-                    )}
-
-                    {/* TAB: FINANCE */}
-                    {activeTab === 'finance' && (
-                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* Cüzdan ve Ödeme Talebi */}
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div className="bg-gradient-to-br from-[#0f172a] to-slate-800 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
-                                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20 -mr-20 -mt-20"></div>
-                                    <div className="relative z-10 flex flex-col h-full justify-between">
-                                        <div className="flex items-center justify-between mb-8">
-                                            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                                                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                Hakediş Cüzdanı
-                                            </h3>
-                                            <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-500/30">Aktif</span>
-                                        </div>
-                                        <div>
-                                            <p className="text-[11px] text-slate-400 font-semibold mb-1">Çekilebilir Bakiye</p>
-                                            <p className="text-5xl font-black tracking-tight">{stats.pendingEarnings}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col justify-center">
-                                    <h3 className="text-lg font-extrabold text-slate-800 mb-2">Ödeme Talebi Oluştur</h3>
-                                    <p className="text-sm text-gray-500 font-medium mb-6">Mevcut bakiyeniz minimum ödeme eşiği olan <strong className="text-slate-700">₺5.000</strong>'nin üzerinde olduğu için hemen banka hesabınıza transfer talep edebilirsiniz.</p>
-
-                                    <button
-                                        onClick={() => alert('Ödeme talebiniz finans departmanımıza iletildi. Proforma faturanız oluşturuluyor...')}
-                                        className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 self-start flex items-center gap-3"
-                                    >
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                        Hemen Ödeme İste
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Proforma Fatura ve Geçmiş Tablosu */}
-                            <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden mt-6">
-                                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                    <h3 className="text-lg font-extrabold text-slate-800">Proforma Faturalar & Ödeme Geçmişi</h3>
-                                </div>
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-left border-collapse">
-                                        <thead>
-                                            <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider border-b-2 border-slate-100">
-                                                <th className="px-6 py-4 font-bold">Fatura No</th>
-                                                <th className="px-6 py-4 font-bold">Tarih</th>
-                                                <th className="px-6 py-4 font-bold">Tutar</th>
-                                                <th className="px-6 py-4 font-bold">Durum</th>
-                                                <th className="px-6 py-4 font-bold text-right">Aksiyon</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-gray-100">
-                                            {[
-                                                { no: 'PRF-2026-081', date: '25 Şubat 2026', amount: '₺24.500', status: 'Ödendi' },
-                                                { no: 'PRF-2026-042', date: '10 Ocak 2026', amount: '₺18.200', status: 'Ödendi' },
-                                                { no: 'PRF-2025-419', date: '15 Kasım 2025', amount: '₺42.000', status: 'Ödendi' },
-                                            ].map((inv) => (
-                                                <tr key={inv.no} className="hover:bg-slate-50/50 transition">
-                                                    <td className="px-6 py-4 text-sm font-black text-slate-600">{inv.no}</td>
-                                                    <td className="px-6 py-4 text-sm font-semibold text-slate-500">{inv.date}</td>
-                                                    <td className="px-6 py-4 text-sm font-black text-slate-800">{inv.amount}</td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">✓ {inv.status}</span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right">
-                                                        <button className="text-xs font-bold text-blue-600 hover:text-blue-800 underline transition cursor-pointer">PDF İndir</button>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB: DEALS (KAMPANYALAR) */}
-                    {activeTab === 'deals' && (
-                        <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            {/* Haftanın Fırsatı Banner */}
-                            <div className="relative w-full rounded-[32px] overflow-hidden shadow-2xl bg-slate-900 group cursor-pointer" onClick={() => alert('Kampanya detayları yükleniyor...')}>
-                                <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/20 rounded-full blur-3xl mix-blend-overlay"></div>
-                                <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
-                                    <div className="text-left">
-                                        <span className="inline-block px-4 py-1.5 bg-white text-orange-600 text-[10px] font-black uppercase tracking-widest rounded-full mb-4 shadow-sm animate-pulse">B2B Haftanın Fırsatı 🔥</span>
-                                        <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-2">Kapadokya VIP Balon</h2>
-                                        <p className="text-orange-100 font-medium text-sm md:text-base max-w-xl">
-                                            Sadece size özel! Bu hafta yapacağınız her "Kapadokya VIP Balon" rezervasyonunda net alış fiyatı üzerinden <strong className="text-white">%15 EK KOMİSYON</strong> kazanın.
-                                        </p>
-                                    </div>
-                                    <div className="shrink-0">
-                                        <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center shadow-inner">
-                                            <p className="text-[10px] font-black text-orange-200 uppercase tracking-widest mb-1">Acenta Net Fiyatı</p>
-                                            <div className="flex items-end justify-center gap-2">
-                                                <span className="text-lg text-white/50 line-through font-bold">₺4.000</span>
-                                                <span className="text-4xl font-black text-white">₺3.400</span>
+                                        {/* Alt Bölüm */}
+                                        <div className="pt-6 border-t border-gray-100 flex flex-col md:flex-row items-center justify-between gap-4">
+                                            <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-center gap-4 w-full md:w-auto">
+                                                <div className="flex-1">
+                                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">Net Acenta Fiyatı</span>
+                                                    <span className="text-2xl font-black text-slate-800 leading-none">₺2.400</span>
+                                                </div>
+                                                <div className="h-10 w-px bg-emerald-200"></div>
+                                                <div className="flex-1 pl-2">
+                                                    <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest block">Kazanılacak Hakediş</span>
+                                                    <span className="text-lg font-black text-emerald-600 leading-none">+₺240</span>
+                                                </div>
                                             </div>
-                                            <button className="mt-4 w-full bg-white text-orange-600 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform active:scale-95 shadow-md">
-                                                Hemen Satış Yap
+
+                                            <button type="submit" className="w-full md:w-auto px-10 py-4 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-1">
+                                                Rezervasyonu Tamamla & Voucher Kes
+                                            </button>
+                                        </div>
+
+                                    </form>
+                                </div>
+                            )}
+
+                            {/* TAB: FINANCE */}
+                            {activeTab === 'finance' && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    {/* Cüzdan ve Ödeme Talebi */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-gradient-to-br from-[#0f172a] to-slate-800 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20 -mr-20 -mt-20"></div>
+                                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        Hakediş Cüzdanı
+                                                    </h3>
+                                                    <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-500/30">Aktif</span>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[11px] text-slate-400 font-semibold mb-1">Çekilebilir Bakiye</p>
+                                                    <p className="text-5xl font-black tracking-tight">{stats.pendingEarnings}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col justify-center">
+                                            <h3 className="text-lg font-extrabold text-slate-800 mb-2">Ödeme Talebi Oluştur</h3>
+                                            <p className="text-sm text-gray-500 font-medium mb-6">Mevcut bakiyeniz minimum ödeme eşiği olan <strong className="text-slate-700">₺5.000</strong>'nin üzerinde olduğu için hemen banka hesabınıza transfer talep edebilirsiniz.</p>
+
+                                            <button
+                                                onClick={() => alert('Ödeme talebiniz finans departmanımıza iletildi. Proforma faturanız oluşturuluyor...')}
+                                                className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 self-start flex items-center gap-3"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                Hemen Ödeme İste
                                             </button>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
 
-                            {/* Diğer B2B Fırsatları */}
-                            <div>
-                                <h3 className="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
-                                    <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" /></svg>
-                                    Aktif Acenta Promosyonları
-                                </h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-
-                                    {/* Promosyon Kartı 1 */}
-                                    <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-xl transition-shadow relative">
-                                        <div className="absolute top-4 right-4 z-10 bg-green-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-widest">3 Al 2 Öde</div>
-                                        <div className="h-40 bg-slate-200 relative overflow-hidden">
-                                            <Image
-                                                src="https://images.unsplash.com/photo-1516483638261-f40af5bea098?fit=crop&w=600&q=80"
-                                                alt="Roma"
-                                                fill
-                                                className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
-                                                sizes="(max-width: 768px) 100vw, 33vw"
-                                            />
+                                    {/* Proforma Fatura ve Geçmiş Tablosu */}
+                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden mt-6">
+                                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                            <h3 className="text-lg font-extrabold text-slate-800">Proforma Faturalar & Ödeme Geçmişi</h3>
                                         </div>
-                                        <div className="p-6 flex flex-col flex-1">
-                                            <h4 className="font-extrabold text-lg text-slate-800 mb-2">Büyük İtalya Turu</h4>
-                                            <p className="text-sm font-medium text-gray-500 mb-4 line-clamp-2">Tek seferde yapılacak 3 kişilik rezervasyonlarda 1 kişi bedava!</p>
-                                            <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Normal Satış</p>
-                                                    <p className="text-sm font-bold text-slate-800">₺18.150 <span className="text-xs font-semibold text-gray-400">/kişi</span></p>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider border-b-2 border-slate-100">
+                                                        <th className="px-6 py-4 font-bold">Fatura No</th>
+                                                        <th className="px-6 py-4 font-bold">Tarih</th>
+                                                        <th className="px-6 py-4 font-bold">Tutar</th>
+                                                        <th className="px-6 py-4 font-bold">Durum</th>
+                                                        <th className="px-6 py-4 font-bold text-right">Aksiyon</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {[
+                                                        { no: 'PRF-2026-081', date: '25 Şubat 2026', amount: '₺24.500', status: 'Ödendi' },
+                                                        { no: 'PRF-2026-042', date: '10 Ocak 2026', amount: '₺18.200', status: 'Ödendi' },
+                                                        { no: 'PRF-2025-419', date: '15 Kasım 2025', amount: '₺42.000', status: 'Ödendi' },
+                                                    ].map((inv) => (
+                                                        <tr key={inv.no} className="hover:bg-slate-50/50 transition">
+                                                            <td className="px-6 py-4 text-sm font-black text-slate-600">{inv.no}</td>
+                                                            <td className="px-6 py-4 text-sm font-semibold text-slate-500">{inv.date}</td>
+                                                            <td className="px-6 py-4 text-sm font-black text-slate-800">{inv.amount}</td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">✓ {inv.status}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <button className="text-xs font-bold text-blue-600 hover:text-blue-800 underline transition cursor-pointer">PDF İndir</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB: DEALS (KAMPANYALAR) */}
+                            {activeTab === 'deals' && (
+                                <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    {/* Haftanın Fırsatı Banner */}
+                                    <div className="relative w-full rounded-[32px] overflow-hidden shadow-2xl bg-slate-900 group cursor-pointer" onClick={() => alert('Kampanya detayları yükleniyor...')}>
+                                        <div className="absolute inset-0 bg-gradient-to-r from-orange-600 to-red-600 opacity-90 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                        <div className="absolute -right-20 -top-20 w-64 h-64 bg-white/20 rounded-full blur-3xl mix-blend-overlay"></div>
+                                        <div className="relative z-10 p-8 md:p-12 flex flex-col md:flex-row items-center justify-between gap-6">
+                                            <div className="text-left">
+                                                <span className="inline-block px-4 py-1.5 bg-white text-orange-600 text-[10px] font-black uppercase tracking-widest rounded-full mb-4 shadow-sm animate-pulse">B2B Haftanın Fırsatı 🔥</span>
+                                                <h2 className="text-3xl md:text-5xl font-black text-white leading-tight mb-2">Kapadokya VIP Balon</h2>
+                                                <p className="text-orange-100 font-medium text-sm md:text-base max-w-xl">
+                                                    Sadece size özel! Bu hafta yapacağınız her "Kapadokya VIP Balon" rezervasyonunda net alış fiyatı üzerinden <strong className="text-white">%15 EK KOMİSYON</strong> kazanın.
+                                                </p>
+                                            </div>
+                                            <div className="shrink-0">
+                                                <div className="bg-white/10 backdrop-blur-md border border-white/20 rounded-2xl p-6 text-center shadow-inner">
+                                                    <p className="text-[10px] font-black text-orange-200 uppercase tracking-widest mb-1">Acenta Net Fiyatı</p>
+                                                    <div className="flex items-end justify-center gap-2">
+                                                        <span className="text-lg text-white/50 line-through font-bold">₺4.000</span>
+                                                        <span className="text-4xl font-black text-white">₺3.400</span>
+                                                    </div>
+                                                    <button className="mt-4 w-full bg-white text-orange-600 py-3 rounded-xl font-bold text-sm hover:scale-105 transition-transform active:scale-95 shadow-md">
+                                                        Hemen Satış Yap
+                                                    </button>
                                                 </div>
-                                                <button onClick={() => setActiveTab('quick_book')} className="bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">Satış Yap</button>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Promosyon Kartı 2 */}
-                                    <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-xl transition-shadow relative">
-                                        <div className="absolute top-4 right-4 z-10 bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-widest">Grup İndirimi</div>
-                                        <div className="h-40 bg-slate-200 relative overflow-hidden">
-                                            <Image
-                                                src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?fit=crop&w=600&q=80"
-                                                alt="Japonya"
-                                                fill
-                                                className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
-                                                sizes="(max-width: 768px) 100vw, 33vw"
-                                            />
-                                        </div>
-                                        <div className="p-6 flex flex-col flex-1">
-                                            <h4 className="font-extrabold text-lg text-slate-800 mb-2">Japonya Sakura Dönemi</h4>
-                                            <p className="text-sm font-medium text-gray-500 mb-4 line-clamp-2">10 kişi ve üzeri grup satışlarında anında ₺15.000 ekstra nakit bonus.</p>
-                                            <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
-                                                <div>
-                                                    <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Normal Satış</p>
-                                                    <p className="text-sm font-bold text-slate-800">₺45.000 <span className="text-xs font-semibold text-gray-400">/kişi</span></p>
+                                    {/* Diğer B2B Fırsatları */}
+                                    <div>
+                                        <h3 className="text-xl font-extrabold text-slate-800 mb-6 flex items-center gap-2">
+                                            <svg className="w-6 h-6 text-green-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M7 11.5V14m0-2.5v-6a1.5 1.5 0 113 0m-3 6a1.5 1.5 0 00-3 0v2a7.5 7.5 0 0015 0v-5a1.5 1.5 0 00-3 0m-6-3V11m0-5.5v-1a1.5 1.5 0 013 0v1m0 0V11m0-5.5a1.5 1.5 0 013 0v3m0 0V11" /></svg>
+                                            Aktif Acenta Promosyonları
+                                        </h3>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+                                            {/* Promosyon Kartı 1 */}
+                                            <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-xl transition-shadow relative">
+                                                <div className="absolute top-4 right-4 z-10 bg-green-500 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-widest">3 Al 2 Öde</div>
+                                                <div className="h-40 bg-slate-200 relative overflow-hidden">
+                                                    <Image
+                                                        src="https://images.unsplash.com/photo-1516483638261-f40af5bea098?fit=crop&w=600&q=80"
+                                                        alt="Roma"
+                                                        fill
+                                                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
+                                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                                    />
                                                 </div>
-                                                <button onClick={() => setActiveTab('quick_book')} className="bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">Satış Yap</button>
+                                                <div className="p-6 flex flex-col flex-1">
+                                                    <h4 className="font-extrabold text-lg text-slate-800 mb-2">Büyük İtalya Turu</h4>
+                                                    <p className="text-sm font-medium text-gray-500 mb-4 line-clamp-2">Tek seferde yapılacak 3 kişilik rezervasyonlarda 1 kişi bedava!</p>
+                                                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Normal Satış</p>
+                                                            <p className="text-sm font-bold text-slate-800">₺18.150 <span className="text-xs font-semibold text-gray-400">/kişi</span></p>
+                                                        </div>
+                                                        <button onClick={() => setActiveTab('quick_book')} className="bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">Satış Yap</button>
+                                                    </div>
+                                                </div>
                                             </div>
+
+                                            {/* Promosyon Kartı 2 */}
+                                            <div className="bg-white rounded-[24px] border border-gray-100 shadow-sm overflow-hidden flex flex-col group hover:shadow-xl transition-shadow relative">
+                                                <div className="absolute top-4 right-4 z-10 bg-blue-600 text-white text-[10px] font-black px-3 py-1 rounded-full shadow-md uppercase tracking-widest">Grup İndirimi</div>
+                                                <div className="h-40 bg-slate-200 relative overflow-hidden">
+                                                    <Image
+                                                        src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?fit=crop&w=600&q=80"
+                                                        alt="Japonya"
+                                                        fill
+                                                        className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
+                                                        sizes="(max-width: 768px) 100vw, 33vw"
+                                                    />
+                                                </div>
+                                                <div className="p-6 flex flex-col flex-1">
+                                                    <h4 className="font-extrabold text-lg text-slate-800 mb-2">Japonya Sakura Dönemi</h4>
+                                                    <p className="text-sm font-medium text-gray-500 mb-4 line-clamp-2">10 kişi ve üzeri grup satışlarında anında ₺15.000 ekstra nakit bonus.</p>
+                                                    <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-[10px] uppercase font-black tracking-widest text-slate-400">Normal Satış</p>
+                                                            <p className="text-sm font-bold text-slate-800">₺45.000 <span className="text-xs font-semibold text-gray-400">/kişi</span></p>
+                                                        </div>
+                                                        <button onClick={() => setActiveTab('quick_book')} className="bg-[#0f172a] hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition">Satış Yap</button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB: PROFILE */}
+                            {activeTab === 'profile' && (
+                                <div className="max-w-3xl mx-auto bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="p-8 border-b border-gray-100 flex items-center gap-6">
+                                        <div className="relative group cursor-pointer">
+                                            <div className="w-24 h-24 rounded-2xl bg-slate-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:border-blue-300 group-hover:text-blue-500 transition overflow-hidden">
+                                                <svg className="w-8 h-8 mb-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                                <span className="text-[10px] font-bold">Logo Yükle</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-xl font-bold text-slate-800">TourScanner Acentası (Premium)</h3>
+                                            <p className="text-sm text-gray-400 font-medium">B2B ID: #AGT-902144</p>
                                         </div>
                                     </div>
 
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                                    <div className="p-8 space-y-6">
 
-                    {/* TAB: PROFILE */}
-                    {activeTab === 'profile' && (
-                        <div className="max-w-3xl mx-auto bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="p-8 border-b border-gray-100 flex items-center gap-6">
-                                <div className="relative group cursor-pointer">
-                                    <div className="w-24 h-24 rounded-2xl bg-slate-100 border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-gray-400 group-hover:bg-blue-50 group-hover:border-blue-300 group-hover:text-blue-500 transition overflow-hidden">
-                                        <svg className="w-8 h-8 mb-1" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                        <span className="text-[10px] font-bold">Logo Yükle</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold text-slate-800">Melih Acentası (Premium)</h3>
-                                    <p className="text-sm text-gray-400 font-medium">B2B ID: #AGT-902144</p>
-                                </div>
-                            </div>
-
-                            <div className="p-8 space-y-6">
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Firma / Acenta Ünvanı</label>
-                                        <input type="text" defaultValue="Melih Turizm Seyahat Acentası Bilişim Tic. Ltd. Şti." className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 text-sm font-medium text-slate-800" readOnly />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">TÜRSAB Belge No</label>
-                                        <input type="text" defaultValue="14552" className="w-full border-2 border-emerald-500/30 rounded-xl px-4 py-3 bg-emerald-50 text-sm font-bold text-emerald-700" readOnly />
-                                        <span className="text-[10px] text-emerald-600 font-bold mt-1 block">✓ Elektronik olarak doğrulandı</span>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Vergi Dairesi</label>
-                                        <input type="text" defaultValue="Marmara Kurumlar V.D." className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Vergi Kimlik No (VKN)</label>
-                                        <input type="text" defaultValue="5551234567" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
-                                    </div>
-                                </div>
-
-                                <div className="pt-4 border-t border-gray-100">
-                                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">İrtibat E-Posta Adresi</label>
-                                    <input type="email" defaultValue="iletisim@melihturizm.com" className="w-full md:w-1/2 border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
-                                </div>
-
-                                <div className="pt-6 text-right">
-                                    <button className="px-8 py-3 bg-[#0f172a] hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-colors">
-                                        Bilgilerimi Güncelle
-                                    </button>
-                                </div>
-
-                            </div>
-                        </div>
-                    )}
-
-                    {/* TAB: BLOG ADMIN / CMS */}
-                    {activeTab === 'blog_admin' && (
-                        <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
-                                <div>
-                                    <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
-                                        <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
-                                        Yazı Yöneticisi (CMS)
-                                    </h3>
-                                    <p className="text-sm text-gray-400 font-medium mt-1">SEO odaklı yeni bir makale veya rehber oluşturun.</p>
-                                </div>
-                                <button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-all shadow-[0_4px_15px_rgba(79,70,229,0.3)]">
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                    Yeni Yazı Taslağı
-                                </button>
-                            </div>
-
-                            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                                <div className="lg:col-span-2 space-y-6">
-                                    {/* Editör Alanı */}
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Başlık</label>
-                                        <input type="text" placeholder="Örn: 2026 Yazının En Gözde 5 Tatil Rotası" className="w-full border-2 border-gray-100 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 transition text-lg font-black text-slate-800 placeholder-gray-300" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex justify-between">
-                                            <span>İçerik (Markdown Destekli)</span>
-                                            <span className="text-indigo-500 cursor-pointer">+ Görsel / Medya Ekle</span>
-                                        </label>
-                                        <textarea rows={15} placeholder="## Giriş&#10;Yazınıza buradan başlayın. Kalın yapmak için **yazı**, link için [Link Text](url) kullanabilirsiniz." className="w-full border border-gray-200 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition text-sm font-medium text-slate-700 leading-relaxed font-mono resize-y"></textarea>
-                                    </div>
-                                </div>
-
-                                <div className="space-y-6">
-                                    {/* SEO & Meta Ayarları */}
-                                    <div className="bg-slate-50 border border-gray-100 rounded-2xl p-6">
-                                        <h4 className="font-bold text-slate-800 border-b border-gray-200 pb-3 mb-4 flex items-center gap-2">
-                                            <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                            SEO Verileri
-                                        </h4>
-                                        <div className="space-y-4">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Kategori</label>
-                                                <select className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
-                                                    <option>Rehberler</option>
-                                                    <option>Gurme</option>
-                                                    <option>Vize İşlemleri</option>
-                                                    <option>Acenta Haberleri</option>
-                                                </select>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Firma / Acenta Ünvanı</label>
+                                                <input type="text" defaultValue="TourScanner Seyahat Acentası Bilişim Tic. Ltd. Şti." className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 text-sm font-medium text-slate-800" readOnly />
                                             </div>
                                             <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Müşteri Yönlendirme (CTA) Turu</label>
-                                                <select className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
-                                                    <option value="kapadokya">Kapadokya Balon (Önerilen)</option>
-                                                    <option value="buyuk-italya">Büyük İtalya Turu</option>
-                                                    <option value="maldivler-ruyasi">Maldivler</option>
-                                                </select>
-                                                <p className="text-[10px] font-semibold text-gray-400 mt-1">Yazının sonuna 'Hemen İncele' butonu koyar.</p>
-                                            </div>
-                                            <div>
-                                                <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Kapak Fotoğrafı URL</label>
-                                                <input type="text" placeholder="https://unsplash..." className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none" />
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">TÜRSAB Belge No</label>
+                                                <input type="text" defaultValue="14552" className="w-full border-2 border-emerald-500/30 rounded-xl px-4 py-3 bg-emerald-50 text-sm font-bold text-emerald-700" readOnly />
+                                                <span className="text-[10px] text-emerald-600 font-bold mt-1 block">✓ Elektronik olarak doğrulandı</span>
                                             </div>
                                         </div>
-                                        <button className="w-full mt-6 bg-slate-800 hover:bg-black text-white px-4 py-3 rounded-xl font-bold text-sm shadow-md transition-colors">Yazıyı Yayımla 🚀</button>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-100">
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Vergi Dairesi</label>
+                                                <input type="text" defaultValue="Marmara Kurumlar V.D." className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Vergi Kimlik No (VKN)</label>
+                                                <input type="text" defaultValue="5551234567" className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
+                                            </div>
+                                        </div>
+
+                                        <div className="pt-4 border-t border-gray-100">
+                                            <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">İrtibat E-Posta Adresi</label>
+                                            <input type="email" defaultValue="iletisim@tourscanner.com" className="w-full md:w-1/2 border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
+                                        </div>
+
+                                        <div className="pt-6 text-right">
+                                            <button className="px-8 py-3 bg-[#0f172a] hover:bg-slate-800 text-white font-bold rounded-xl shadow-md transition-colors">
+                                                Bilgilerimi Güncelle
+                                            </button>
+                                        </div>
+
                                     </div>
                                 </div>
-                            </div>
-                        </div>
-                    )}
+                            )}
 
+                            {/* TAB: BLOG ADMIN / CMS */}
+                            {activeTab === 'blog_admin' && (
+                                <div className="bg-white rounded-[32px] shadow-sm border border-gray-100 p-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="flex justify-between items-center mb-8 pb-4 border-b border-gray-100">
+                                        <div>
+                                            <h3 className="text-xl font-black text-slate-800 flex items-center gap-2">
+                                                <svg className="w-6 h-6 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                                                Yazı Yöneticisi (CMS)
+                                            </h3>
+                                            <p className="text-sm text-gray-400 font-medium mt-1">SEO odaklı yeni bir makale veya rehber oluşturun.</p>
+                                        </div>
+                                        <button className="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2.5 px-6 rounded-xl flex items-center gap-2 transition-all shadow-[0_4px_15px_rgba(79,70,229,0.3)]">
+                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                            Yeni Yazı Taslağı
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                                        <div className="lg:col-span-2 space-y-6">
+                                            {/* Editör Alanı */}
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Başlık</label>
+                                                <input type="text" placeholder="Örn: 2026 Yazının En Gözde 5 Tatil Rotası" className="w-full border-2 border-gray-100 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 transition text-lg font-black text-slate-800 placeholder-gray-300" />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex justify-between">
+                                                    <span>İçerik (Markdown Destekli)</span>
+                                                    <span className="text-indigo-500 cursor-pointer">+ Görsel / Medya Ekle</span>
+                                                </label>
+                                                <textarea rows={15} placeholder="## Giriş&#10;Yazınıza buradan başlayın. Kalın yapmak için **yazı**, link için [Link Text](url) kullanabilirsiniz." className="w-full border border-gray-200 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition text-sm font-medium text-slate-700 leading-relaxed font-mono resize-y"></textarea>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-6">
+                                            {/* SEO & Meta Ayarları */}
+                                            <div className="bg-slate-50 border border-gray-100 rounded-2xl p-6">
+                                                <h4 className="font-bold text-slate-800 border-b border-gray-200 pb-3 mb-4 flex items-center gap-2">
+                                                    <svg className="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                                    SEO Verileri
+                                                </h4>
+                                                <div className="space-y-4">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Kategori</label>
+                                                        <select className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
+                                                            <option>Rehberler</option>
+                                                            <option>Gurme</option>
+                                                            <option>Vize İşlemleri</option>
+                                                            <option>Acenta Haberleri</option>
+                                                        </select>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Müşteri Yönlendirme (CTA) Turu</label>
+                                                        <select className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
+                                                            <option value="kapadokya">Kapadokya Balon (Önerilen)</option>
+                                                            <option value="buyuk-italya">Büyük İtalya Turu</option>
+                                                            <option value="maldivler-ruyasi">Maldivler</option>
+                                                        </select>
+                                                        <p className="text-[10px] font-semibold text-gray-400 mt-1">Yazının sonuna 'Hemen İncele' butonu koyar.</p>
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Kapak Fotoğrafı URL</label>
+                                                        <input type="text" placeholder="https://unsplash..." className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none" />
+                                                    </div>
+                                                </div>
+                                                <button className="w-full mt-6 bg-slate-800 hover:bg-black text-white px-4 py-3 rounded-xl font-bold text-sm shadow-md transition-colors">Yazıyı Yayımla 🚀</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </>
+                    )}
                 </div>
             </main>
 

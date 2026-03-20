@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Melih Tours | Global Seyahat & Acenta Platformu",
+  title: "TourScanner | Global Seyahat & Acenta Platformu",
   description: "Türkiye'nin dünyaya açılan, Yandex ve Baidu uyumlu global seyahat platformu. Kapadokya, İtalya, Maldivler ve daha fazlası.",
   verification: {
     google: "google-site-verification-code",
@@ -32,6 +32,7 @@ import { CurrencyProvider } from "./context/CurrencyContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { GeofenceProvider } from "./context/GeofenceContext";
+import { AuthProvider } from "./context/AuthContext";
 import GeofenceBanner from "./components/GeofenceBanner";
 
 export default function RootLayout({
@@ -57,13 +58,15 @@ export default function RootLayout({
         <div id="google_translate_element" style={{ display: 'none' }}></div>
         <CurrencyProvider>
           <LocaleProvider>
-            <NotificationProvider>
-              <GeofenceProvider>
-                {children}
-                <GeofenceBanner />
-                <Chatbot />
-              </GeofenceProvider>
-            </NotificationProvider>
+            <AuthProvider>
+              <NotificationProvider>
+                <GeofenceProvider>
+                  {children}
+                  <GeofenceBanner />
+                  <Chatbot />
+                </GeofenceProvider>
+              </NotificationProvider>
+            </AuthProvider>
           </LocaleProvider>
         </CurrencyProvider>
 

@@ -37,7 +37,7 @@ export default function BlogKuzeyIsiklari() {
                     <div className="flex items-center gap-4 text-slate-300 text-sm font-medium">
                         <span className="flex items-center gap-1.5">
                             <svg width="16" height="16" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" /></svg>
-                            Melih Editör Ekibi
+                            TourScanner Editör Ekibi
                         </span>
                         <span>•</span>
                         <span>Okuma Süresi: 4 Dk</span>

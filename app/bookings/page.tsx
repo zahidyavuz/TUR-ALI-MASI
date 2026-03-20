@@ -1,53 +1,134 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-
-// Örnek Bilet Verileri (Database'den geliyormuş gibi)
-const MOCK_TICKETS = {
-    upcoming: [
-        {
-            id: 'TKT-89301A',
-            title: 'Kapadokya Balon & Peri Bacaları Turu',
-            date: '15 Mart 2026',
-            time: '04:30 AM',
-            status: 'Onaylandı',
-            statusColor: 'text-green-600 bg-green-50 border-green-200',
-            image: 'https://images.unsplash.com/photo-1642320008433-286a512c1fb3?auto=format&fit=crop&q=80',
-            qrLink: '/offline-tickets/kapadokya',
-        },
-        {
-            id: 'TKT-55102B',
-            title: 'Büyük İtalya Turu',
-            date: '5 Nisan 2026',
-            time: '14:00 PM',
-            status: 'Onay Bekliyor',
-            statusColor: 'text-yellow-600 bg-yellow-50 border-yellow-200',
-            image: 'https://images.unsplash.com/photo-1515542622106-78b28af7815b?auto=format&fit=crop&q=80',
-            qrLink: '/offline-tickets/italya',
-        }
-    ],
-    past: [
-        {
-            id: 'TKT-11099C',
-            title: 'Maldivler Lüks Bungalov Turu',
-            date: '1 Şubat 2025',
-            time: '09:00 AM',
-            status: 'Tamamlandı',
-            statusColor: 'text-gray-600 bg-gray-100 border-gray-200',
-            image: 'https://images.unsplash.com/photo-1514282401047-d79a71a590e8?auto=format&fit=crop&q=80',
-            qrLink: '#',
-        }
-    ]
-};
+import { useRouter } from 'next/navigation';
+import { fetchAPI } from '../lib/api';
+import { useAuth } from '../context/AuthContext';
+import { auth } from '../lib/auth';
 
 export default function MyBookingsPage() {
+    const { user, isLoading: isAuthLoading } = useAuth();
+    const router = useRouter();
+
     // Sekme yönetimi (Segmented Control)
     const [activeTab, setActiveTab] = useState<'upcoming' | 'past'>('upcoming');
+    const [bookings, setBookings] = useState<any>({ upcoming: [], past: [] });
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    // Review Modal State
+    const [reviewModalOpen, setReviewModalOpen] = useState(false);
+    const [reviewingTourId, setReviewingTourId] = useState<string | null>(null);
+    const [rating, setRating] = useState(5);
+    const [comment, setComment] = useState('');
+    const [isSubmittingReview, setIsSubmittingReview] = useState(false);
+    const [reviewSuccess, setReviewSuccess] = useState(false);
+
+    useEffect(() => {
+        if (!isAuthLoading && !user) {
+            router.push('/login');
+            return;
+        }
+
+        if (!user) return; // Wait until loaded
+
+        const fetchBookings = async () => {
+            setIsLoading(true);
+            try {
+                const token = auth.getAccessToken();
+                // Assumes backend has a /bookings/my-bookings/ endpoint
+                const data = await fetchAPI('/bookings/my-bookings/', {
+                    method: 'GET',
+                    headers: {
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    }
+                });
+
+                // The backend might return an array of all bookings, or already separated.
+                // Assuming it returns an array of Bookings, we separate them here based on date/status
+                const upcoming: any[] = [];
+                const past: any[] = [];
+                const now = new Date();
+
+                (Array.isArray(data) ? data : data.results || []).forEach((b: any) => {
+                    // Adapt Django backend fields to the frontend expected format
+                    const ticketStr = b.id ? `TKT-${b.id.toString().padStart(5, '0')}A` : 'TKT-PENDING';
+                    const tourDate = b.date ? new Date(b.date) : new Date();
+                    const isPast = tourDate < now;
+
+                    const ticket = {
+                        id: ticketStr,
+                        tourId: b.tour || b.tour_id, // ensure we have the internal tour ID for reviews
+                        title: b.tour_title || 'Tur Rezervasyonu',
+                        date: tourDate.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        time: b.time || '09:00 AM',
+                        status: b.status === 'confirmed' ? 'Onaylandı' : b.status === 'completed' ? 'Tamamlandı' : 'Onay Bekliyor',
+                        statusColor: b.status === 'confirmed' ? 'text-green-600 bg-green-50 border-green-200' :
+                            b.status === 'completed' ? 'text-gray-600 bg-gray-100 border-gray-200' :
+                                'text-yellow-600 bg-yellow-50 border-yellow-200',
+                        image: b.tour_image || 'https://images.unsplash.com/photo-1642320008433-286a512c1fb3?auto=format&fit=crop&q=80',
+                        qrLink: `/offline-tickets/${b.id || 'upcoming'}`,
+                    };
+
+                    if (isPast || b.status === 'completed' || b.status === 'cancelled') {
+                        past.push(ticket);
+                    } else {
+                        upcoming.push(ticket);
+                    }
+                });
+
+                setBookings({ upcoming, past });
+            } catch (err: any) {
+                setError('Biletleriniz yüklenirken bir sorun oluştu.');
+                console.error(err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchBookings();
+    }, [user, isAuthLoading, router]);
+
+    const handleOpenReview = (tourId: string) => {
+        setReviewingTourId(tourId);
+        setRating(5);
+        setComment('');
+        setReviewSuccess(false);
+        setReviewModalOpen(true);
+    };
+
+    const submitReview = async () => {
+        if (!reviewingTourId) return;
+        setIsSubmittingReview(true);
+        try {
+            const token = auth.getAccessToken();
+            await fetchAPI('/reviews/', {
+                method: 'POST',
+                headers: {
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    tour: reviewingTourId,
+                    rating,
+                    comment
+                })
+            });
+            setReviewSuccess(true);
+            setTimeout(() => {
+                setReviewModalOpen(false);
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to submit review:', err);
+            alert('Değerlendirme gönderilemedi. Lütfen tekrar deneyiniz.');
+        } finally {
+            setIsSubmittingReview(false);
+        }
+    };
 
     // Aktif sekmeye göre gösterilecek liste
-    const displayTickets = activeTab === 'upcoming' ? MOCK_TICKETS.upcoming : MOCK_TICKETS.past;
+    const displayTickets = activeTab === 'upcoming' ? bookings.upcoming : bookings.past;
 
     return (
         <main className="min-h-screen bg-[#F2F2F7] pb-20 pt-8 sm:py-12">
@@ -80,10 +161,17 @@ export default function MyBookingsPage() {
 
                 {/* FlatList (Bilet Kartları Listesi) */}
                 <div className="flex flex-col gap-5">
-                    {displayTickets.length === 0 ? (
+                    {isLoading ? (
+                        <div className="text-center py-12 text-gray-500 font-semibold space-y-4">
+                            <div className="w-8 h-8 mx-auto border-4 border-slate-200 border-t-[#008cb3] rounded-full animate-spin"></div>
+                            Biletleriniz yükleniyor...
+                        </div>
+                    ) : error ? (
+                        <div className="text-center py-12 text-red-500 font-semibold">{error}</div>
+                    ) : displayTickets.length === 0 ? (
                         <div className="text-center py-12 text-gray-500">Bu kategoride biletiniz bulunmuyor.</div>
                     ) : (
-                        displayTickets.map((ticket) => (
+                        displayTickets.map((ticket: any) => (
                             <div
                                 key={ticket.id}
                                 // Apple Style Gölgelendirme (shadow-sm, hafif saydam) ve BorderRadius (rounded-[15px])
@@ -125,6 +213,18 @@ export default function MyBookingsPage() {
                                     </div>
                                 </div>
 
+                                {/* Alt Kısım Butonlar (Review) */}
+                                {activeTab === 'past' && ticket.tourId && (
+                                    <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5">
+                                        <button
+                                            onClick={() => handleOpenReview(ticket.tourId)}
+                                            className="px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 text-xs font-bold rounded-lg transition-colors border border-orange-200"
+                                        >
+                                            Değerlendir ★
+                                        </button>
+                                    </div>
+                                )}
+
                                 {/* Sağ Alt: QR İkon/Kısayol */}
                                 {activeTab === 'upcoming' && (
                                     <Link
@@ -144,6 +244,59 @@ export default function MyBookingsPage() {
                     )}
                 </div>
             </div>
+
+            {/* Review Modal */}
+            {reviewModalOpen && (
+                <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+                        <button
+                            onClick={() => setReviewModalOpen(false)}
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                        >
+                            ✕
+                        </button>
+
+                        {reviewSuccess ? (
+                            <div className="text-center py-8">
+                                <div className="text-4xl mb-4">🎉</div>
+                                <h3 className="font-bold text-slate-800 text-lg mb-2">Teşekkürler!</h3>
+                                <p className="text-sm text-gray-500">Değerlendirmeniz başarıyla kaydedildi.</p>
+                            </div>
+                        ) : (
+                            <>
+                                <h3 className="font-bold text-slate-800 text-lg mb-4">Deneyiminizi Puanlayın</h3>
+
+                                <div className="flex gap-2 justify-center mb-6">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button
+                                            key={star}
+                                            onClick={() => setRating(star)}
+                                            className={`text-3xl transition-transform hover:scale-110 ${rating >= star ? 'text-orange-400' : 'text-gray-200'}`}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <textarea
+                                    value={comment}
+                                    onChange={(e) => setComment(e.target.value)}
+                                    placeholder="Tur hakkında düşünceleriniz..."
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#008cb3] resize-none h-24 mb-4"
+                                ></textarea>
+
+                                <button
+                                    onClick={submitReview}
+                                    disabled={isSubmittingReview}
+                                    className="w-full bg-[#008cb3] hover:bg-[#007a9b] text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50"
+                                >
+                                    {isSubmittingReview ? 'Gönderiliyor...' : 'Gönder'}
+                                </button>
+                            </>
+                        )}
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

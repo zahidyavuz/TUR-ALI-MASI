@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { fetchTours } from './lib/tours';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import Link from 'next/link';
@@ -9,20 +10,31 @@ import GeofenceTrigger from './components/GeofenceTrigger';
 import FloatingContactMenu from './components/FloatingContactMenu';
 import CurrencySelector from './components/CurrencySelector';
 import NotificationCenter from './components/NotificationCenter';
+import { useAuth } from './context/AuthContext';
 
 const BACKGROUND_IMAGES = [
-  'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&w=1920&q=80', // Kapadokya Balon & Manzara
-  'https://images.unsplash.com/photo-1527838832700-5059252407fa?auto=format&fit=crop&w=1920&q=80', // İstanbul Boğazı Vapur & Martı
-  'https://images.unsplash.com/photo-1541426062085-74d280b8cb5e?auto=format&fit=crop&w=1920&q=80', // İstanbul Galata & Gün Batımı
-  'https://images.unsplash.com/photo-1534008897995-27a23e859048?auto=format&fit=crop&w=1920&q=80', // Kapadokya Peri Bacaları Sevgililer
-  'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?auto=format&fit=crop&w=1920&q=80', // İstanbul Sultanahmet & Ayasofya (Drone)
-  'https://images.unsplash.com/photo-1588668214214-e69213bcfa77?auto=format&fit=crop&w=1920&q=80', // Kapadokya Klasik Araç & Vadi Manzarası
+  'https://picsum.photos/seed/cappadocia1/1200/600',
+  'https://picsum.photos/seed/istanbul1/1200/600',
+  'https://picsum.photos/seed/cappadocia2/1200/600',
+  'https://picsum.photos/seed/istanbul2/1200/600',
+  'https://picsum.photos/seed/istanbul3/1200/600',
 ];
 
 // TRUST_TEXTS are now handled by LocaleContext
 
 export default function Home() {
   const { t, locale, setLocale, formatPrice } = useLocale();
+  const [tours, setTours] = useState<any>({});
+  const [toursLoaded, setToursLoaded] = useState(false);
+
+  useEffect(() => {
+    async function loadTours() {
+      const data = await fetchTours();
+      setTours(data.map || {});
+      setToursLoaded(true);
+    }
+    loadTours();
+  }, []);
 
   const [currentImage, setCurrentImage] = useState(0);
   const [currentTrustIndex, setCurrentTrustIndex] = useState(0);
@@ -36,10 +48,10 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [demoUrl, setDemoUrl] = useState('');
 
-  // Örnek Oturum State'i (Gerçek uygulamada Auth context üzerinden gelir)
-  const [isLoggedIn, setIsLoggedIn] = useState(true);
-  const [userRole, setUserRole] = useState<'customer' | 'agency'>('customer'); // 'customer' veya 'agency' olarak değiştirebiliriz
-
+  // Sourced from Auth context
+  const { user, logout } = useAuth();
+  const isLoggedIn = !!user;
+  const userRole = user?.is_agency ? 'agency' : 'customer';
 
   // Agency Modal State
   const [showAgencyModal, setShowAgencyModal] = useState(false);
@@ -154,7 +166,7 @@ export default function Home() {
       {/* Navbar: Ana Menü */}
       <nav className="w-full bg-white py-4 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] shadow-sm md:shadow-none">
         <div className="text-2xl md:text-[28px] font-extrabold text-[#008cb3] tracking-tighter">
-          melih<span className="text-[#005e85]">tours™</span>
+          Tour<span className="text-[#005e85]">Scanner™</span>
         </div>
         <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[14px]">
           <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.destinations}</Link>
@@ -253,12 +265,12 @@ export default function Home() {
             {activeDropdown === 'userMenu' && (
               <div className="absolute right-0 top-[120%] w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[60] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
 
-                {/* Sadakat Programı (MelihPuan) - (Acentalar için gizlenebilir veya gösterilebilir, genelde müşteriler içindir) */}
+                {/* Sadakat Programı (TourPuan) - (Acentalar için gizlenebilir veya gösterilebilir, genelde müşteriler içindir) */}
                 {userRole === 'customer' && (
                   <div className="px-5 py-3 mb-1 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col items-start border-b border-gray-100/50">
                     <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-widest mb-1.5 flex items-center gap-1"><svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> Sadakat Programı</span>
                     <div className="flex justify-between items-center w-full">
-                      <span className="font-extrabold text-sm text-slate-800 tracking-tight">MelihPuan™</span>
+                      <span className="font-extrabold text-sm text-slate-800 tracking-tight">TourPuan™</span>
                       <span className="bg-[#008cb3] text-white font-black text-[11px] px-2.5 py-1 rounded-full shadow-sm animate-pulse">1.450 Puan</span>
                     </div>
                     <p className="text-[10px] text-gray-500 font-bold mt-1.5">Mevcut Bakiyeniz: <span className="text-green-600">₺145 İndirim!</span></p>
@@ -364,7 +376,7 @@ export default function Home() {
                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Hesap Değiştir / Gir</h4>
                     </div>
                     <button
-                      onClick={() => { setShowLoginModal(true); setLoginTab('login'); setActiveDropdown(null); }}
+                      onClick={() => { window.location.href = '/login'; setActiveDropdown(null); }}
                       className="w-full px-5 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
@@ -390,8 +402,7 @@ export default function Home() {
                     <div className="border-t border-gray-100/50 my-1.5"></div>
                     <button
                       onClick={() => {
-                        setIsLoggedIn(false);
-                        setUserRole('customer');
+                        logout();
                         setActiveDropdown(null);
                       }}
                       className="w-full px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 text-left flex items-center gap-3 transition-colors cursor-pointer group mb-1"
@@ -412,7 +423,7 @@ export default function Home() {
       {/* Hero: Pazarlama Tasarımı */}
       {/* Hero: Pazarlama Tasarımı */}
       <div className="w-full relative z-0">
-        <div className="w-full py-16 px-4 text-center text-white relative flex flex-col items-center justify-center min-h-[40vh]">
+        <div className="w-full py-8 px-4 text-center text-white relative flex flex-col items-center justify-center min-h-[28vh]">
           {/* Arka Plan Resimleri kapsayıcısı (Taşmaları ve oval köşeleri sınırlandırmak için) */}
           <div className="absolute inset-0 overflow-hidden z-0 bg-slate-900">
             {BACKGROUND_IMAGES.map((img, index) => (
@@ -431,8 +442,8 @@ export default function Home() {
 
           {/* İçerik */}
           <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center mt-2">
-            <h1 className="text-3xl md:text-5xl lg:text-6xl font-extrabold tracking-tight mb-3 drop-shadow-lg leading-tight w-full max-w-4xl" dangerouslySetInnerHTML={{ __html: t.hero.title }}></h1>
-            <p className="text-xs md:text-sm lg:text-base text-white/90 font-medium max-w-3xl mx-auto mb-6 drop-shadow-md px-4 leading-relaxed">
+            <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-2 drop-shadow-lg leading-tight w-full max-w-4xl" dangerouslySetInnerHTML={{ __html: t.hero.title }}></h1>
+            <p className="text-xs md:text-sm text-white/90 font-medium max-w-3xl mx-auto mb-4 drop-shadow-md px-4 leading-relaxed">
               {t.hero.subtitle}
             </p>
 
@@ -709,7 +720,7 @@ export default function Home() {
         }
       </div>
 
-      {/* 1. Neden Melih Tours? (Why Book With Us) - Translated */}
+      {/* 1. Neden TourScanner? (Why Book With Us) - Translated */}
       <div className="bg-white w-full py-16 border-t border-gray-100 mt-4">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 text-center">
           <div className="flex flex-col items-center group cursor-default">
@@ -741,18 +752,18 @@ export default function Home() {
           <h2 className="text-[28px] font-extrabold text-[#005e85] tracking-tight mb-8">{t.popularDestinations}</h2>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8 pb-6 px-2">
             {[
-              { adi: "Balon Turu", img: "https://images.unsplash.com/photo-1596395819057-afbf19aff3fb?fit=crop&w=300&q=80" },
-              { adi: "ATV Safari", img: "https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?fit=crop&w=300&q=80" },
-              { adi: "Vadi Gezisi", img: "https://images.unsplash.com/photo-1627885741630-d38a0a996dc7?fit=crop&w=300&q=80" },
-              { adi: "Yeraltı Şehirleri", img: "https://images.unsplash.com/photo-1606764426543-fe3c32e01df7?fit=crop&w=300&q=80" },
-              { adi: "Çömlek Yapımı", img: "https://images.unsplash.com/photo-1610992015732-280805dbb6ef?fit=crop&w=300&q=80" },
-              { adi: "Atlı Safari", img: "https://images.unsplash.com/photo-1553641199-6e3e1570d9e7?fit=crop&w=300&q=80" },
-              { adi: "Klasik Araç Gezisi", img: "https://images.unsplash.com/photo-1563220499-1a4bfb3fc6fd?fit=crop&w=300&q=80" },
-              { adi: "Jeep Safari", img: "https://images.unsplash.com/photo-1533560904424-a0c51dc2122c?fit=crop&w=300&q=80" },
-              { adi: "Açık Hava Müzesi", img: "https://images.unsplash.com/photo-1590001007804-b9db8d70df83?fit=crop&w=300&q=80" },
-              { adi: "Türk Gecesi", img: "https://images.unsplash.com/photo-1558137623-ce933996c730?fit=crop&w=300&q=80" },
-              { adi: "Yamaç Paraşütü", img: "https://images.unsplash.com/photo-1527506992984-74291dd803b9?fit=crop&w=300&q=80" },
-              { adi: "Gün Batımı Seyri", img: "https://images.unsplash.com/photo-1541426062085-74d280b8cb5e?fit=crop&w=300&q=80" }
+              { adi: "Balon Turu", img: "https://placehold.co/600x400?text=Balon+Turu" },
+              { adi: "ATV Safari", img: "https://placehold.co/600x400?text=ATV+Safari" },
+              { adi: "Vadi Gezisi", img: "https://placehold.co/600x400?text=Vadi+Gezisi" },
+              { adi: "Yeraltı Şehirleri", img: "https://placehold.co/600x400?text=Yeralti+Sehirleri" },
+              { adi: "Çömlek Yapımı", img: "https://placehold.co/600x400?text=Comlek+Yapimi" },
+              { adi: "Atlı Safari", img: "https://placehold.co/600x400?text=Atli+Safari" },
+              { adi: "Klasik Araç Gezisi", img: "https://placehold.co/600x400?text=Klasik+Arac+Gezisi" },
+              { adi: "Jeep Safari", img: "https://placehold.co/600x400?text=Jeep+Safari" },
+              { adi: "Açık Hava Müzesi", img: "https://placehold.co/600x400?text=Acik+Hava+Muzesi" },
+              { adi: "Türk Gecesi", img: "https://placehold.co/600x400?text=Turk+Gecesi" },
+              { adi: "Yamaç Paraşütü", img: "https://placehold.co/600x400?text=Yamac+Parasutu" },
+              { adi: "Gün Batımı Seyri", img: "https://placehold.co/600x400?text=Gun+Batimi+Seyri" }
             ].map(dest => (
               <div key={dest.adi} onClick={() => window.location.href = '/tour/kapadokya'} className="group cursor-pointer flex flex-col items-center w-full transition-transform hover:-translate-y-2 active:scale-95">
                 <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-md border-4 border-white group-hover:border-[#008cb3] transition-all">
@@ -776,19 +787,15 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { ad: "Kapadokya Balon & Peri Bacaları", sure: "3 Gün, 2 Gece", fiyat: 2400, puan: "4.9", resim: "https://images.unsplash.com/photo-1596395819057-afbf19aff3fb?fit=crop&w=600&q=80", etiket: "TÜKENİYOR", fomo: "Şu an 14 kişi inceliyor", mPuan: 240, slug: 'kapadokya' },
-              { ad: "Büyük İtalya Turu", sure: "7 Gün, 6 Gece", fiyat: 18150, puan: "4.8", resim: "https://images.unsplash.com/photo-1541432901042-2b8cbc77d2a8?fit=crop&w=600&q=80", etiket: "SON 3 KOLTUK", fomo: "Son 2 saatte 5 kişi aldı", mPuan: 1815, slug: 'buyuk-italya', filmedIn: 'Portobello (HBO)' },
-              { ad: "İskandinav Fiyortları", sure: "5 Gün, 4 Gece", fiyat: 22800, puan: "4.7", resim: "https://images.unsplash.com/photo-1528255915607-9012fda0f838?fit=crop&w=600&q=80", etiket: "YENİ", fomo: "Bu hafta çok popüler", mPuan: 2280, slug: 'iskandinav-fiyort' }
-            ].map((tur, i) => (
+            {Object.values(tours).map((tur: any, i) => (
               <div
-                key={i}
-                onClick={() => window.location.href = `/tour/${tur.slug}`}
+                key={tur.id || i}
+                onClick={() => window.location.href = `/tour/${tur.id}`}
                 className="bg-white text-slate-900 rounded-[24px] overflow-hidden shadow-xl hover:-translate-y-2 transition-transform duration-500 border border-gray-100 group cursor-pointer flex flex-col relative"
               >
                 <div className="relative h-56 overflow-hidden">
-                  <Image src={tur.resim} alt={tur.ad} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                  <span className="absolute top-4 left-4 text-[10px] font-black text-white bg-red-600 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-md animate-pulse z-10">{tur.etiket}</span>
+                  <Image src={tur.image_main || tur.imageMain} alt={tur.title || tur.ad} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <span className="absolute top-4 left-4 text-[10px] font-black text-white bg-red-600 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-md animate-pulse z-10">{tur.discount ? `%${tur.discount} İNDİRİM` : 'POPÜLER'}</span>
                   <button aria-label="Favorilere Ekle" className="absolute top-4 right-4 bg-white/90 p-2 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors z-10">
                     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                   </button>
@@ -798,33 +805,33 @@ export default function Home() {
                   {/* FOMO Etiketi */}
                   <div className="absolute -top-4 right-6 bg-red-50 text-red-600 border border-red-100 text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 z-10">
                     <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
-                    {tur.fomo}
+                    Şu an {tur.fomoCount || 12} kişi inceliyor
                   </div>
 
                   <span className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-2">
                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                    {tur.sure}
+                    {tur.duration || tur.sure}
                   </span>
-                  <h3 className="text-xl font-black text-slate-800 mb-2 leading-tight group-hover:text-[#008cb3] transition-colors">{tur.ad}</h3>
+                  <h3 className="text-xl font-black text-slate-800 mb-2 leading-tight group-hover:text-[#008cb3] transition-colors">{tur.title || tur.ad}</h3>
                   {tur.filmedIn && (
                     <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 shadow-md w-max">
                       🎬 Filmed in {tur.filmedIn}
                     </div>
                   )}
                   <div className="flex items-center gap-1.5 mb-3">
-                    <span className="text-[11px] font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md">Melih Tours İşletmesi</span>
-                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md flex items-center gap-1"><svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> +{tur.mPuan} Puan</span>
+                    <span className="text-[11px] font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md">TourScanner İşletmesi</span>
+                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md flex items-center gap-1"><svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> +{tur.price / 10 || 240} Puan</span>
                   </div>
                   <div className="flex items-center gap-1 text-yellow-500 mb-6 text-sm font-bold">
-                    ★ ★ ★ ★ ★ <span className="text-gray-400 text-xs ml-1 font-medium">({tur.puan} - {134 + i * 47} İnceleme)</span>
+                    ★ ★ ★ ★ ★ <span className="text-gray-400 text-xs ml-1 font-medium">({tur.rating || tur.puan} - {tur.reviews || tur.reviews_count || 120} İnceleme)</span>
                   </div>
 
                   <div className="mt-auto flex justify-between items-end pt-4 border-t border-gray-100/20">
                     <div>
                       <span className="text-xs text-blue-200 font-bold uppercase block mb-1">MİN</span>
-                      <div className="text-2xl font-black text-white">{formatPrice(tur.fiyat)}</div>
+                      <div className="text-2xl font-black text-white">{formatPrice(tur.price)}</div>
                     </div>
-                    <button aria-label="Tura Git" onClick={(e) => { e.stopPropagation(); window.location.href = `/tour/${tur.slug}`; }} className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005e85] font-bold py-2 px-5 rounded-xl transition-colors shadow-sm">
+                    <button aria-label="Tura Git" onClick={(e) => { e.stopPropagation(); window.location.href = `/tour/${tur.id}`; }} className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005e85] font-bold py-2 px-5 rounded-xl transition-colors shadow-sm">
                       ➔
                     </button>
                   </div>
@@ -869,7 +876,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { isim: "Ahmet Y.", tur: "Kapadokya Turu", tarih: "2 Hafta Önce", yorum: "Balayımız için tercih etmiştik. Rehberin ilgisi, otelin kalitesi ve VIP transfer hizmeti kusursuzdu. Kesinlikle tavsiye ediyorum!", yildiz: 5 },
-              { isim: "Céline D.", tur: "Mavi Yolculuk", tarih: "1 Ay Önce", yorum: "Fransa'dan geldik, rezervasyon aşamasından turun sonuna kadar Melih Tours ekibi inanılmaz profesyoneldi. Yemekler harikaydı.", yildiz: 5 },
+              { isim: "Céline D.", tur: "Mavi Yolculuk", tarih: "1 Ay Önce", yorum: "Fransa'dan geldik, rezervasyon aşamasından turun sonuna kadar TourScanner ekibi inanılmaz profesyoneldi. Yemekler harikaydı.", yildiz: 5 },
               { isim: "Burak & Ece", tur: "Klasik İtalya", tarih: "3 Ay Önce", yorum: "Uçak biletlerinden müze girişlerine kadar her şey önceden hazırdı. Sıra beklemeden Roma'yı gezmek paha biçilemezdi. Teşekkürler!", yildiz: 4 }
             ].map((yorum, i) => (
               <div key={i} className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 relative">
@@ -1187,16 +1194,15 @@ export default function Home() {
                         }
 
                       } else {
-                        setIsLoggedIn(true);
-                        setUserRole('customer');
-                        alert('Giriş başarılı!');
+                        alert('Giriş yapmak için üst menüdeki Giriş Yap butonuna basınız.');
+                        setShowLoginModal(false);
                         setShowLoginModal(false);
                       }
                     }}>
                       {loginTab === 'register' && (
                         <div className="animate-in fade-in slide-in-from-top-2 duration-300">
                           <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Ad Soyad</label>
-                          <input type="text" placeholder="Örn: Melih Yılmaz" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" />
+                          <input type="text" placeholder="Örn: Ahmet Yılmaz" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" />
                         </div>
                       )}
                       <div>
@@ -1303,7 +1309,7 @@ export default function Home() {
                 <h2 className="text-2xl font-black relative z-10 leading-tight">
                   Turlarınızı Dünyayla <br /> Buluşturun!
                 </h2>
-                <p className="text-orange-50 text-xs font-medium mt-2 relative z-10">Melih Tours İş Ortaklığı Yönetim Paneli</p>
+                <p className="text-orange-50 text-xs font-medium mt-2 relative z-10">TourScanner İş Ortaklığı Yönetim Paneli</p>
               </div>
 
               {/* Sekmeler (Tabs) */}
@@ -1337,9 +1343,8 @@ export default function Home() {
                   <form className="flex flex-col gap-4" onSubmit={(e) => {
                     e.preventDefault();
                     if (agencyTab === 'login') {
-                      setIsLoggedIn(true);
-                      setUserRole('agency');
                       setShowAgencyModal(false);
+                      window.location.href = '/login'; // Forward to the real login page
                       window.location.href = '/agency/dashboard'; // Acenta Dashboard Yönlendirmesi
                     } else {
                       alert('Acentelik başvurunuz alınmıştır.');
@@ -1501,7 +1506,7 @@ export default function Home() {
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Kart Üzerindeki İsim</label>
-                    <input type="text" placeholder="Örn: Melih Yılmaz" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400 uppercase" />
+                    <input type="text" placeholder="Örn: Ahmet Yılmaz" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400 uppercase" />
                   </div>
 
                   <button type="submit" className="w-full bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-2xl mt-2 hover:bg-[#005e85] transition-colors shadow-lg shadow-blue-500/20 hover:shadow-xl active:scale-[0.98] duration-200 flex items-center justify-center gap-2">

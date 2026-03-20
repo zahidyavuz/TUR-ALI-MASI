@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 
-import { TOUR_DATA } from '../../lib/tours';
+import { fetchTours } from '../../lib/tours';
 import { useLocale } from '../../context/LocaleContext';
 import { DownloadOfflineButton } from '../../components/DownloadOfflineButton';
 import GeofenceTrigger from '../../components/GeofenceTrigger';
@@ -20,10 +20,7 @@ export default function DynamicTourPage() {
     const params = useParams();
     const slug = typeof params.slug === 'string' ? params.slug : 'kapadokya';
 
-    const baseTour = TOUR_DATA[slug as keyof typeof TOUR_DATA] || TOUR_DATA['kapadokya'];
-    // @ts-ignore
-    const translation = baseTour.translations?.[locale] || {};
-    const tour = { ...baseTour, ...translation };
+    const [tour, setTour] = useState<any>(null);
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [guests, setGuests] = useState(2);
@@ -36,6 +33,30 @@ export default function DynamicTourPage() {
     const [hasInsurance, setHasInsurance] = useState(false);
     const [hasVipTransfer, setHasVipTransfer] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'eft' | 'cash'>('eft'); // Yeni ödeme yöntemleri
+
+    useEffect(() => {
+        async function loadTour() {
+            setLoading(true);
+            try {
+                const tourData: any = await fetchTours();
+                // tourData now returns { map: {...}, array: [...] }
+                const mapData = tourData.map || {};
+                const baseTour = mapData[slug] || mapData['kapadokya'];
+
+                if (baseTour) {
+                    const translation = baseTour.translations?.[locale] || {};
+                    setTour({ ...baseTour, ...translation });
+                } else {
+                    setError("Tur bulunamadı.");
+                }
+            } catch (err) {
+                setError("Tur yüklenirken bir sorun oluştu.");
+            } finally {
+                setLoading(false);
+            }
+        }
+        loadTour();
+    }, [slug, locale]);
 
     // Form Katmanı ve Validation State'leri
     const [customerInfo, setCustomerInfo] = useState({ name: '', email: '', phone: '' });
@@ -55,7 +76,7 @@ export default function DynamicTourPage() {
         setBookingStep(2);
     };
 
-    const basePrice = tour.price * guests;
+    const basePrice = (tour?.price || 0) * guests;
     const extrasPrice = (hasInsurance ? 500 * guests : 0) + (hasVipTransfer ? 1200 : 0);
     const totalPriceAmount = basePrice + extrasPrice;
 
@@ -66,6 +87,8 @@ export default function DynamicTourPage() {
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+    if (!tour) return <div className="min-h-screen flex items-center justify-center">Yükleniyor...</div>;
 
     return (
         <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
@@ -101,9 +124,9 @@ export default function DynamicTourPage() {
                                 <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 shadow-lg">
                                     <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span> Çok Satan
                                 </div>
-                                {(baseTour as any).filmedIn && (
+                                {tour?.filmedIn && (
                                     <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 ml-2 shadow-lg hover:scale-105 transition-transform cursor-default">
-                                        🎬 Filmed in {(baseTour as any).filmedIn}
+                                        🎬 Filmed in {tour.filmedIn}
                                     </div>
                                 )}
                                 <h1 className="text-3xl md:text-5xl font-black drop-shadow-md leading-tight mb-2">{tour.title}</h1>
@@ -133,13 +156,17 @@ export default function DynamicTourPage() {
                         {/* Fiyat Alanı */}
                         <div className="flex justify-between items-start mb-6">
                             <div>
-                                <p className="text-gray-400 text-sm font-bold line-through">{formatPrice(parseInt(baseTour.originalPrice.replace(/\./g, '')))}</p>
+                                {tour.originalPrice && (
+                                    <p className="text-gray-400 text-sm font-bold line-through">{formatPrice(parseInt(String(tour.originalPrice).replace(/\./g, '')))}</p>
+                                )}
                                 <h3 className="text-3xl font-black text-slate-800">{formatPrice(tour.price)} <span className="text-sm font-medium text-gray-500 tracking-normal">/{locale === 'en-US' ? 'per person' : locale === 'de-DE' ? 'pro person' : locale === 'zh-CN' ? '每人' : 'kişi başı'}</span></h3>
                             </div>
-                            <div className="bg-red-50 text-red-600 text-xs font-bold px-3 py-1.5 rounded-xl border border-red-100 flex flex-col items-center">
-                                <span>{tour.discount}</span>
-                                <span>{locale === 'en-US' ? 'OFF' : locale === 'de-DE' ? 'RABATT' : locale === 'zh-CN' ? '折扣' : 'İNDİRİM'}</span>
-                            </div>
+                            {tour.discount && (
+                                <div className="bg-red-50 text-red-600 text-xs font-bold px-3 py-1.5 rounded-xl border border-red-100 flex flex-col items-center">
+                                    <span>{tour.discount}</span>
+                                    <span>{locale === 'en-US' ? 'OFF' : locale === 'de-DE' ? 'RABATT' : locale === 'zh-CN' ? '折扣' : 'İNDİRİM'}</span>
+                                </div>
+                            )}
                         </div>
 
                         {/* Fomo Alert */}
@@ -212,7 +239,7 @@ export default function DynamicTourPage() {
                             <button
                                 onClick={(e) => {
                                     e.preventDefault();
-                                    router.push('/bookings');
+                                    router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}`);
                                 }}
                                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
                             >
@@ -369,252 +396,13 @@ export default function DynamicTourPage() {
                     <p className="text-2xl font-black text-slate-800 leading-none">{formatPrice(tour.price * guests)}</p>
                 </div>
                 <button
-                    onClick={() => setBookingStep(1)}
+                    onClick={() => router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}`)}
                     className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 text-sm"
                 >
                     Hemen Ayır
                 </button>
             </div>
 
-            {/* 3 Steps Custom Booking Modal */}
-            {bookingStep !== 0 && (
-                <div className="fixed inset-0 bg-slate-900/60 z-[99999] flex flex-col items-center justify-end sm:justify-center backdrop-blur-sm sm:px-4" onClick={(e) => { if (e.target === e.currentTarget && bookingStep !== 3) setBookingStep(0) }}>
-                    <div className="bg-white rounded-t-[32px] sm:rounded-b-[32px] shadow-2xl w-full max-w-[600px] overflow-hidden relative flex flex-col max-h-[90vh]">
-                        {/* Header + Progress Bar */}
-                        <div className="p-6 sm:px-8 border-b border-gray-100 bg-slate-50 relative shrink-0">
-                            {bookingStep !== 3 && (
-                                <button onClick={() => setBookingStep(0)} className="absolute top-6 right-6 text-gray-400 hover:text-red-500 bg-white rounded-full p-2.5 shadow-sm border border-gray-100 transition-colors">
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                </button>
-                            )}
-                            <h3 className="text-xl sm:text-2xl font-black text-slate-800 mb-6">Rezervasyon Oluştur</h3>
-
-                            {/* Modern Progress Bar */}
-                            <div className="flex items-center justify-between relative mt-2 px-2 sm:px-4">
-                                <div className="absolute left-[10%] right-[10%] top-1/2 -translate-y-1/2 h-1.5 bg-gray-200 rounded-full z-0"></div>
-                                <div className="absolute left-[10%] top-1/2 -translate-y-1/2 h-1.5 bg-green-500 rounded-full transition-all duration-500 z-0 ease-out" style={{ width: bookingStep === 1 ? '0%' : bookingStep === 2 ? '40%' : '80%' }}></div>
-
-                                <div className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm transition-colors duration-300 ${bookingStep >= 1 ? 'bg-green-500 text-white' : 'bg-white border-2 border-gray-200 text-gray-400'}`}>{bookingStep > 1 ? '✓' : '1'}</div>
-                                <div className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm transition-colors duration-300 ${bookingStep >= 2 ? 'bg-green-500 text-white' : 'bg-white border-2 border-gray-200 text-gray-400'}`}>{bookingStep > 2 ? '✓' : '2'}</div>
-                                <div className={`relative z-10 w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center font-bold text-xs sm:text-sm shadow-sm transition-colors duration-300 ${bookingStep >= 3 ? 'bg-green-500 text-white' : 'bg-white border-2 border-gray-200 text-gray-400'}`}>3</div>
-                            </div>
-                            <div className="flex items-center justify-between mt-3 text-[10px] font-black text-slate-600 uppercase tracking-widest px-1 sm:px-2">
-                                <span className={bookingStep >= 1 ? 'text-green-600' : ''}>Kişisel Bilgiler</span>
-                                <span className={bookingStep >= 2 ? 'text-green-600' : ''}>Güvenli Ödeme</span>
-                                <span className={bookingStep >= 3 ? 'text-green-600' : ''}>Onay Başarılı</span>
-                            </div>
-                        </div>
-
-                        {/* Steps Content Area */}
-                        <div className="p-6 sm:p-8 overflow-y-auto custom-scrollbar flex-1 bg-white">
-                            {bookingStep === 1 && (
-                                <div className="flex flex-col gap-8 animate-in fade-in slide-in-from-right-4 duration-300">
-                                    {/* Kişisel Bilgiler */}
-                                    <div>
-                                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">
-                                            <div className="bg-indigo-100 text-indigo-600 w-8 h-8 rounded-lg flex items-center justify-center">👤</div> İletişim Bilgileri
-                                        </h4>
-                                        {formError && (
-                                            <div className="mb-4 bg-red-50/80 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm font-bold animate-pulse flex items-center gap-2">
-                                                <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                {formError}
-                                            </div>
-                                        )}
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <input type="text" value={customerInfo.name} onChange={e => setCustomerInfo({ ...customerInfo, name: e.target.value })} placeholder="Ad Soyad" className={`w-full bg-slate-50 border ${formError && !customerInfo.name ? 'border-red-400 focus:border-red-500 bg-red-50' : 'border-gray-200 focus:border-[#008cb3]'} p-4 rounded-xl outline-none focus:bg-white transition-colors text-sm font-semibold text-slate-700`} />
-                                            <input type="email" value={customerInfo.email} onChange={e => setCustomerInfo({ ...customerInfo, email: e.target.value })} placeholder="E-Posta" className={`w-full bg-slate-50 border ${formError && (!customerInfo.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerInfo.email)) ? 'border-red-400 focus:border-red-500 bg-red-50' : 'border-gray-200 focus:border-[#008cb3]'} p-4 rounded-xl outline-none focus:bg-white transition-colors text-sm font-semibold text-slate-700`} />
-                                            <input type="tel" value={customerInfo.phone} onChange={e => setCustomerInfo({ ...customerInfo, phone: e.target.value })} placeholder="Telefon ( +90 )" className={`w-full bg-slate-50 border ${formError && !customerInfo.phone ? 'border-red-400 focus:border-red-500 bg-red-50' : 'border-gray-200 focus:border-[#008cb3]'} p-4 rounded-xl outline-none focus:bg-white transition-colors text-sm font-semibold text-slate-700 col-span-2`} />
-                                        </div>
-                                    </div>
-
-                                    {/* Upsell / Ekstralar */}
-                                    <div>
-                                        <h4 className="font-bold text-slate-800 mb-4 flex items-center gap-2 text-lg">
-                                            <div className="bg-orange-100 text-orange-500 w-8 h-8 rounded-lg flex items-center justify-center">✨</div> Deneyiminizi Güzelleştirin
-                                        </h4>
-                                        <div className="flex flex-col gap-4">
-                                            {/* Sigorta */}
-                                            <label className={`border-2 rounded-2xl p-4 sm:p-5 flex gap-4 sm:gap-5 cursor-pointer transition-all duration-300 relative overflow-hidden group ${hasInsurance ? 'border-indigo-500 bg-indigo-50' : 'border-gray-100 bg-white hover:border-indigo-200'}`}>
-                                                <input type="checkbox" checked={hasInsurance} onChange={(e) => setHasInsurance(e.target.checked)} className="mt-1 w-5 h-5 sm:w-6 sm:h-6 rounded cursor-pointer accent-indigo-600 shrink-0" />
-                                                <div className="w-full">
-                                                    <div className="flex justify-between items-start sm:items-center mb-1.5 flex-col sm:flex-row gap-1 sm:gap-0">
-                                                        <span className="font-black text-sm sm:text-base text-slate-800">Seyahat Sağlık Sigortası</span>
-                                                        <span className="font-black text-indigo-600 text-sm sm:text-base border border-indigo-200 bg-indigo-100 px-2.5 py-1 rounded-lg">+₺500<span className="text-[10px] sm:text-xs font-bold text-indigo-500/80 uppercase ml-1 block sm:inline">/kişi</span></span>
-                                                    </div>
-                                                    <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed pr-2">Vize reddi, hastalık veya son dakika iptallerinde <span className="text-indigo-600 font-bold">%100 iade garantisi.</span> Seyahatinizi güvenceye alın.</p>
-                                                </div>
-                                            </label>
-
-                                            {/* VIP Transfer */}
-                                            <label className={`border-2 rounded-2xl p-4 sm:p-5 flex gap-4 sm:gap-5 cursor-pointer transition-all duration-300 relative overflow-hidden group ${hasVipTransfer ? 'border-orange-500 bg-orange-50' : 'border-gray-100 bg-white hover:border-orange-200'}`}>
-                                                <input type="checkbox" checked={hasVipTransfer} onChange={(e) => setHasVipTransfer(e.target.checked)} className="mt-1 w-5 h-5 sm:w-6 sm:h-6 rounded cursor-pointer accent-orange-500 shrink-0" />
-                                                <div className="w-full">
-                                                    <div className="flex justify-between items-start sm:items-center mb-1.5 flex-col sm:flex-row gap-2 sm:gap-0">
-                                                        <span className="font-black text-sm sm:text-base text-slate-800 flex items-center flex-wrap gap-2">VIP Havalimanı Transferi <span className="bg-rose-100 text-rose-700 text-[10px] px-2 py-0.5 rounded-md uppercase font-black w-max">Popüler</span></span>
-                                                        <span className="font-black text-orange-600 text-sm sm:text-base border border-orange-200 bg-orange-100 px-2.5 py-1 rounded-lg">+₺1.200</span>
-                                                    </div>
-                                                    <p className="text-xs sm:text-sm text-slate-500 font-medium leading-relaxed pr-2">Sizi havalimanından lüks <span className="text-orange-600 font-bold">Mercedes Vito</span> ile karşılayıp otelinize transferinizi sağlayalım.</p>
-                                                </div>
-                                            </label>
-                                        </div>
-                                    </div>
-
-                                    {/* Alt Bilgi */}
-                                    <div className="pt-6 border-t border-gray-100 mt-2 flex flex-col sm:flex-row gap-4 items-center justify-between">
-                                        <div className="text-center sm:text-left w-full sm:w-auto">
-                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-1 block">Genel Toplam</p>
-                                            <p className="text-2xl font-black text-slate-800">{formatPrice(totalPriceAmount)}</p>
-                                        </div>
-                                        <button onClick={handleProceedToPayment} className="w-full sm:w-auto sm:px-10 bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-xl hover:bg-[#005e85] transition-transform active:scale-95 shadow-lg shadow-blue-500/20">
-                                            Ödemeye Geç ➔
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {bookingStep === 2 && (
-                                <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-right-4 duration-300">
-                                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 text-white p-5 sm:p-6 rounded-[24px] flex justify-between items-center shadow-lg relative overflow-hidden">
-                                        {/* Kredi kartı arkaplan grafiği */}
-                                        <div className="absolute right-0 top-0 w-32 h-32 bg-white opacity-5 rounded-full translate-x-10 -translate-y-10"></div>
-                                        <div className="absolute right-0 bottom-0 w-24 h-24 bg-white opacity-5 rounded-full translate-x-5 translate-y-5"></div>
-
-                                        <div className="relative z-10">
-                                            <h4 className="font-bold text-slate-300 text-xs sm:text-sm mb-1 uppercase tracking-widest">Ödenecek Tutar</h4>
-                                            <p className="text-[10px] sm:text-xs text-slate-400 font-medium">{guests} Kişi + {hasInsurance || hasVipTransfer ? 'Seçili Ekstralar' : 'Tüm Vergiler Dahil'}</p>
-                                        </div>
-                                        <span className="relative z-10 font-black text-2xl sm:text-3xl text-white">{formatPrice(totalPriceAmount)}</span>
-                                    </div>
-
-                                    {/* 3. Psikolojik Tetikleyici (Scarcity / Social Proof) */}
-                                    <div className="bg-orange-50 border border-orange-200 rounded-xl p-3 flex flex-row items-center gap-3 shadow-inner">
-                                        <div className="bg-orange-100 text-orange-500 rounded-full w-8 h-8 flex items-center justify-center shrink-0 text-lg">🔥</div>
-                                        <p className="text-orange-800 text-xs font-bold leading-tight flex-1">
-                                            Bu tur son 24 saatte 12 kez rezerve edildi!
-                                            <span className="block font-medium text-orange-600 mt-0.5">Yerinizi hemen ayırtın, fırsatı kaçırmayın.</span>
-                                        </p>
-                                    </div>
-
-                                    {/* 2. Yeni Ödeme Seçenekleri TABS */}
-                                    <div className="flex bg-slate-100 p-1.5 rounded-xl border border-slate-200 mt-4">
-                                        <button
-                                            onClick={() => setPaymentMethod('eft')}
-                                            className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 ${paymentMethod === 'eft' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                                        >
-                                            🏦 Banka Havalesi / EFT
-                                        </button>
-                                        <button
-                                            onClick={() => setPaymentMethod('cash')}
-                                            className={`flex-1 py-3 text-xs sm:text-sm font-bold rounded-lg transition-all duration-300 ${paymentMethod === 'cash' ? 'bg-white shadow-sm text-slate-800' : 'text-slate-500 hover:text-slate-700'}`}
-                                        >
-                                            💵 Tur Günü Nakit Ödeme
-                                        </button>
-                                    </div>
-
-                                    {/* Dinamik Ödeme Yöntemi Formu */}
-                                    {paymentMethod === 'eft' ? (
-                                        <div className="space-y-4 animate-in fade-in duration-300 bg-blue-50/50 border border-blue-100 p-5 rounded-2xl">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="w-10 h-10 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center text-xl">
-                                                    🏦
-                                                </div>
-                                                <div>
-                                                    <h5 className="font-bold text-slate-800 text-sm">Havale / EFT ile Ödeme</h5>
-                                                    <p className="text-xs text-slate-500">Sipariş sonrası IBAN bilgileri iletilecektir.</p>
-                                                </div>
-                                            </div>
-                                            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
-                                                Aşağıdaki <strong>&quot;Rezervasyonu Tamamla&quot;</strong> butonuna tıkladıktan sonra onay sayfasına yönlendirileceksiniz. Lütfen ödemenizi ekranda belirtilecek olan şirket banka hesabımıza gönderiniz ve dekontunuzu WhatsApp destek hattımıza iletiniz.
-                                            </p>
-                                        </div>
-                                    ) : (
-                                        <div className="space-y-4 animate-in fade-in duration-300 bg-emerald-50/50 border border-emerald-100 p-5 rounded-2xl">
-                                            <div className="flex items-center gap-3 mb-2">
-                                                <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center text-xl">
-                                                    💵
-                                                </div>
-                                                <div>
-                                                    <h5 className="font-bold text-slate-800 text-sm">Tur Günü Nakit Ödeme</h5>
-                                                    <p className="text-xs text-slate-500">Ödemenizi rehberinize yapın.</p>
-                                                </div>
-                                            </div>
-                                            <p className="text-xs sm:text-sm text-slate-600 font-medium leading-relaxed">
-                                                Rezervasyonunuz sistemimize <strong>Onay Bekliyor</strong> statüsünde kaydedilecektir. Tur saatinden en az 30 dakika önce buluşma noktasında olup, ödemenizi ilgili personelimize tamamlayabilirsiniz.
-                                            </p>
-                                        </div>
-                                    )}
-
-                                    {/* 1. Güven ve İkna Bloğu (Premium Trust Signals) */}
-                                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 mt-2">
-                                        <div className="flex flex-col gap-3.5">
-                                            <div className="flex items-start gap-3 text-sm">
-                                                <div className="w-7 h-7 rounded-full bg-slate-200 text-slate-600 flex items-center justify-center shrink-0 shadow-sm mt-0.5"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
-                                                <div>
-                                                    <span className="font-bold text-slate-800 text-xs sm:text-sm">Gizlilik Garantisi</span>
-                                                    <span className="block text-[10px] sm:text-xs text-slate-500 font-medium tracking-wide leading-tight mt-0.5">Bilgileriniz sadece rezervasyon işlemleri için kullanılır ve asla üçüncü şahıslarla paylaşılmaz.</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* Action Buttons */}
-                                    <div className="mt-2 flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100">
-                                        <button onClick={() => setBookingStep(1)} className="w-full sm:w-1/3 bg-white border-2 border-slate-200 text-slate-500 font-bold text-[15px] py-4 rounded-xl hover:bg-slate-50 hover:text-slate-800 transition-colors">Geri</button>
-                                        <button onClick={(e) => {
-                                            e.preventDefault();
-                                            router.push('/success');
-                                        }} className="w-full sm:w-2/3 bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-xl hover:bg-[#005e85] transition-transform active:scale-95 shadow-lg shadow-blue-500/30 flex justify-center items-center gap-2">
-                                            {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg> Rezervasyonu Tamamla</>}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {bookingStep === 3 && (
-                                <div className="flex flex-col items-center justify-center text-center gap-4 py-8 sm:py-12 animate-in zoom-in duration-500">
-                                    <div className="w-24 h-24 bg-green-50 text-green-500 rounded-full flex items-center justify-center shadow-inner relative">
-                                        <div className="absolute inset-0 rounded-full border-4 border-green-500 animate-[ping_1.5s_cubic-bezier(0,0,0.2,1)_infinite] opacity-20"></div>
-                                        <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="3" className="relative z-10"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                                    </div>
-
-                                    <h2 className="text-3xl font-black text-slate-800 mt-4 tracking-tight">İşlem Onaylandı!</h2>
-                                    <p className="text-gray-500 font-medium text-sm max-w-sm leading-relaxed mb-4">
-                                        Harika karar! Biletleriniz, seyahat yönergeleri ve fatura detaylarınız e-posta adresinize gönderildi.
-                                    </p>
-
-                                    <div className="w-full bg-slate-50 border border-gray-100 p-5 rounded-2xl text-left shadow-inner relative overflow-hidden">
-                                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                                            <svg width="100" height="100" fill="currentColor" viewBox="0 0 24 24"><path d="M2.25 12l9.75-9.75L21.75 12 12 21.75 2.25 12z" /></svg>
-                                        </div>
-                                        <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mb-3">Rezervasyon Özeti</p>
-
-                                        <div className="flex border-b border-gray-200 pb-3 mb-3 relative z-10">
-                                            <div className="relative w-16 h-16 rounded-xl overflow-hidden shrink-0 border border-gray-200">
-                                                <Image src={tour.imageMain} alt="Tur" fill sizes="64px" className="object-cover" />
-                                            </div>
-                                            <div className="ml-3 flex flex-col justify-center flex-1">
-                                                <span className="text-sm font-black text-slate-800 line-clamp-1">{tour.title}</span>
-                                                <span className="text-xs text-slate-500 font-medium">{guests} Kişi • {selectedDate ? selectedDate.toLocaleDateString(locale) : 'Tarih Sabit'}</span>
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-2 relative z-10">
-                                            <div className="flex justify-between items-center text-xs text-gray-600 font-medium"><span>Tur Tutarı</span> <span>{formatPrice(basePrice)}</span></div>
-                                            {hasInsurance && <div className="flex justify-between items-center text-xs text-gray-600 font-medium"><span>Sağlık Sigortası</span> <span>{formatPrice(500 * guests)}</span></div>}
-                                            {hasVipTransfer && <div className="flex justify-between items-center text-xs text-gray-600 font-medium"><span>VIP Transfer</span> <span>{formatPrice(1200)}</span></div>}
-                                            <div className="flex justify-between items-center text-sm font-black text-slate-800 pt-2 border-t border-gray-200 mt-2"><span>Ödenen Net Tutar</span> <span className="text-green-600">{formatPrice(totalPriceAmount)}</span></div>
-                                        </div>
-                                    </div>
-
-                                    <button onClick={() => { setBookingStep(0); window.scroll({ top: 0, behavior: 'smooth' }); }} className="w-full bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-xl hover:bg-[#005e85] transition-transform active:scale-95 shadow-lg mt-2">
-                                        Anasayfaya Dön & Yeni Keşifler Yap
-                                    </button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            )}
         </main>
     );
 }

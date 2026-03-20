@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { TOUR_DATA } from '../../lib/tours';
+import { fetchTours } from '../../lib/tours';
 
 export async function POST(req: NextRequest) {
     try {
@@ -100,7 +100,8 @@ export async function POST(req: NextRequest) {
         } else {
             // Global Search Integration: Serbest aramada eşleşme durumlarını bul
             let searchResults: string[] = [];
-            Object.entries(TOUR_DATA).forEach(([key, tour]) => {
+            const tourData: any = await fetchTours();
+            Object.entries(tourData).forEach(([key, tour]: [string, any]) => {
                 if (tour.title.toLowerCase().includes(lowerMsg) ||
                     tour.location.toLowerCase().includes(lowerMsg) ||
                     tour.category?.toLowerCase().includes(lowerMsg)) {
@@ -114,8 +115,9 @@ export async function POST(req: NextRequest) {
         }
 
         // Turları çek
+        const tourData: any = await fetchTours();
         const options = recommendedKeys.map(key => {
-            const baseTour = TOUR_DATA[key as keyof typeof TOUR_DATA];
+            const baseTour = tourData[key];
             // @ts-ignore
             const translation = baseTour.translations?.[locale] || {};
             const t = { ...baseTour, ...translation };

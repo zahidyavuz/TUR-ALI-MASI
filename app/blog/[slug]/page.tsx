@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { BLOG_POSTS } from '../../lib/blog';
-import { TOUR_DATA } from '../../lib/tours';
+import { fetchTours } from '../../lib/tours';
 import { Metadata } from 'next';
 
 type Props = {
@@ -42,8 +42,8 @@ export default async function BlogPostPage({ params }: Props) {
         return notFound();
     }
 
-    // İlgili tur bağlantısını getir
-    const relatedTour = post.relatedTourSlug ? TOUR_DATA[post.relatedTourSlug as keyof typeof TOUR_DATA] : null;
+    const tourData: any = await fetchTours();
+    const relatedTour = post.relatedTourSlug ? tourData[post.relatedTourSlug] : null;
 
     const jsonLd = {
         "@context": "https://schema.org",

@@ -1,37 +1,64 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements } from '@stripe/react-stripe-js';
 import CheckoutForm from '../components/CheckoutForm';
 import Link from 'next/link';
+import { useSearchParams, useRouter } from 'next/navigation';
+import { fetchAPI } from '../lib/api';
+import { auth } from '../lib/auth';
 
 // Make sure to call loadStripe outside of a component’s render to avoid
 // recreating the Stripe object on every render.
 // This is your test publishable API key.
 const stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || 'pk_test_dummy_key_change_me_to_run_real_tests');
 
-export default function App() {
+function CheckoutContent() {
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const tourId = searchParams.get('tourId');
+    const guests = searchParams.get('guests') || '1';
+
     const [clientSecret, setClientSecret] = useState('');
     const [pageError, setPageError] = useState<string | null>(null);
 
     useEffect(() => {
-        // Create PaymentIntent as soon as the page loads
-        fetch('/api/create-payment-intent', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ items: [{ id: 'xl-tshirt' }] }),
-        })
-            .then(async (res) => {
-                const data = await res.json();
-                if (!res.ok && data.error) {
-                    throw new Error(data.error);
+        if (!tourId) {
+            setPageError('Geçersiz rezervasyon bilgisi (Tour ID eksik).');
+            return;
+        }
+
+        const loadIntent = async () => {
+            const token = auth.getAccessToken();
+            try {
+                // If there's an actual Django endpoint like `/bookings/create-intent/` we use it here.
+                // Assuming `/bookings/` is the standard for Django REST Framework.
+                const data = await fetchAPI('/bookings/create-intent/', {
+                    method: 'POST',
+                    headers: {
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    },
+                    body: JSON.stringify({
+                        tour_id: tourId,
+                        guests: parseInt(guests),
+                    }),
+                });
+
+                if (data.clientSecret) {
+                    setClientSecret(data.clientSecret);
+                } else if (data.client_secret) {
+                    setClientSecret(data.client_secret);
+                } else {
+                    setPageError('Sunucudan geçerli bir ödeme anahtarı alınamadı.');
                 }
-                return data;
-            })
-            .then((data) => setClientSecret(data.clientSecret))
-            .catch((err) => setPageError(err.message));
-    }, []);
+            } catch (err: any) {
+                setPageError(err.message || 'Ödeme başlatılamadı. Lütfen giriş yaptığınızdan emin olun.');
+            }
+        };
+
+        loadIntent();
+    }, [tourId, guests]);
 
     const appearance = {
         theme: 'stripe',
@@ -51,38 +78,47 @@ export default function App() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div className="App w-full max-w-lg mx-auto mt-8">
+            {clientSecret ? (
+                <Elements options={options} stripe={stripePromise}>
+                    <CheckoutForm />
+                </Elements>
+            ) : pageError ? (
+                <div className="flex flex-col gap-4 text-center items-center justify-center min-h-[50vh] p-6 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
+                    <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-xl">
+                        🛡️
+                    </div>
+                    <h3 className="text-lg font-bold text-red-800">İşlem Onaylanamadı</h3>
+                    <p className="text-sm font-medium text-red-600">
+                        {pageError}
+                    </p>
+                    <p className="text-xs text-slate-500 mt-2">
+                        Rezervasyon yapabilmek için giriş yapmanız veya doğru linkten gelmeniz gerekmektedir.
+                    </p>
+                    <button onClick={() => router.push('/login')} className="mt-4 bg-red-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-red-700">Giriş Yap</button>
+                </div>
+            ) : (
+                <div className="flex flex-col gap-4 text-center text-slate-400 font-semibold items-center justify-center min-h-[50vh]">
+                    <div className="w-10 h-10 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"></div>
+                    Güvenli ödeme altyapısı (PCI-DSS) yükleniyor...
+                </div>
+            )}
+        </div>
+    );
+}
+
+export default function CheckoutPage() {
+    return (
+        <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
             <div className="absolute top-8 left-8">
                 <Link href="/" className="text-[#008cb3] font-bold text-sm tracking-tight hover:underline flex items-center gap-2">
-                    <span>←</span> Ana Sayfaya Dön
+                    <span>←</span> İptal ve Geri Dön
                 </Link>
             </div>
 
-            <div className="App">
-                {clientSecret ? (
-                    <Elements options={options} stripe={stripePromise}>
-                        <CheckoutForm />
-                    </Elements>
-                ) : pageError ? (
-                    <div className="flex flex-col gap-4 text-center items-center justify-center min-h-[50vh] max-w-md mx-auto p-6 bg-red-50 border border-red-100 rounded-2xl shadow-sm">
-                        <div className="w-12 h-12 bg-red-100 text-red-600 rounded-full flex items-center justify-center font-bold text-xl">
-                            🛡️
-                        </div>
-                        <h3 className="text-lg font-bold text-red-800">Güvenlik Uyarısı</h3>
-                        <p className="text-sm font-medium text-red-600">
-                            {pageError}
-                        </p>
-                        <p className="text-xs text-slate-500 mt-2">
-                            Lütfen biraz bekledikten sonra tekrar deneyiniz veya destek ekibimizle iletişime geçiniz.
-                        </p>
-                    </div>
-                ) : (
-                    <div className="flex flex-col gap-4 text-center text-slate-400 font-semibold items-center justify-center min-h-[50vh]">
-                        <div className="w-10 h-10 border-4 border-slate-200 border-t-indigo-500 rounded-full animate-spin"></div>
-                        Güvenli ödeme altyapısı (PCI-DSS) yükleniyor...
-                    </div>
-                )}
-            </div>
+            <Suspense fallback={<div className="text-center py-20 text-gray-500">Yükleniyor...</div>}>
+                <CheckoutContent />
+            </Suspense>
         </div>
     );
 }
