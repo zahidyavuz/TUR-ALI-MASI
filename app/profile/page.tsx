@@ -1,23 +1,26 @@
 'use client';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useLocale, Locale } from '../context/LocaleContext';
 import { useCurrency, Currency } from '../context/CurrencyContext';
+import { auth } from '../lib/auth';
 
 export default function ProfilePage() {
+    const router = useRouter();
     // Örnek Auth State'i (Gerçekte Context/Store'dan gelecek)
     const [userRole, setUserRole] = useState<'customer' | 'agency'>('customer');
 
     // Müşteri / Acenta Verileri Form State
     const [formState, setFormState] = useState({
-        firstName: 'Ahmet',
-        lastName: 'Yılmaz',
-        email: 'ahmet@example.com',
-        phone: '532 123 4567',
-        companyName: 'Yılmazlar Turizm Otelcilik A.Ş.',
-        tursabNo: '14833',
-        iban: '61 0006 2000 1234 5678 9000 11',
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        companyName: '',
+        tursabNo: '',
+        iban: '',
         currentPassword: '',
         newPassword: '',
         newPasswordConfirm: ''
@@ -28,12 +31,14 @@ export default function ProfilePage() {
     };
 
     // Profil Fotoğrafı State'i ve Yükleme
-    const [profileImage, setProfileImage] = useState('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=150');
+    const [profileImage, setProfileImage] = useState('https://placehold.co/150x150/e2e8f0/475569.png?text=Avatar');
+    const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const fileInputRef = React.useRef<HTMLInputElement>(null);
 
     const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            setSelectedFile(file);
             const reader = new FileReader();
             reader.onloadend = () => {
                 setProfileImage(reader.result as string);
@@ -41,6 +46,38 @@ export default function ProfilePage() {
             reader.readAsDataURL(file);
         }
     };
+
+    // Load Profile
+    useEffect(() => {
+        const token = auth.getAccessToken();
+        if (!token) {
+            router.push('/login?next=/profile');
+            return;
+        }
+
+        fetch('http://localhost:8000/api/v1/users/me/', {
+            headers: { 'Authorization': `Bearer ${token}` }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.detail && data.code === 'token_not_valid') {
+                auth.clearTokens();
+                router.push('/login?next=/profile');
+                return;
+            }
+            setFormState(prev => ({
+                ...prev,
+                firstName: data.first_name || '',
+                lastName: data.last_name || '',
+                email: data.email || '',
+                phone: data.profile?.phone_number || ''
+            }));
+            if (data.profile?.avatar) {
+                setProfileImage(`http://localhost:8000${data.profile.avatar}`);
+            }
+        })
+        .catch(err => console.error("Profile load error:", err));
+    }, [router]);
 
     // Global Tercihler State'leri
     const { locale, setLocale } = useLocale();
@@ -50,10 +87,83 @@ export default function ProfilePage() {
     const [isSaving, setIsSaving] = useState(false);
     const handleSave = async () => {
         setIsSaving(true);
-        // Simulate API call to DB / Firestore
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setIsSaving(false);
-        alert('Profil tercihlerin ve kişisel bildilerin başarıyla kaydedildi!');
+        const token = auth.getAccessToken();
+        if (!token) {
+            router.push('/login');
+            return;
+        }
+
+        try {
+            // Profil Verilerini Kaydet
+            const formData = new FormData();
+            formData.append('first_name', formState.firstName);
+            formData.append('last_name', formState.lastName);
+            formData.append('email', formState.email);
+            // profile nesnesini göndermek için DRF'de iç içe objeler normalde json gerektirir 
+            // ama UserSerializer update metodu pop('profile') yaparak alır.
+            // Fakat Multipartformdata'da nested dict biraz farklı işler (profile.phone_number tarzı).
+            // Backend'de parser JSON ise json atmak daha kolay.
+            
+            if (selectedFile) {
+                // Eğer dosya seçiliyse DRF'e multipart göndermek zorundayız
+                formData.append('profile.phone_number', formState.phone);
+                formData.append('profile.avatar', selectedFile);
+
+                await fetch('http://localhost:8000/api/v1/users/me/', {
+                    method: 'PUT',
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
+                });
+            } else {
+                // JSON payload
+                await fetch('http://localhost:8000/api/v1/users/me/', {
+                    method: 'PUT',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({
+                        first_name: formState.firstName,
+                        last_name: formState.lastName,
+                        email: formState.email,
+                        profile: {
+                            phone_number: formState.phone
+                        }
+                    })
+                });
+            }
+
+            // Şifre Değiştirme (İsteniyorsa)
+            if (formState.newPassword && formState.currentPassword) {
+                if (formState.newPassword !== formState.newPasswordConfirm) {
+                    alert("Yeni şifreler eşleşmiyor.");
+                    setIsSaving(false);
+                    return;
+                }
+                const passRes = await fetch('http://localhost:8000/api/v1/auth/password/change/', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json' 
+                    },
+                    body: JSON.stringify({
+                        old_password: formState.currentPassword,
+                        new_password: formState.newPassword
+                    })
+                });
+                if (!passRes.ok) {
+                    alert("Şifre güncellenemedi, mevcut şifrenizi kontrol edin.");
+                }
+            }
+
+            alert('Profil tercihlerin ve kişisel bildilerin başarıyla kaydedildi!');
+            setFormState(prev => ({ ...prev, currentPassword: '', newPassword: '', newPasswordConfirm: '' }));
+        } catch (error) {
+            console.error(error);
+            alert("Bir hata oluştu.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
 
@@ -110,15 +220,14 @@ export default function ProfilePage() {
                                 <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
                                 Kimlik Bilgileri
                             </h3>
-
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Adınız</label>
-                                    <input type="text" defaultValue="Ahmet" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
+                                    <input type="text" name="firstName" value={formState.firstName} onChange={handleInputChange} className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                 </div>
                                 <div>
                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Soyadınız</label>
-                                    <input type="text" defaultValue="Yılmaz" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
+                                    <input type="text" name="lastName" value={formState.lastName} onChange={handleInputChange} className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                 </div>
                             </div>
 
@@ -126,11 +235,7 @@ export default function ProfilePage() {
                                 <div className="relative">
                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">E-Posta Adresi</label>
                                     <div className="relative flex items-center">
-                                        <input type="email" defaultValue="ahmet@example.com" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl pl-4 pr-24 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
-                                        <div className="absolute right-2 bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center gap-1 text-[10px] font-extrabold px-2 py-1 rounded-md shadow-sm">
-                                            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.643.304 1.254.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                            DOĞRULANDI
-                                        </div>
+                                        <input type="email" name="email" value={formState.email} onChange={handleInputChange} className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl pl-4 pr-10 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                     </div>
                                 </div>
 
@@ -143,7 +248,7 @@ export default function ProfilePage() {
                                         <span className="inline-flex items-center px-4 bg-gray-100 border border-r-0 border-gray-200 text-gray-500 font-black rounded-l-xl text-sm">
                                             +90
                                         </span>
-                                        <input type="tel" defaultValue="532 123 4567" placeholder="5XX XXX XXXX" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-r-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
+                                        <input type="tel" name="phone" value={formState.phone} onChange={handleInputChange} placeholder="5XX XXX XXXX" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-r-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                     </div>
                                 </div>
                             </div>
@@ -246,10 +351,10 @@ export default function ProfilePage() {
                                 Güvenlik ve Şifre Belirleme
                             </h3>
 
-                            <div className="space-y-5">
+                                <div className="space-y-5">
                                 <div className="relative">
                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Kullanımdaki Mevcut Şifre</label>
-                                    <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                    <input type="password" name="currentPassword" value={formState.currentPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -257,11 +362,11 @@ export default function ProfilePage() {
                                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
                                             <span>Yeni Güçlü Şifre</span>
                                         </label>
-                                        <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                        <input type="password" name="newPassword" value={formState.newPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
                                     </div>
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Yeni Şifre (Yeniden Yazınız)</label>
-                                        <input type="password" placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                        <input type="password" name="newPasswordConfirm" value={formState.newPasswordConfirm} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
                                     </div>
                                 </div>
                             </div>

@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
-import { BLOG_POSTS } from '../../lib/blog';
+import { fetchBlog } from '../../lib/blog';
 import { fetchTours } from '../../lib/tours';
 import { Metadata } from 'next';
 
@@ -13,7 +13,7 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Next.js params is potentially generic, so we force it to string
     const slug = (await params).slug;
-    const post = BLOG_POSTS.find(p => p.slug === slug);
+    const post = await fetchBlog(slug);
 
     if (!post) {
         return {
@@ -36,14 +36,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function BlogPostPage({ params }: Props) {
     const slug = (await params).slug;
-    const post = BLOG_POSTS.find(p => p.slug === slug);
+    const post = await fetchBlog(slug);
 
     if (!post) {
         return notFound();
     }
 
     const tourData: any = await fetchTours();
-    const relatedTour = post.relatedTourSlug ? tourData[post.relatedTourSlug] : null;
+    const tourList = tourData.tours || [];
+    const relatedTour = post.relatedTourSlug ? tourList.find((t: any) => String(t.slug) === String(post.relatedTourSlug) || String(t.id) === String(post.relatedTourSlug)) : null;
 
     const jsonLd = {
         "@context": "https://schema.org",

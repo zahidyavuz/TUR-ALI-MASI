@@ -10,6 +10,7 @@ import GeofenceTrigger from './components/GeofenceTrigger';
 import FloatingContactMenu from './components/FloatingContactMenu';
 import CurrencySelector from './components/CurrencySelector';
 import NotificationCenter from './components/NotificationCenter';
+import FavoriteButton from './components/FavoriteButton';
 import { useAuth } from './context/AuthContext';
 
 const BACKGROUND_IMAGES = [
@@ -24,13 +25,13 @@ const BACKGROUND_IMAGES = [
 
 export default function Home() {
   const { t, locale, setLocale, formatPrice } = useLocale();
-  const [tours, setTours] = useState<any>({});
+  const [tours, setTours] = useState<any[]>([]);
   const [toursLoaded, setToursLoaded] = useState(false);
 
   useEffect(() => {
     async function loadTours() {
       const data = await fetchTours();
-      setTours(data.map || {});
+      setTours(data.tours || []);
       setToursLoaded(true);
     }
     loadTours();
@@ -787,7 +788,7 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {Object.values(tours).map((tur: any, i) => (
+            {tours.map((tur: any, i: number) => (
               <div
                 key={tur.id || i}
                 onClick={() => window.location.href = `/tour/${tur.id}`}
@@ -796,9 +797,9 @@ export default function Home() {
                 <div className="relative h-56 overflow-hidden">
                   <Image src={tur.image_main || tur.imageMain} alt={tur.title || tur.ad} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
                   <span className="absolute top-4 left-4 text-[10px] font-black text-white bg-red-600 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-md animate-pulse z-10">{tur.discount ? `%${tur.discount} İNDİRİM` : 'POPÜLER'}</span>
-                  <button aria-label="Favorilere Ekle" className="absolute top-4 right-4 bg-white/90 p-2 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors z-10">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                  </button>
+                  <div className="absolute top-4 right-4 z-40" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                    <FavoriteButton tourId={tur.id} className="p-2 rounded-full !bg-white/90 hover:!bg-red-50 hover:!text-red-500 shadow-sm" />
+                  </div>
                 </div>
                 <div className="p-6 flex-1 flex flex-col relative">
 

@@ -293,9 +293,25 @@ export default function Chatbot() {
                                                 const btn = e.currentTarget;
                                                 const inp = btn.previousElementSibling as HTMLInputElement;
                                                 if (inp.value.includes('@')) {
-                                                    btn.innerHTML = '✓ Kaydedildi, teşekkürler!';
-                                                    btn.className = "w-full text-xs font-bold text-white bg-green-500 rounded-lg py-2 cursor-default";
-                                                    inp.disabled = true;
+                                                    const email = inp.value;
+                                                    btn.innerHTML = 'Kaydediliyor...';
+                                                    btn.disabled = true;
+                                                    
+                                                    fetch('http://localhost:8000/api/v1/leads/', {
+                                                        method: 'POST',
+                                                        headers: { 'Content-Type': 'application/json' },
+                                                        body: JSON.stringify({
+                                                            email: email,
+                                                            tour_interest: msg.leadData?.title || 'Bilinmiyor'
+                                                        })
+                                                    }).then(() => {
+                                                        btn.innerHTML = '✓ Kaydedildi, teşekkürler!';
+                                                        btn.className = "w-full text-xs font-bold text-white bg-green-500 rounded-lg py-2 cursor-default";
+                                                        inp.disabled = true;
+                                                    }).catch(() => {
+                                                        btn.innerHTML = 'Hata Oluştu';
+                                                        btn.disabled = false;
+                                                    });
                                                 } else {
                                                     inp.style.borderColor = 'red';
                                                 }

@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'reviews',
     'blogs',
     'users',
+    'contacts',
 
     # Auth & Social Login
     'rest_framework_simplejwt',
@@ -112,6 +113,9 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'auth-token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh-token',
+    'PASSWORD_RESET_CONFIRM_URL': 'reset-password/?uid={uid}&token={token}',
+    'OLD_PASSWORD_FIELD_ENABLED': True,
+    'LOGOUT_ON_PASSWORD_CHANGE': False,
 }
 
 # Stripe Settings

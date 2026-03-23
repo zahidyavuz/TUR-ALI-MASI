@@ -101,11 +101,12 @@ export async function POST(req: NextRequest) {
             // Global Search Integration: Serbest aramada eşleşme durumlarını bul
             let searchResults: string[] = [];
             const tourData: any = await fetchTours();
-            Object.entries(tourData).forEach(([key, tour]: [string, any]) => {
+            const tourList = tourData.tours || [];
+            tourList.forEach((tour: any) => {
                 if (tour.title.toLowerCase().includes(lowerMsg) ||
                     tour.location.toLowerCase().includes(lowerMsg) ||
                     tour.category?.toLowerCase().includes(lowerMsg)) {
-                    searchResults.push(key);
+                    searchResults.push(tour.slug || tour.id);
                 }
             });
 
@@ -116,8 +117,10 @@ export async function POST(req: NextRequest) {
 
         // Turları çek
         const tourData: any = await fetchTours();
+        const tourList = tourData.tours || [];
         const options = recommendedKeys.map(key => {
-            const baseTour = tourData[key];
+            const baseTour = tourList.find((t: any) => t.slug === key || t.id === key);
+            if (!baseTour) return null; // In case the fallback hardcoded keys (fethiye-yama-parasutu) don't exist anymore
             // @ts-ignore
             const translation = baseTour.translations?.[locale] || {};
             const t = { ...baseTour, ...translation };
@@ -150,7 +153,7 @@ export async function POST(req: NextRequest) {
                 image: t.imageSub1 || t.imageMain,
                 miniItinerary: itinerary,
             };
-        });
+        }).filter(Boolean); // Clean any nulls that occurred from hardcoded key misses
 
         if (isLead && leadData) {
             await new Promise(resolve => setTimeout(resolve, 1500));

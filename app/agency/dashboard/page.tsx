@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 
 export default function AgencyDashboard() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'my_tours' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin'>('dashboard');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -21,9 +21,18 @@ export default function AgencyDashboard() {
     });
 
     const [bookings, setBookings] = useState<any[]>([]);
+    const [tours, setTours] = useState<any[]>([]);
 
     // Auth & Formatlama Helpers
     const [selectedQR, setSelectedQR] = useState<string | null>(null);
+
+    // Blog CMS States
+    const [blogTitle, setBlogTitle] = useState('');
+    const [blogContent, setBlogContent] = useState('');
+    const [blogCategory, setBlogCategory] = useState('Rehberler');
+    const [blogTourSlug, setBlogTourSlug] = useState('');
+    const [blogCoverUrl, setBlogCoverUrl] = useState('');
+    const [isPublishingBlog, setIsPublishingBlog] = useState(false);
 
     useEffect(() => {
         const fetchDashboardData = async () => {
@@ -45,23 +54,29 @@ export default function AgencyDashboard() {
 
                 // Update Stats
                 setStats({
-                    totalSales: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(data.metrics?.total_earnings || 0),
+                    totalSales: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(data.metrics?.total_revenue || 0),
                     activeBookings: data.metrics?.total_bookings || 0,
-                    pendingEarnings: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format((data.metrics?.total_earnings || 0) * 0.2) // varsayımsal hakediş
+                    pendingEarnings: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format((data.metrics?.total_revenue || 0) * 0.2) // varsayımsal hakediş
                 });
 
                 // Update Bookings
                 if (data.recent_bookings) {
                     const mappedBookings = data.recent_bookings.map((b: any) => ({
                         id: `RES-${b.id.toString().padStart(4, '0')}`,
-                        customer: b.user_email || 'Misafir',
-                        tour: b.tour_title,
-                        date: new Date(b.date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }),
+                        customer: b.user_full_name?.trim() || b.user_email || 'Misafir',
+                        user_email: b.user_email,
+                        tour: b.tour_detail?.title || 'Bilinmeyen Tur',
+                        date: b.start_date ? new Date(b.start_date).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' }) : b.date_label,
                         status: b.status === 'confirmed' ? 'Ödendi' : b.status === 'completed' ? 'Tamamlandı' : b.status === 'cancelled' ? 'İptal' : 'Bekliyor',
                         amount: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(b.total_price),
                         checkedIn: b.status === 'completed'
                     }));
                     setBookings(mappedBookings);
+                }
+
+                // Update Tours
+                if (data.tours) {
+                    setTours(data.tours);
                 }
             } catch (err: any) {
                 console.error('Failed to fetch agency dashboard:', err);
@@ -76,6 +91,51 @@ export default function AgencyDashboard() {
 
     const handleDownloadVoucher = (id: string) => {
         alert(`${id} numaralı rezervasyonun bileti (voucher) indiriliyor...`);
+    };
+
+    const handlePublishBlog = async () => {
+        if (!blogTitle.trim() || !blogContent.trim()) {
+            alert('Lütfen başlık ve içerik alanlarını doldurun.');
+            return;
+        }
+        setIsPublishingBlog(true);
+        try {
+            const token = auth.getAccessToken();
+            // Generate slug
+            const slug = blogTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
+            
+            const res = await fetchAPI('/blogs/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify({
+                    slug: slug,
+                    title: blogTitle,
+                    content: blogContent,
+                    excerpt: blogContent.substring(0, 150) + '...',
+                    category: blogCategory,
+                    related_tour_slug: blogTourSlug || null,
+                    status: 'published',
+                    reading_time: Math.max(1, Math.ceil(blogContent.split(' ').length / 200)) + ' dk'
+                })
+            });
+
+            if (res.slug) {
+                alert('Yazınız başarıyla yayımlandı!');
+                setBlogTitle('');
+                setBlogContent('');
+                setBlogTourSlug('');
+            } else {
+                alert(res.error || res.detail || 'Yayımlanırken bir hata oluştu');
+            }
+        } catch (error) {
+            console.error('Blog publish error', error);
+            alert('Yazı yayımlanamadı.');
+        } finally {
+            setIsPublishingBlog(false);
+        }
     };
 
     return (
@@ -106,6 +166,14 @@ export default function AgencyDashboard() {
                     >
                         <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
                         Rezervasyonlar
+                    </button>
+
+                    <button
+                        onClick={() => setActiveTab('my_tours')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'my_tours' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Turlarım
                     </button>
 
                     <button
@@ -164,6 +232,7 @@ export default function AgencyDashboard() {
                     <h2 className="text-[22px] font-extrabold text-slate-800 uppercase tracking-tight">
                         {activeTab === 'dashboard' && 'Genel Bakış'}
                         {activeTab === 'bookings' && 'Rezervasyon Yönetimi'}
+                        {activeTab === 'my_tours' && 'Turlarım & Yönetim'}
                         {activeTab === 'quick_book' && 'Hızlı Tur Satışı'}
                         {activeTab === 'finance' && 'Finans & Fatura Modülü'}
                         {activeTab === 'deals' && 'Acenta Özel Kampanyalar'}
@@ -719,14 +788,14 @@ export default function AgencyDashboard() {
                                             {/* Editör Alanı */}
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Başlık</label>
-                                                <input type="text" placeholder="Örn: 2026 Yazının En Gözde 5 Tatil Rotası" className="w-full border-2 border-gray-100 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 transition text-lg font-black text-slate-800 placeholder-gray-300" />
+                                                <input value={blogTitle} onChange={e => setBlogTitle(e.target.value)} type="text" placeholder="Örn: 2026 Yazının En Gözde 5 Tatil Rotası" className="w-full border-2 border-gray-100 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 transition text-lg font-black text-slate-800 placeholder-gray-300" />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 flex justify-between">
                                                     <span>İçerik (Markdown Destekli)</span>
                                                     <span className="text-indigo-500 cursor-pointer">+ Görsel / Medya Ekle</span>
                                                 </label>
-                                                <textarea rows={15} placeholder="## Giriş&#10;Yazınıza buradan başlayın. Kalın yapmak için **yazı**, link için [Link Text](url) kullanabilirsiniz." className="w-full border border-gray-200 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition text-sm font-medium text-slate-700 leading-relaxed font-mono resize-y"></textarea>
+                                                <textarea value={blogContent} onChange={e => setBlogContent(e.target.value)} rows={15} placeholder="## Giriş&#10;Yazınıza buradan başlayın. Kalın yapmak için **yazı**, link için [Link Text](url) kullanabilirsiniz." className="w-full border border-gray-200 rounded-2xl px-5 py-4 bg-slate-50 focus:bg-white outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 transition text-sm font-medium text-slate-700 leading-relaxed font-mono resize-y"></textarea>
                                             </div>
                                         </div>
 
@@ -740,7 +809,7 @@ export default function AgencyDashboard() {
                                                 <div className="space-y-4">
                                                     <div>
                                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Kategori</label>
-                                                        <select className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
+                                                        <select value={blogCategory} onChange={e => setBlogCategory(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
                                                             <option>Rehberler</option>
                                                             <option>Gurme</option>
                                                             <option>Vize İşlemleri</option>
@@ -749,19 +818,19 @@ export default function AgencyDashboard() {
                                                     </div>
                                                     <div>
                                                         <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Müşteri Yönlendirme (CTA) Turu</label>
-                                                        <select className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
-                                                            <option value="kapadokya">Kapadokya Balon (Önerilen)</option>
-                                                            <option value="buyuk-italya">Büyük İtalya Turu</option>
-                                                            <option value="maldivler-ruyasi">Maldivler</option>
+                                                        <select value={blogTourSlug} onChange={e => setBlogTourSlug(e.target.value)} className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none">
+                                                            <option value="">Hiçbiri</option>
+                                                            {tours.map(t => (
+                                                                <option key={t.slug} value={t.slug}>{t.title}</option>
+                                                            ))}
                                                         </select>
                                                         <p className="text-[10px] font-semibold text-gray-400 mt-1">Yazının sonuna 'Hemen İncele' butonu koyar.</p>
                                                     </div>
-                                                    <div>
-                                                        <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-1">Kapak Fotoğrafı URL</label>
-                                                        <input type="text" placeholder="https://unsplash..." className="w-full border border-gray-200 rounded-xl px-4 py-2 bg-white text-sm font-medium text-slate-700 outline-none" />
-                                                    </div>
+                                                    {/* Cover Photo URL is ignored in MVP for simplicity or we can add it to state */}
                                                 </div>
-                                                <button className="w-full mt-6 bg-slate-800 hover:bg-black text-white px-4 py-3 rounded-xl font-bold text-sm shadow-md transition-colors">Yazıyı Yayımla 🚀</button>
+                                                <button onClick={handlePublishBlog} disabled={isPublishingBlog} className="w-full mt-6 bg-slate-800 hover:bg-black text-white px-4 py-3 rounded-xl font-bold text-sm shadow-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    {isPublishingBlog ? 'Yayımlanıyor...' : 'Yazıyı Yayımla 🚀'}
+                                                </button>
                                             </div>
                                         </div>
                                     </div>

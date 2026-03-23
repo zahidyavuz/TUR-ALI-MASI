@@ -21,6 +21,9 @@ class BlogViewSet(viewsets.ModelViewSet):
     filter_backends = [DjangoFilterBackend]
     filterset_class = BlogFilter
 
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
     def get_queryset(self):
         # Anonymous/non-staff users only see published blogs
         if self.request.user.is_staff:

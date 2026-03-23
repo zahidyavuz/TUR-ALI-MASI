@@ -172,10 +172,11 @@ export async function checkDiscountAlerts(): Promise<AppNotification[]> {
   const candidates: AppNotification[] = [];
 
   const tourData: any = await fetchTours();
-  const tourMap = tourData.map || {}; // Using the newly mapped Django format
+  const tourList = tourData.tours || [];
 
-  for (const [slug, tour] of Object.entries(tourMap)) {
-    const t = tour as { id: string; title: string; discount?: string };
+  for (const tour of tourList) {
+    const t = tour as { id: string; title: string; discount?: string; slug?: string };
+    const slug = t.slug || t.id;
     const discount = t.discount ?? '';
     if (!discount) continue;
 

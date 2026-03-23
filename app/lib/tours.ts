@@ -13,36 +13,60 @@ export async function fetchTours(params: Record<string, string> = {}) {
         // Django Paginated Response returns results in Response.results 
         const tours = response.results ? response.results : response;
 
-        // Convert array to the object map format expected by legacy frontend code temporarily
-        const tourMap: Record<string, any> = {};
-        for (const t of tours) {
-            tourMap[t.id] = {
-                ...t,
-                // Ensure properties match the expected frontend structure
-                fomoCount: t.fomo_count || Math.floor(Math.random() * 50) + 10,
-                reviews: t.reviews_count?.toString() || "0",
-                originalPrice: t.original_price?.toString() || "",
-                price: parseFloat(t.price),
-                imageSub1: t.image_sub1 || t.image_main,
-                imageSub2: t.image_sub2 || t.image_main,
-                included: t.included || [],
-                excluded: t.excluded || [],
-                translations: {}
-            };
-        }
+        // Formatted array for frontend consumption
+        const formattedTours = tours.map((t: any) => ({
+            ...t,
+            // Ensure properties match the expected frontend structure
+            fomoCount: t.fomo_count || Math.floor(Math.random() * 50) + 10,
+            reviews: t.reviews_count?.toString() || "0",
+            originalPrice: t.original_price?.toString() || "",
+            price: parseFloat(t.price),
+            imageMain: t.image_main,
+            imageSub1: t.image_sub1 || t.image_main,
+            imageSub2: t.image_sub2 || t.image_main,
+            included: t.included || [],
+            excluded: t.excluded || [],
+            translations: {}
+        }));
 
-        // Return both array and map for compatibility, along with pagination metadata
+        // Return array and pagination metadata
         return {
-            map: tourMap,
-            array: tours,
-            count: response.count || tours.length,
+            tours: formattedTours,
+            count: response.count || formattedTours.length,
             next: response.next,
             previous: response.previous
         };
 
     } catch (error) {
         console.error("Fetch tours error:", error);
-        return { map: {}, array: [], count: 0, next: null, previous: null };
+        return { tours: [], count: 0, next: null, previous: null };
+    }
+}
+
+export async function fetchTour(slug: string) {
+    try {
+        const t = await fetchAPI(`/tours/${slug}/`, {
+            next: { revalidate: 60 }
+        });
+        if (!t || Object.keys(t).length === 0 || t.detail === "Bulunamadı." || t.detail === "Not found.") return null;
+        
+        return {
+            ...t,
+            fomoCount: t.fomo_count || Math.floor(Math.random() * 50) + 10,
+            reviews: t.reviews_count?.toString() || "0",
+            originalPrice: t.original_price?.toString() || "",
+            price: parseFloat(t.price),
+            imageMain: t.image_main,
+            imageSub1: t.image_sub1 || t.image_main,
+            imageSub2: t.image_sub2 || t.image_main,
+            included: t.included || [],
+            excluded: t.excluded || [],
+            translations: {},
+            availabilitySlots: t.availability_slots || []
+        };
+    } catch (error) {
+        console.error("Fetch singular tour error:", error);
+        return null;
     }
 }
 

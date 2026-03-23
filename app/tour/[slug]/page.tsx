@@ -7,11 +7,13 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 
-import { fetchTours } from '../../lib/tours';
+import { fetchTours, fetchTour } from '../../lib/tours';
 import { useLocale } from '../../context/LocaleContext';
 import { DownloadOfflineButton } from '../../components/DownloadOfflineButton';
 import GeofenceTrigger from '../../components/GeofenceTrigger';
 import CurrencySelector from '../../components/CurrencySelector';
+import FavoriteButton from '../../components/FavoriteButton';
+import TourReviews from '../../components/TourReviews';
 
 export default function DynamicTourPage() {
     const { t, locale, formatPrice } = useLocale();
@@ -38,10 +40,7 @@ export default function DynamicTourPage() {
         async function loadTour() {
             setLoading(true);
             try {
-                const tourData: any = await fetchTours();
-                // tourData now returns { map: {...}, array: [...] }
-                const mapData = tourData.map || {};
-                const baseTour = mapData[slug] || mapData['kapadokya'];
+                const baseTour = await fetchTour(String(slug));
 
                 if (baseTour) {
                     const translation = baseTour.translations?.[locale] || {};
@@ -119,6 +118,9 @@ export default function DynamicTourPage() {
                                 sizes="(max-width: 768px) 100vw, 66vw"
                                 className="object-cover group-hover:scale-105 transition-transform duration-700"
                             />
+                            <div className="absolute top-6 right-6 z-20">
+                                <FavoriteButton tourId={tour.id || slug} className="p-3 rounded-full !bg-white/90 hover:!bg-red-50 hover:!text-red-500 shadow-xl" />
+                            </div>
                             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                             <div className="absolute bottom-6 left-6 text-white">
                                 <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 shadow-lg">
@@ -208,10 +210,24 @@ export default function DynamicTourPage() {
                         <div className="space-y-4 mb-6 relative z-10">
                             <div className="border border-gray-200 rounded-2xl p-4 bg-slate-50 relative group">
                                 <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block mb-1">Tarih Seçin</label>
-                                <select className="w-full bg-transparent font-bold text-slate-800 outline-none appearance-none cursor-pointer">
-                                    <option>15 Mart 2026 - 17 Mart 2026</option>
-                                    <option>22 Mart 2026 - 24 Mart 2026</option>
-                                    <option>5 Nisan 2026 - 7 Nisan 2026</option>
+                                <select 
+                                    className="w-full bg-transparent font-bold text-slate-800 outline-none appearance-none cursor-pointer"
+                                    value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                                    onChange={(e) => {
+                                        if (e.target.value) setSelectedDate(new Date(e.target.value));
+                                        else setSelectedDate(null);
+                                    }}
+                                >
+                                    <option value="" disabled>Tarih Seçin</option>
+                                    {tour.availabilitySlots && tour.availabilitySlots.filter((slot:any) => slot.is_available).map((slot: any) => (
+                                        <option key={slot.id} value={slot.date}>
+                                            {new Date(slot.date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            {slot.remaining < 5 ? ` (Son ${slot.remaining} koltuk!)` : ` (${slot.remaining} Kişilik Yer Var)`}
+                                        </option>
+                                    ))}
+                                    {(!tour.availabilitySlots || tour.availabilitySlots.filter((s:any) => s.is_available).length === 0) && (
+                                        <option disabled>Şu an müsait tarih bulunmuyor</option>
+                                    )}
                                 </select>
                                 <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">▼</div>
                             </div>
@@ -237,10 +253,15 @@ export default function DynamicTourPage() {
                         {/* CTA Butonu */}
                         <div className="flex flex-col gap-2 mb-4">
                             <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}`);
-                                }}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        if (!selectedDate) {
+                            alert("Lütfen önce bir tarih seçin.");
+                            return;
+                        }
+                        const formattedDate = selectedDate.toISOString().split('T')[0];
+                        router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}`);
+                    }}
                                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
                             >
                                 {locale === 'en-US' ? 'Secure Your Spot' : locale === 'de-DE' ? 'Jetzt Verbindlich Reservieren' : locale === 'zh-CN' ? '尊享预订，稍后付款' : 'Hemen Yerini Ayır'}
@@ -389,6 +410,11 @@ export default function DynamicTourPage() {
                 </div>
             </div>
 
+            {/* Değerlendirme & Yorumlar */}
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 lg:w-2/3 ml-0 lg:ml-auto mr-auto lg:mr-0 pl-0 lg:pr-8">
+               <TourReviews tourId={tour.id || slug} />
+            </div>
+
             {/* Mobile Sticky Booking Bar */}
             <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 px-6 py-4 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] z-[60] flex items-center justify-between pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 <div>
@@ -396,7 +422,15 @@ export default function DynamicTourPage() {
                     <p className="text-2xl font-black text-slate-800 leading-none">{formatPrice(tour.price * guests)}</p>
                 </div>
                 <button
-                    onClick={() => router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}`)}
+                    onClick={(e) => {
+                        e.preventDefault();
+                        if (!selectedDate) {
+                            alert("Lütfen rezervasyon için tarih seçiniz.");
+                            return;
+                        }
+                        const formattedDate = selectedDate.toISOString().split('T')[0];
+                        router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}`);
+                    }}
                     className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 text-sm"
                 >
                     Hemen Ayır

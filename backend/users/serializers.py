@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserProfile, Wishlist
+from .models import UserProfile, Wishlist, Notification
 from tours.serializers import TourListSerializer
 
 
@@ -43,4 +43,9 @@ class WishlistSerializer(serializers.ModelSerializer):
     class Meta:
         model = Wishlist
         fields = ['id', 'tour', 'tour_detail', 'created_at']
+
+class NotificationSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Notification
+        fields = '__all__'
         read_only_fields = ['created_at']
