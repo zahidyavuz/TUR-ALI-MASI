@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 /** @type {import('next').NextConfig} */
 const nextConfig: NextConfig = {
+  output: 'standalone',
   images: {
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
@@ -40,6 +41,13 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'upload.wikimedia.org',
+        port: '',
+        pathname: '/**',
+      },
+      // Production: backend API hostname
+      {
+        protocol: 'https',
+        hostname: '*.melihtours.com',
         port: '',
         pathname: '/**',
       },
