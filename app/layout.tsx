@@ -89,6 +89,7 @@ export default function RootLayout({
 
         {/* Global SEO & Analytics Entegrasyonları (Rusya & Çin) */}
         {/* Yandex.Metrica Analytics */}
+        {process.env.NEXT_PUBLIC_YANDEX_METRICA_ID && (
         <Script id="yandex-metrica" strategy="afterInteractive">
           {`
             (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
@@ -97,7 +98,7 @@ export default function RootLayout({
             k=e.createElement(t),a=e.getElementsByTagName(t)[0],k.async=1,k.src=r,a.parentNode.insertBefore(k,a)})
             (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
 
-            ym(12345678, "init", {
+            ym(${process.env.NEXT_PUBLIC_YANDEX_METRICA_ID}, "init", {
                  clickmap:true,
                  trackLinks:true,
                  accurateTrackBounce:true,
@@ -105,19 +106,22 @@ export default function RootLayout({
             });
           `}
         </Script>
+        )}
 
         {/* Baidu Analytics */}
+        {process.env.NEXT_PUBLIC_BAIDU_ANALYTICS_ID && (
         <Script id="baidu-analytics" strategy="afterInteractive">
           {`
             var _hmt = _hmt || [];
             (function() {
               var hm = document.createElement("script");
-              hm.src = "https://hm.baidu.com/hm.js?YOUR_BAIDU_ID";
+              hm.src = "https://hm.baidu.com/hm.js?${process.env.NEXT_PUBLIC_BAIDU_ANALYTICS_ID}";
               var s = document.getElementsByTagName("script")[0]; 
               s.parentNode.insertBefore(hm, s);
             })();
           `}
         </Script>
+        )}
 
         {/* Google Analytics (GA4) */}
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (

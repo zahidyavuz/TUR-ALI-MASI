@@ -68,6 +68,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,16 +82,12 @@ MIDDLEWARE = [
 SITE_ID = 1
 
 CORS_ALLOW_ALL_ORIGINS = False
+_cors_env = os.getenv('CORS_ALLOWED_ORIGINS', '')
 CORS_ALLOWED_ORIGINS = [
     'http://localhost:3000',
     'http://localhost:3001',
     'http://127.0.0.1:3000',
-]
-# Production domains (uncomment when deploying)
-# CORS_ALLOWED_ORIGINS += [
-#     'https://melihtours.com',
-#     'https://www.melihtours.com',
-# ]
+] + [o.strip() for o in _cors_env.split(',') if o.strip()]
 CORS_ALLOW_CREDENTIALS = True
 
 REST_FRAMEWORK = {
@@ -166,31 +163,11 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 
 # Database
-# Use DATABASE_URL for PostgreSQL in production, SQLite for development
-DATABASE_URL = os.getenv('DATABASE_URL')
+import dj_database_url
 
+DATABASE_URL = os.getenv('DATABASE_URL')
 if DATABASE_URL:
-    import re
-    # Parse DATABASE_URL: postgres://user:password@host:port/dbname
-    match = re.match(r'postgres(?:ql)?://(.+):(.+)@(.+):(\d+)/(.+)', DATABASE_URL)
-    if match:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.postgresql',
-                'NAME': match.group(5),
-                'USER': match.group(1),
-                'PASSWORD': match.group(2),
-                'HOST': match.group(3),
-                'PORT': match.group(4),
-            }
-        }
-    else:
-        DATABASES = {
-            'default': {
-                'ENGINE': 'django.db.backends.sqlite3',
-                'NAME': BASE_DIR / 'db.sqlite3',
-            }
-        }
+    DATABASES = {'default': dj_database_url.parse(DATABASE_URL)}
 else:
     DATABASES = {
         'default': {
@@ -236,6 +213,7 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
