@@ -1,13 +1,14 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { BLOG_POSTS } from '../lib/blog';
+import { fetchBlogs } from '../lib/blog';
 
 export const metadata = {
     title: 'Seyahat Blogu & Rehberler | TourScanner',
     description: "Dünyanın dört bir yanından ipuçları, rehberler ve TourScanner uzman kadrosundan eşsiz seyahat anıları.",
 };
 
-export default function BlogIndex() {
+export default async function BlogIndex() {
+    const BLOG_POSTS = await fetchBlogs();
     return (
         <main className="min-h-screen bg-slate-50 font-sans pb-20">
             {/* Blog Hero */}

@@ -6,17 +6,21 @@ from reviews.views import ReviewViewSet
 from bookings.views import BookingViewSet
 from blogs.views import BlogViewSet, TagViewSet
 from agencies.dashboard import AgencyDashboardView
-from users.views import UserMeView, WishlistViewSet
+from users.views import UserMeView, WishlistViewSet, NotificationViewSet
+from contacts.views import ContactMessageViewSet, LeadViewSet
 
 router = DefaultRouter()
-router.register(r'agencies', AgencyViewSet)
+router.register(r'agencies', AgencyViewSet, basename='agency')
 router.register(r'tours', TourViewSet)
 router.register(r'categories', CategoryViewSet)
 router.register(r'reviews', ReviewViewSet)
 router.register(r'bookings', BookingViewSet, basename='booking')
 router.register(r'blogs', BlogViewSet, basename='blog')
 router.register(r'tags', TagViewSet)
+router.register(r'contacts', ContactMessageViewSet, basename='contact')
+router.register(r'leads', LeadViewSet, basename='lead')
 router.register(r'users/wishlist', WishlistViewSet, basename='wishlist')
+router.register(r'users/notifications', NotificationViewSet, basename='notification')
 
 urlpatterns = [
     path('agencies/dashboard/', AgencyDashboardView.as_view(), name='agency-dashboard'),

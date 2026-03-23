@@ -52,6 +52,14 @@ class BookingViewSet(viewsets.ModelViewSet):
                     {'error': 'Geçersiz tarih formatı. YYYY-MM-DD kullanın.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+            
+            # Capacity check
+            from tours.models import TourAvailability
+            availability = TourAvailability.objects.filter(tour=tour, date=start_date).first()
+            if not availability:
+                return Response({'error': 'Seçilen tarih için müsaitlik bulunmamaktadır.'}, status=status.HTTP_400_BAD_REQUEST)
+            if guests > availability.remaining:
+                return Response({'error': f'Seçilen tarihte en fazla {availability.remaining} kişilik yer kalmıştır.'}, status=status.HTTP_400_BAD_REQUEST)
 
         total_price = tour.price * guests
 
@@ -135,6 +143,14 @@ class BookingViewSet(viewsets.ModelViewSet):
                         {'error': f'İade işlemi başarısız: {str(e)}'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
+            
+            # Revert availability capacity
+            if booking.start_date:
+                from tours.models import TourAvailability
+                availability = TourAvailability.objects.filter(tour=booking.tour, date=booking.start_date).first()
+                if availability:
+                    availability.booked_count = max(0, availability.booked_count - booking.guests)
+                    availability.save()
 
         booking.status = 'cancelled'
         booking.cancelled_at = timezone.now()
@@ -182,9 +198,18 @@ class BookingViewSet(viewsets.ModelViewSet):
         if event_type == 'payment_intent.succeeded':
             try:
                 booking = Booking.objects.get(payment_intent_id=payment_intent['id'])
-                booking.status = 'confirmed'
-                booking.save()
-                logger.info(f"Booking {booking.booking_ref} confirmed via webhook")
+                if booking.status != 'confirmed':
+                    booking.status = 'confirmed'
+                    booking.save()
+                    logger.info(f"Booking {booking.booking_ref} confirmed via webhook")
+
+                    # Consume availability capacity
+                    if booking.start_date:
+                        from tours.models import TourAvailability
+                        availability = TourAvailability.objects.filter(tour=booking.tour, date=booking.start_date).first()
+                        if availability:
+                            availability.booked_count += booking.guests
+                            availability.save()
 
                 # Send confirmation email
                 if booking.user.email:

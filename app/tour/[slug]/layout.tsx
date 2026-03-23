@@ -1,38 +1,47 @@
 import { Metadata } from 'next';
-import { fetchTours } from '../../lib/tours';
+import { fetchTour } from '../../lib/tours';
 
 type Props = {
     params: { slug: string };
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    // Next.js params is potentially generic, so we force it to string
     const slug = (await params).slug;
-    const tourData: any = await fetchTours();
-    const tour = tourData[slug];
+    const tour: any = await fetchTour(slug);
 
     if (!tour) {
         return {
-            title: 'Tur Bulunamadı | Melih Tours',
+            title: 'Tur Bulunamadı | TourScanner',
             description: 'Aradığınız tur bulunamadı.',
         };
     }
 
+    const description = `${tour.title} turu sadece ${tour.price}₺'den başlayan fiyatlarla. ${(tour.description || '').slice(0, 140)}...`;
+
     return {
-        title: `${tour.title} | ${tour.location} | Melih Tours B2B`,
-        description: `${tour.title} turu sadece ${tour.price}₺ karşılığında. ${tour.description.slice(0, 150)}...`,
+        title: `${tour.title} | ${tour.location} | TourScanner`,
+        description,
+        alternates: {
+            canonical: `https://melihtours.com/tour/${slug}`,
+        },
         openGraph: {
-            images: [tour.imageMain],
+            images: [tour.imageMain || tour.images?.[0]?.image_url].filter(Boolean),
             title: tour.title,
-            description: tour.description,
+            description,
             type: 'website',
+            url: `https://melihtours.com/tour/${slug}`,
+            siteName: 'TourScanner',
         },
         twitter: {
             card: 'summary_large_image',
             title: tour.title,
-            description: tour.description,
-            images: [tour.imageMain],
-        }
+            description,
+            images: [tour.imageMain || tour.images?.[0]?.image_url].filter(Boolean),
+        },
+        robots: {
+            index: true,
+            follow: true,
+        },
     };
 }
 
@@ -44,19 +53,25 @@ export default async function TourLayout({
     params: Promise<{ slug: string }>;
 }) {
     const slug = (await params).slug;
-    const tourData: any = await fetchTours();
-    const tour = tourData[slug];
+    const tour: any = await fetchTour(slug);
 
     const jsonLd = tour ? {
         "@context": "https://schema.org/",
         "@type": "Product",
         "name": tour.title,
         "image": [
-            tour.imageMain,
-            tour.imageSub1,
-            tour.imageSub2
-        ],
+            tour.imageMain || tour.images?.[0]?.image_url,
+            tour.imageSub1 || tour.images?.[1]?.image_url,
+            tour.imageSub2 || tour.images?.[2]?.image_url
+        ].filter(Boolean),
         "description": tour.description,
+        ...(tour.average_rating ? {
+            "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": tour.average_rating,
+                "reviewCount": tour.review_count || 1
+            }
+        } : {}),
         "offers": {
             "@type": "Offer",
             "url": `https://melihtours.com/tour/${slug}`,
@@ -65,7 +80,7 @@ export default async function TourLayout({
             "availability": "https://schema.org/InStock",
             "seller": {
                 "@type": "Organization",
-                "name": "Melih Tours"
+                "name": "TourScanner"
             }
         }
     } : null;
@@ -82,3 +97,4 @@ export default async function TourLayout({
         </>
     );
 }
+

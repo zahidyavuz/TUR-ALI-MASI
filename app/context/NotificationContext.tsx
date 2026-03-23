@@ -19,6 +19,7 @@ import {
 import { checkTourReminders, checkWeatherAlerts, checkDiscountAlerts } from '../lib/notification-checks';
 import { getAllOfflineTickets } from '../lib/offline-db';
 import { fetchTours } from '../lib/tours';
+import { auth } from '../lib/auth'; // Using auth helper to fetch token
 
 function loadNotifications(): AppNotification[] {
   if (typeof window === 'undefined') return [];
@@ -91,20 +92,41 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const markAsRead = useCallback((id: string) => {
+  const markAsRead = useCallback(async (id: string) => {
     setNotifications((prev) => {
       const next = prev.map((n) => (n.id === id ? { ...n, read: true } : n));
       saveNotifications(next);
       return next;
     });
+
+    const token = auth.getAccessToken?.();
+    if (token) {
+        try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/notifications/${id}/`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+                body: JSON.stringify({ is_read: true })
+            });
+        } catch(e) {}
+    }
   }, []);
 
-  const markAllRead = useCallback(() => {
+  const markAllRead = useCallback(async () => {
     setNotifications((prev) => {
       const next = prev.map((n) => ({ ...n, read: true }));
       saveNotifications(next);
       return next;
     });
+
+    const token = auth.getAccessToken?.();
+    if (token) {
+        try {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/notifications/mark_all_read/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
+            });
+        } catch(e) {}
+    }
   }, []);
 
   const addNotification = useCallback((n: AppNotification) => {
@@ -142,7 +164,8 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         const locations = [...new Set(tickets.map((t) => t.location).filter(Boolean))];
         if (locations.length === 0) {
           const tourData: any = await fetchTours();
-          const fallbackLocations = Object.values(tourData).slice(0, 3).map((t: any) => t.location).filter(Boolean) as string[];
+          const tourList = tourData.tours || [];
+          const fallbackLocations = tourList.slice(0, 3).map((t: any) => t.location).filter(Boolean) as string[];
           locations.push(...fallbackLocations);
         }
         const weatherAlerts = await checkWeatherAlerts(locations);
@@ -164,6 +187,43 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
         markNotificationShown();
         existingIds.add(n.id);
       }
+
+      // Fetch from API
+      const token = auth.getAccessToken?.();
+      if (token) {
+          try {
+              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/notifications/`, {
+                  headers: { Authorization: `Bearer ${token}` }
+              });
+              if (res.ok) {
+                  const data = await res.json();
+                  const serverNotifs = data.results || data;
+                  const mappedServer = serverNotifs.map((sn: any) => ({
+                      id: String(sn.id),
+                      title: sn.title,
+                      message: sn.message,
+                      type: sn.type,
+                      icon: sn.icon || '🔔',
+                      actionUrl: sn.action_url,
+                      read: sn.is_read,
+                      timestamp: new Date(sn.created_at).getTime()
+                  }));
+
+                  // Merge with local ensuring no dupes and server state takes precedence
+                  setNotifications(prev => {
+                      const merged = [...mappedServer];
+                      const serverIds = new Set(mappedServer.map((x: any) => x.id));
+                      prev.forEach(p => {
+                          if (!serverIds.has(p.id)) merged.push(p);
+                      });
+                      const final = merged.sort((a, b) => b.timestamp - a.timestamp);
+                      saveNotifications(final);
+                      return final;
+                  });
+              }
+          } catch(e) { console.error('API Fetch Notifs', e); }
+      }
+
     } catch (e) {
       console.warn('Notification checks failed', e);
     }

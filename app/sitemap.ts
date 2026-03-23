@@ -1,10 +1,11 @@
 import { MetadataRoute } from 'next';
 import { fetchTours } from './lib/tours';
-import { BLOG_POSTS } from './lib/blog';
+import { fetchBlogs } from './lib/blog';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = 'https://melihtours.com';
     const tourData: any = await fetchTours();
+    const blogData = await fetchBlogs();
 
     // Statik Sayfalar
     const routes = [
@@ -19,15 +20,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }));
 
     // Dinamik Tur Sayfaları
-    const tourRoutes = Object.keys(tourData).map((slug) => ({
-        url: `${baseUrl}/tour/${slug}`,
+    const tourRoutes = (tourData.tours || []).map((tour: any) => ({
+        url: `${baseUrl}/tour/${tour.slug || tour.id}`,
         lastModified: new Date().toISOString().split('T')[0],
         changeFrequency: 'weekly' as any,
         priority: 0.9,
     }));
 
     // Dinamik Blog Sayfaları
-    const blogRoutes = BLOG_POSTS.map((post) => ({
+    const blogRoutes = blogData.map((post) => ({
         url: `${baseUrl}/blog/${post.slug}`,
         lastModified: new Date(post.publishedAt).toISOString().split('T')[0],
         changeFrequency: 'monthly' as any,

@@ -39,21 +39,24 @@ export async function POST(request: Request) {
         if (diffInHours >= 24) {
             // console.log(`[Auto-Refund] Kural doğrulandı. Tura kalan süre: ${diffInHours.toFixed(1)} saat. Booking: ${bookingId}`);
 
-            // Onay beklemeden arka planda (Background Worker) Stripe üzerinden tam iade (Refund) başlatır.
-            const refund = await stripe.refunds.create({
-                payment_intent: paymentIntentId,
-                reason: 'requested_by_customer', // Finansal kayıtlarda yasal açıklama: Müşteri isteği
-                metadata: {
-                    bookingId: bookingId || 'Bilinmiyor',
-                    userEmail: userEmail || 'Bilinmiyor',
-                    cancellationType: 'esnek_iptal_otomatiği',
-                    hoursBeforeTourStart: diffInHours.toFixed(1)
+            // Onay beklemeden arka planda (Background Worker) Django API'ye iptal talebini atarız, 
+            // Django hem Stripe Refund işlemini yapar, hem DB'yi günceller, hem de E-Posta gönderir.
+            
+            // Not: Bu endpoint'e istek atılırken kullanıcı Authorization token'ının header'da gelmesi gerekir.
+            const authHeader = request.headers.get('authorization');
+            
+            const djangoRes = await fetch(`http://localhost:8000/api/v1/bookings/${bookingId}/cancel/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(authHeader ? { 'Authorization': authHeader } : {})
                 }
             });
 
-            // console.log(`[Auto-Refund] İade başlatıldı! Stripe Refund ID: ${refund.id} - Durum: ${refund.status}`);
-
-            // TODO: İade başlatıldıktan sonra kullanıcının bilet durumu veritabanında UPDATE edilir ve email yollanır...
+            if (!djangoRes.ok) {
+                const errData = await djangoRes.json();
+                throw new Error(errData.error || 'Django tarafında iptal işlemi başarısız oldu.');
+            }
 
             // 4) Başarı ve Webhook Onayı Dönüşü
             return NextResponse.json(
@@ -61,8 +64,6 @@ export async function POST(request: Request) {
                     success: true,
                     message: 'Turu kalkışına 24 saatten fazla süre kala iptal ettiğiniz için ödemenizin tamamı kredi kartınıza hiçbir işlem ücreti olmadan (Otomatik olarak) iade ediliyor.',
                     autoRefunded: true,
-                    stripeRefundId: refund.id,
-                    stripeStatus: refund.status
                 },
                 { status: 200 } // OK
             );

@@ -1,8 +1,17 @@
+# *
 User-agent: *
 Allow: /
-Disallow: /agency/dashboard/
-Disallow: /api/
-Disallow: /*?*
 
+# *
+User-agent: *
+Disallow: /api/
+Disallow: /agency/
+Disallow: /checkout
+Disallow: /login
+Disallow: /register
+
+# Host
+Host: https://melihtours.com
+
+# Sitemaps
 Sitemap: https://melihtours.com/sitemap.xml
-Sitemap: https://melihtours.com/blog-sitemap.xml

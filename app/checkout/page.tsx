@@ -19,6 +19,7 @@ function CheckoutContent() {
     const router = useRouter();
     const tourId = searchParams.get('tourId');
     const guests = searchParams.get('guests') || '1';
+    const date = searchParams.get('date');
 
     const [clientSecret, setClientSecret] = useState('');
     const [pageError, setPageError] = useState<string | null>(null);
@@ -32,16 +33,17 @@ function CheckoutContent() {
         const loadIntent = async () => {
             const token = auth.getAccessToken();
             try {
-                // If there's an actual Django endpoint like `/bookings/create-intent/` we use it here.
-                // Assuming `/bookings/` is the standard for Django REST Framework.
-                const data = await fetchAPI('/bookings/create-intent/', {
+                // Use the standard BookingViewSet create endpoint
+                const data = await fetchAPI('/bookings/', {
                     method: 'POST',
                     headers: {
                         ...(token ? { Authorization: `Bearer ${token}` } : {})
                     },
                     body: JSON.stringify({
-                        tour_id: tourId,
+                        tour_slug: tourId,
                         guests: parseInt(guests),
+                        start_date: date || undefined,
+                        date_label: date || undefined
                     }),
                 });
 

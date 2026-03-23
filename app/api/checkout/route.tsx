@@ -16,7 +16,8 @@ export async function POST(req: NextRequest) {
         }
 
         const tourData: any = await fetchTours();
-        const tour = tourData[tourId];
+        const tourList = tourData.tours || [];
+        const tour = tourList.find((t: any) => String(t.id) === String(tourId) || t.slug === tourId);
         if (!tour) throw new Error('Geçersiz tur seçimi');
 
         // Reserve Now, Pay Later logic -> We use payment mode with manual capture
