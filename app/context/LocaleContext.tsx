@@ -2,7 +2,7 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import { useCurrency } from './CurrencyContext';
 
-export type Locale = 'tr-TR' | 'en-US' | 'de-DE' | 'zh-CN';
+export type Locale = 'tr-TR' | 'en-US' | 'de-DE' | 'zh-CN' | 'ar-SA' | 'es-ES' | 'fr-FR';
 
 type Translations = {
     [key in Locale]: {
@@ -267,6 +267,168 @@ const TRANSLATIONS: Translations = {
             destinations: "个精选国家",
             support: "小时私人管家"
         }
+    },
+    'ar-SA': {
+        nav: {
+            destinations: "الوجهات",
+            styles: "أنماط المغامرة",
+            memories: "ذكريات",
+            deals: "عروض",
+            contact: "اتصل بنا",
+            competitorReport: "تحليل السوق",
+            customerLogin: "تسجيل دخول العميل",
+            agencyLogin: "بوابة الوكلاء",
+        },
+        hero: {
+            title: "اكتشف العالم بأرقى الطرق",
+            subtitle: "هل أنت مستعد لجمع ذكريات لا تُنسى؟ اكتشف عطلة أحلامك مع مرشدين متخصصين وإقامة ممتازة.",
+            searchLocationLabel: "الوجهة",
+            searchLocationPlaceholder: "إلى أين تريد الذهاب؟",
+            searchDateLabel: "التاريخ",
+            searchPriceLabel: "الميزانية",
+            searchGuestsLabel: "عدد الأشخاص",
+            searchButton: "ابحث عن جولات"
+        },
+        trustTexts: [
+            "⭐ أكثر من 10 سنوات من الخبرة السياحية",
+            "🌍 500+ مسار مختلف، آلاف الذكريات",
+            "🛡️ رضا العملاء بنسبة 100% معتمدة",
+            "💸 ضمان أفضل الأسعار"
+        ],
+        categories: ['مستكشف ثقافي', 'شهر العسل', 'زيارة العمرة', 'تزلج وثلوج', 'عطلة بحرية', 'جولات جماعية', 'حياة برية'],
+        whyUs: {
+            title: "لماذا تختارنا؟",
+            items: [
+                { title: "آمن ومعتمد", desc: "يتم فحص جميع المشغلين والجولات بعناية." },
+                { title: "دفع مرن", desc: "احجز الآن مع مرونة في الدفع والإلغاء حتى 100%." },
+                { title: "ضمان السعر", desc: "لن تدفع رسوماً مخفية أبداً، תקבל ضمان أفضل الأسعار." },
+                { title: "دعم 24/7", desc: "فريقنا ذو الخبرة على بعد مكالمة هاتفية أينما كنت." }
+            ]
+        },
+        popularDestinations: "الوجهات الأكثر شعبية",
+        adventureStylesTitle: "اختر أسلوب رحلتك",
+        bestSellersTitle: "الجولات الأكثر مبيعاً",
+        dealOfTheDay: {
+            badge: "عرض اليوم فقط",
+            title: "عطلة فاخرة في بالي بنصف السعر",
+            desc: "أماكن محدودة! احجز إقامتك الفاخرة لمدة 7 ليالٍ بخصم 50%.",
+            button: "احجز الآن",
+            savings: "توفير"
+        },
+        stats: {
+            travelers: "مسافر سعيد",
+            guides: "مرشد خبير",
+            destinations: "دولة مختلفة",
+            support: "دعم العملاء"
+        }
+    },
+    'es-ES': {
+        nav: {
+            destinations: "Destinos",
+            styles: "Estilos",
+            memories: "Memorias",
+            deals: "Ofertas",
+            contact: "Contacto",
+            competitorReport: "Análisis de Mercado",
+            customerLogin: "Acceso Clientes",
+            agencyLogin: "Portal de Agencias",
+        },
+        hero: {
+            title: "La Forma Más Exclusiva de Descubrir el Mundo",
+            subtitle: "¿Listo para crear recuerdos inolvidables? Descubre tus vacaciones soñadas con guías privados y alojamientos premium.",
+            searchLocationLabel: "Destino",
+            searchLocationPlaceholder: "¿A dónde quieres ir?",
+            searchDateLabel: "Fecha",
+            searchPriceLabel: "Presupuesto",
+            searchGuestsLabel: "Huéspedes",
+            searchButton: "Buscar Tours"
+        },
+        trustTexts: [
+            "⭐ Más de 10 Años de Experiencia en Turismo",
+            "🌍 Más de 500 Rutas, Miles de Recuerdos",
+            "🛡️ 100% Satisfacción del Cliente",
+            "💸 Mejor Precio Garantizado"
+        ],
+        categories: ['Cultura', 'Luna de Miel', 'Religioso', 'Nieve y Esquí', 'Playa', 'Tours Grupales', 'Vida Salvaje'],
+        whyUs: {
+            title: "¿Por Qué Elegirnos?",
+            items: [
+                { title: "Seguro y Verificado", desc: "Todos los operadores son examinados por nuestro equipo de expertos." },
+                { title: "Pago Flexible", desc: "Reserva ahora, disfruta de flexibilidad total en cancelaciones." },
+                { title: "Garantía de Precio", desc: "Sin cargos ocultos, obteniendo siempre el mejor precio." },
+                { title: "Soporte 24/7", desc: "Guía disponible todo el día estés donde estés." }
+            ]
+        },
+        popularDestinations: "Explora Destinos",
+        adventureStylesTitle: "Elige Tu Estilo de Aventura",
+        bestSellersTitle: "Los Tours Más Vendidos",
+        dealOfTheDay: {
+            badge: "Solo Por Hoy",
+            title: "Vacaciones de Ensueño en Bali a Mitad de Precio",
+            desc: "Cupos limitados. Consigue tu paquete premium de 7 noches con un 50% de descuento.",
+            button: "Reservar Ahora",
+            savings: "AHORRAS"
+        },
+        stats: {
+            travelers: "Viajeros Felices",
+            guides: "Guías Expertos",
+            destinations: "Países",
+            support: "Atención al Cliente"
+        }
+    },
+    'fr-FR': {
+        nav: {
+            destinations: "Destinations",
+            styles: "Styles",
+            memories: "Souvenirs",
+            deals: "Bons Plans",
+            contact: "Contact",
+            competitorReport: "Rapport de Marché",
+            customerLogin: "Connexion Client",
+            agencyLogin: "Portail Agence",
+        },
+        hero: {
+            title: "La Façon La Plus Exclusive de Découvrir le Monde",
+            subtitle: "Prêt à créer des souvenirs inoubliables ? Découvrez les vacances de vos rêves avec des guides privés et un hébergement premium.",
+            searchLocationLabel: "Destination",
+            searchLocationPlaceholder: "Où voulez-vous aller ?",
+            searchDateLabel: "Date",
+            searchPriceLabel: "Budget",
+            searchGuestsLabel: "Voyageurs",
+            searchButton: "Trouver des circuits"
+        },
+        trustTexts: [
+            "⭐ Plus de 10 ans d'expérience dans le tourisme",
+            "🌍 Plus de 500 itinéraires, des milliers de souvenirs",
+            "🛡️ 100% de satisfaction client garantie",
+            "💸 Meilleur prix garanti"
+        ],
+        categories: ['Culture', 'Lune de Miel', 'Religieux', 'Neige & Ski', 'Plage', 'Tours en Groupe', 'Faune'],
+        whyUs: {
+            title: "Pourquoi Nous Choisir ?",
+            items: [
+                { title: "Sûr et Vérifié", desc: "Tous nos opérateurs sont examinés par notre équipe d'experts." },
+                { title: "Paiement Flexible", desc: "Réservez maintenant avec flexibilité sur les annulations." },
+                { title: "Prix Garanti", desc: "Aucun frais caché, vous obtenez toujours le meilleur prix." },
+                { title: "Assistance 24/7", desc: "Notre équipe expérimentée est toujours à un appel." }
+            ]
+        },
+        popularDestinations: "Destinations Populaires",
+        adventureStylesTitle: "Choisissez Votre Style d'Aventure",
+        bestSellersTitle: "Nos Meilleures Ventes",
+        dealOfTheDay: {
+            badge: "Seulement Aujourd'hui",
+            title: "Des vacances de rêve à Bali à moitié prix",
+            desc: "Places limitées. Obtenez un forfait premium de 7 nuits avec une réduction de 50%.",
+            button: "Réservez Maintenant",
+            savings: "VOUS ÉCONOMISEZ"
+        },
+        stats: {
+            travelers: "Voyageurs Heureux",
+            guides: "Guides Experts",
+            destinations: "Pays Différents",
+            support: "Service Client"
+        }
     }
 }
 
@@ -285,7 +447,7 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     useEffect(() => {
         const saved = localStorage.getItem('melih_tours_locale') as Locale;
-        if (saved && ['tr-TR', 'en-US', 'de-DE', 'zh-CN'].includes(saved)) {
+        if (saved && ['tr-TR', 'en-US', 'de-DE', 'zh-CN', 'ar-SA', 'es-ES', 'fr-FR'].includes(saved)) {
             setLocale(saved);
         }
     }, []);

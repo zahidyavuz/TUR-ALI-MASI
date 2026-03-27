@@ -6,6 +6,7 @@ from reviews.views import ReviewViewSet
 from bookings.views import BookingViewSet
 from blogs.views import BlogViewSet, TagViewSet
 from agencies.dashboard import AgencyDashboardView
+from agencies.admin_views import AdminDashboardView, AdminAgencyViewSet
 from users.views import UserMeView, WishlistViewSet, NotificationViewSet
 from contacts.views import ContactMessageViewSet, LeadViewSet
 
@@ -21,11 +22,14 @@ router.register(r'contacts', ContactMessageViewSet, basename='contact')
 router.register(r'leads', LeadViewSet, basename='lead')
 router.register(r'users/wishlist', WishlistViewSet, basename='wishlist')
 router.register(r'users/notifications', NotificationViewSet, basename='notification')
+router.register(r'admin/agencies', AdminAgencyViewSet, basename='admin-agency')
 
 urlpatterns = [
     path('agencies/dashboard/', AgencyDashboardView.as_view(), name='agency-dashboard'),
+    path('admin/dashboard/', AdminDashboardView.as_view(), name='admin-dashboard'),
     path('users/me/', UserMeView.as_view(), name='user-me'),
     path('', include(router.urls)),
     path('auth/', include('dj_rest_auth.urls')),
     path('auth/registration/', include('dj_rest_auth.registration.urls')),
 ]
+
