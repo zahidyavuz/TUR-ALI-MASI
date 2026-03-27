@@ -198,6 +198,9 @@ export default function Home() {
             <option value="en-US">🇺🇸 EN</option>
             <option value="de-DE">🇩🇪 DE</option>
             <option value="zh-CN">🇨🇳 CN</option>
+            <option value="ar-SA">🇸🇦 AR</option>
+            <option value="es-ES">🇪🇸 ES</option>
+            <option value="fr-FR">🇫🇷 FR</option>
           </select>
 
           {/* Yakınımdaki turlar (Geofencing) */}

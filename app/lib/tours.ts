@@ -10,6 +10,11 @@ export async function fetchTours(params: Record<string, string> = {}) {
             next: { revalidate: 60 } // Cache for 60 seconds (Next.js App Router syntax)
         });
 
+        // Backend down / network error
+        if (!response) {
+            return { tours: [], count: 0, next: null, previous: null };
+        }
+
         // Django Paginated Response returns results in Response.results 
         const tours = response.results ? response.results : response;
 
