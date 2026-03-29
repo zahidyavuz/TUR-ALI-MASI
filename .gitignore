@@ -1,0 +1,14 @@
+node_modules
+.next
+venv
+.env
+.env.local
+.env.production
+.DS_Store
+*.pyc
+__pycache__
+db.sqlite3
+media/
+staticfiles/
+*.log
+backend/logs/*.log
