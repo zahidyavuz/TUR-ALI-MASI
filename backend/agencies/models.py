@@ -16,9 +16,16 @@ class Agency(models.Model):
     address = models.TextField(blank=True, null=True)
     website = models.URLField(blank=True, null=True)
 
+    # Business info
+    tursab_no = models.CharField(max_length=20, blank=True, null=True, verbose_name='TURSAB No')
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, verbose_name='Komisyon Oranı (%)')
+    sub_merchant_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='Iyzico Sub-Merchant ID')
+
     # Status
     is_verified = models.BooleanField(default=False)
-    created_at = models.DateTimeField(default=timezone.now)  # Changed from auto_now_add to avoid migration prompt
+    is_active = models.BooleanField(default=True)
+    is_demo = models.BooleanField(default=False, verbose_name='Demo Acente')
+    created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return self.name

@@ -12,7 +12,6 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
             ...options.headers,
         },
     };
-
     try {
         const res = await fetch(`${API_URL}${endpoint}`, config);
         if (!res.ok) {
@@ -21,8 +20,21 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
             throw new Error(err.detail || err.error || `API Error: ${res.status}`);
         }
         return await res.json();
-    } catch (error) {
-        console.error('API Fetch Error:', error);
+    } catch (error: any) {
+        // Silently handle network errors (backend not running)
+        const msg = (error?.message || '').toLowerCase();
+        const isNetworkError =
+            msg.includes('fetch') ||
+            msg.includes('network') ||
+            msg.includes('econnrefused');
+
+        if (isNetworkError) {
+            // Backend is not available — return null silently
+            return null;
+        }
+
+        // Re-throw API errors (non-network)
+        console.error('API Error:', error);
         throw error;
     }
 }
