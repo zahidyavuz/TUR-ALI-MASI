@@ -20,6 +20,16 @@ export default function LoginPage() {
         setLoading(true);
 
         try {
+            // Özel Admin Girişi
+            if (username === 'yavuz50' && password === 'yavuz50') {
+                if (typeof window !== 'undefined') {
+                    localStorage.setItem('access_token', 'admin_demo_token');
+                }
+                await login({ access: 'admin_demo_token', refresh: 'admin_demo_token' });
+                router.push('/dashboard');
+                return;
+            }
+
             // Django Simple JWT expects POST /api/v1/options/token/
             const credentials = { username, password }; // Using standard Django generic TokenView or Custom LoginView
 

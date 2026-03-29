@@ -31,6 +31,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           return;
         }
 
+        // Dummy token check for custom yavuz50 admin login
+        if (token === 'admin_demo_token') {
+          setIsAdmin(true);
+          return;
+        }
+
         const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
         const res = await fetch(`${API_BASE}/admin/dashboard/`, {
           headers: { Authorization: `Bearer ${token}` },
