@@ -208,6 +208,17 @@ export default function ProfilePage() {
                             <span className="relative z-10 text-xs font-bold text-gray-400 mt-1 mb-2 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
                                 {userRole === 'agency' ? '🌟 VIP Acenta İş Ortağı' : '✨ Diamond Gezgin'}
                             </span>
+
+                            {/* Aktif Tur Sohbetim Button */}
+                            {userRole !== 'agency' && (
+                                <Link href="/group-chat" className="w-full mt-4 bg-gradient-to-r from-[#008cb3] to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md hover:shadow-lg hover:-translate-y-0.5 transition-all relative overflow-hidden group border border-blue-400">
+                                    <div className="absolute top-0 right-0 w-8 h-8 bg-white/20 rounded-bl-full group-hover:bg-white/30 transition-colors"></div>
+                                    <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+                                    <span className="tracking-wide">Aktif Tur Sohbetim</span>
+                                    {/* Unread count badge simulation */}
+                                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shadow border-2 border-white animate-pulse">3</span>
+                                </Link>
+                            )}
                         </div>
                     </div>
 

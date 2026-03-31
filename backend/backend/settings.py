@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'blogs',
     'users',
     'contacts',
+    'chat',
 
     # Auth & Social Login
     'rest_framework_simplejwt',
