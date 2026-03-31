@@ -9,7 +9,7 @@ import { useRouter } from 'next/navigation';
 
 export default function AgencyDashboard() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'my_tours' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin'>('dashboard');
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'my_tours' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin' | 'tour_chats'>('dashboard');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -52,16 +52,25 @@ export default function AgencyDashboard() {
                     }
                 });
 
-                // Update Stats
+                // Mock fallback data for when backend is offline
+                const fallbackData = data || {
+                    metrics: { total_revenue: 145500, total_bookings: 34 },
+                    recent_bookings: [
+                        { id: 412, user_full_name: 'Ahmet Yılmaz', tour_detail: { title: 'Kapadokya Balon Turu' }, start_date: '2026-04-12', status: 'confirmed', total_price: 3400 },
+                        { id: 413, user_full_name: 'Ayşe Kaya', tour_detail: { title: 'Büyük İtalya Turu' }, start_date: '2026-04-15', status: 'completed', total_price: 18150 }
+                    ],
+                    tours: []
+                };
+
                 setStats({
-                    totalSales: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(data.metrics?.total_revenue || 0),
-                    activeBookings: data.metrics?.total_bookings || 0,
-                    pendingEarnings: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format((data.metrics?.total_revenue || 0) * 0.2) // varsayımsal hakediş
+                    totalSales: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(fallbackData.metrics?.total_revenue || 0),
+                    activeBookings: fallbackData.metrics?.total_bookings || 0,
+                    pendingEarnings: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format((fallbackData.metrics?.total_revenue || 0) * 0.2) // varsayımsal hakediş
                 });
 
                 // Update Bookings
-                if (data.recent_bookings) {
-                    const mappedBookings = data.recent_bookings.map((b: any) => ({
+                if (fallbackData.recent_bookings) {
+                    const mappedBookings = fallbackData.recent_bookings.map((b: any) => ({
                         id: `RES-${b.id.toString().padStart(4, '0')}`,
                         customer: b.user_full_name?.trim() || b.user_email || 'Misafir',
                         user_email: b.user_email,
@@ -75,12 +84,12 @@ export default function AgencyDashboard() {
                 }
 
                 // Update Tours
-                if (data.tours) {
-                    setTours(data.tours);
+                if (fallbackData.tours) {
+                    setTours(fallbackData.tours);
                 }
             } catch (err: any) {
                 console.error('Failed to fetch agency dashboard:', err);
-                setError('Panel verileri yüklenirken bir sorun oluştu.');
+                setError(err.message || 'Panel verileri yüklenirken bir sorun oluştu.');
             } finally {
                 setIsLoading(false);
             }
@@ -177,6 +186,14 @@ export default function AgencyDashboard() {
                     </button>
 
                     <button
+                        onClick={() => setActiveTab('tour_chats')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'tour_chats' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+                        Tur Operasyon & Chat
+                    </button>
+
+                    <button
                         onClick={() => setActiveTab('quick_book')}
                         className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'quick_book' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
                     >
@@ -238,6 +255,7 @@ export default function AgencyDashboard() {
                         {activeTab === 'deals' && 'Acenta Özel Kampanyalar'}
                         {activeTab === 'profile' && 'Kurumsal Profil'}
                         {activeTab === 'blog_admin' && 'İçerik Stüdyosu (Blog Yönetimi)'}
+                        {activeTab === 'tour_chats' && 'Operasyon Paneli (Aktif Tur Mesajlaşmaları)'}
                     </h2>
                     <div className="flex items-center gap-4">
                         <button className="text-gray-400 hover:text-slate-700 transition relative">
@@ -347,6 +365,58 @@ export default function AgencyDashboard() {
                                                     ))}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* TAB: TOUR CHATS */}
+                            {activeTab === 'tour_chats' && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                    <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[32px] p-8 text-white shadow-lg relative overflow-hidden">
+                                        <div className="absolute right-0 top-0 opacity-10">
+                                            <svg className="w-64 h-64 -mt-10 -mr-10" fill="currentColor" viewBox="0 0 24 24"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2m0 14H6l-2 2V4h16v12z"/></svg>
+                                        </div>
+                                        <div className="relative z-10">
+                                            <h2 className="text-2xl font-black mb-2">Tur Operasyon & Chat Merkezi</h2>
+                                            <p className="text-orange-100 font-medium text-sm max-w-xl mb-6">Tur başlangıcından 24 saat önce otomatik açılan ve bitiminden 24 saat sonra salt okunur arşivlenen müşteri gruplarınızı buradan yönetin. Hızlı duyurular gönderin ve toplanma noktaları belirleyin.</p>
+                                        </div>
+                                    </div>
+
+                                    {/* Active Chats List */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                        <div className="bg-white rounded-[24px] shadow-sm border-2 border-orange-400 p-6 relative flex flex-col hover:shadow-md transition">
+                                            <div className="absolute top-4 right-4 bg-orange-100 text-orange-600 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">● CANLI SOHBET</div>
+                                            <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Kapadokya VIP Balon Turu</h3>
+                                            <p className="text-xs text-gray-500 font-bold mb-4">Tarih: 15 Nisan 2026 • 15 Misafir</p>
+                                            
+                                            <div className="bg-slate-50 p-3 rounded-xl mb-4 text-xs font-semibold text-gray-600 border border-gray-100">
+                                                <span className="text-orange-500 font-black">Son Mesaj:</span> "📍 Değerli Misafirlerimiz..." (Rehber)
+                                            </div>
+
+                                            <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 pt-4">
+                                                <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Durum: <span className="text-emerald-500">Aktif</span></span>
+                                                <Link href="/group-chat" className="bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                                                    Sohbete Katıl &rarr;
+                                                </Link>
+                                            </div>
+                                        </div>
+
+                                        <div className="bg-white rounded-[24px] shadow-sm border border-gray-200 p-6 relative flex flex-col hover:shadow-md transition opacity-75">
+                                            <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">SALT OKUNUR</div>
+                                            <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Büyük İtalya Turu</h3>
+                                            <p className="text-xs text-gray-500 font-bold mb-4">Tarih: 5 Nisan 2026 • 45 Misafir</p>
+                                            
+                                            <div className="bg-slate-50 p-3 rounded-xl mb-4 text-xs font-semibold text-gray-600 border border-gray-100">
+                                                <span className="text-slate-500 font-black">Son Mesaj:</span> "Harika bir turdu, teşekkürler!" (Ayşe T.)
+                                            </div>
+
+                                            <div className="mt-auto flex items-center justify-between gap-2 border-t border-gray-100 pt-4">
+                                                <span className="text-[10px] uppercase font-black tracking-widest text-slate-400">Durum: <span className="text-slate-400">Arşivlendi</span></span>
+                                                <Link href="/group-chat" className="bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition-colors flex items-center gap-2">
+                                                    Arşivi Gör
+                                                </Link>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

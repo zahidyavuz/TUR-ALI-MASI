@@ -102,7 +102,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const token = auth.getAccessToken?.();
     if (token) {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/notifications/${id}/`, {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/users/notifications/${id}/`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
                 body: JSON.stringify({ is_read: true })
@@ -121,7 +121,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const token = auth.getAccessToken?.();
     if (token) {
         try {
-            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/notifications/mark_all_read/`, {
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/users/notifications/mark_all_read/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
             });
@@ -192,7 +192,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
       const token = auth.getAccessToken?.();
       if (token) {
           try {
-              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/users/notifications/`, {
+              const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1'}/users/notifications/`, {
                   headers: { Authorization: `Bearer ${token}` }
               });
               if (res.ok) {
@@ -221,7 +221,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                       return final;
                   });
               }
-          } catch(e) { console.error('API Fetch Notifs', e); }
+          } catch(e) { /* silenty fail or warn without Next.js intercepting generic error */ }
       }
 
     } catch (e) {

@@ -11,6 +11,10 @@ interface Message {
     text: string;
     time: string;
     avatar: string;
+    type?: 'text' | 'announcement' | 'location' | 'media';
+    isPinned?: boolean;
+    mediaUrl?: string;
+    locationUrl?: string;
 }
 
 const INITIAL_MESSAGES: Message[] = [
@@ -39,21 +43,45 @@ const INITIAL_MESSAGES: Message[] = [
         role: 'me',
         text: 'Ben lobiye indim, bekliyorum.',
         time: '04:18',
-        avatar: 'M'
+        avatar: 'M',
+        type: 'text'
+    },
+    {
+        id: 4,
+        senderId: 'guide1',
+        senderName: 'Ahmet (Rehber)',
+        role: 'guide',
+        text: '📍 Değerli Misafirlerimiz, bugünkü turumuz için Göreme Açık Hava Müzesi önünde saat 09:00\'da buluşuyoruz. Lütfen geç kalmayınız!',
+        time: '08:00',
+        avatar: '👨‍✈️',
+        type: 'announcement',
+        isPinned: true
+    },
+    {
+        id: 5,
+        senderId: 'guide1',
+        senderName: 'Ahmet (Rehber)',
+        role: 'guide',
+        text: 'Konum',
+        time: '08:02',
+        avatar: '👨‍✈️',
+        type: 'location',
+        locationUrl: 'https://maps.app.goo.gl/g6Jd2JQK1YF1W3zF6'
     }
 ];
 
 const QUICK_REPLIES = [
-    'Buldum! 📍',
+    '📍 Konum Paylaş',
+    'Buldum! 🙋',
     'Gecikiyorum 🏃',
     'Konum atar mısınız? 🗺️',
-    'Geliyorum ⏳',
     'Anlaşıldı 👍'
 ];
 
 export default function GroupChatPage() {
     const [messages, setMessages] = useState<Message[]>(INITIAL_MESSAGES);
     const [inputText, setInputText] = useState('');
+    const [isGalleryOpen, setIsGalleryOpen] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
     // Otomatik olarak hep en alta kaydır
@@ -68,19 +96,25 @@ export default function GroupChatPage() {
     const handleSendMessage = (text: string) => {
         if (!text.trim()) return;
 
+        const messageType = text === '📍 Konum Paylaş' ? 'location' : 'text';
+
         const newMessage: Message = {
             id: Date.now(),
             senderId: 'me1',
             senderName: 'Ben',
             role: 'me',
-            text: text,
+            text: messageType === 'location' ? 'Mevcut Konum' : text,
             time: new Date().toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' }),
-            avatar: 'M'
+            avatar: 'M',
+            type: messageType,
+            locationUrl: messageType === 'location' ? 'https://maps.google.com/?q=38.6431,34.8291' : undefined
         };
 
         setMessages((prev) => [...prev, newMessage]);
         setInputText('');
     };
+
+    const pinnedAnnouncement = messages.find(m => m.isPinned && m.type === 'announcement');
 
     return (
         <main className="flex flex-col h-[100dvh] bg-[#F2F2F7] font-sans overflow-hidden">
@@ -102,10 +136,28 @@ export default function GroupChatPage() {
                         </div>
                     </div>
                 </div>
-                <button className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-[#008cb3] hover:bg-blue-50 rounded-full transition-colors">
-                    <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                </button>
+                <div className="flex gap-2">
+                    <button onClick={() => setIsGalleryOpen(true)} className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-[#008cb3] hover:bg-blue-50 rounded-full transition-colors relative" aria-label="Medya Arşivi" title="Medya Arşivi">
+                        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    </button>
+                    <button className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-[#008cb3] hover:bg-blue-50 rounded-full transition-colors" title="Seçenekler">
+                        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" /></svg>
+                    </button>
+                </div>
             </header>
+
+            {/* Pinned Message */}
+            {pinnedAnnouncement && (
+                <div className="bg-yellow-50 border-b-2 border-yellow-400 p-3 flex gap-3 items-center shadow-sm z-10 sticky top-0" style={{top: '64px'}}>
+                    <div className="bg-yellow-100 p-2 rounded-full text-yellow-600">
+                        <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path d="M5 4a2 2 0 012-2h6a2 2 0 012 2v14l-5-2.5L5 18V4z"/></svg>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <p className="text-xs font-bold text-yellow-800 uppercase">Kritik Duyuru</p>
+                        <p className="text-sm text-yellow-900 truncate font-medium">{pinnedAnnouncement.text}</p>
+                    </div>
+                </div>
+            )}
 
             {/* 2. CHAT AREA (Mesaj Balonları) */}
             <div className="flex-1 overflow-y-auto px-4 py-6 scroll-smooth custom-scrollbar flex flex-col gap-4">
@@ -147,13 +199,31 @@ export default function GroupChatPage() {
                                     )}
 
                                     {/* Balonun Kendisi */}
-                                    <div className={`px-4 py-2.5 shadow-sm text-[15px] leading-relaxed relative ${isMe
-                                            ? 'bg-[#008cb3] text-white rounded-2xl rounded-tr-sm'
-                                            : isGuide
-                                                ? 'bg-blue-50 border border-blue-200 text-blue-900 rounded-2xl rounded-tl-sm' // Rehbere özel dikkat çekici ama göz yormayan soft mavi arka plan
-                                                : 'bg-white border border-gray-100 text-slate-800 rounded-2xl rounded-tl-sm'
+                                    <div className={`px-4 py-2.5 shadow-sm text-[15px] leading-relaxed relative ${
+                                        msg.type === 'announcement' 
+                                            ? 'bg-red-50 border-2 border-red-500 text-red-900 rounded-2xl' 
+                                            : isMe
+                                                ? 'bg-[#008cb3] text-white rounded-2xl rounded-tr-sm'
+                                                : isGuide
+                                                    ? 'bg-blue-50 border border-blue-200 text-blue-900 rounded-2xl rounded-tl-sm'
+                                                    : 'bg-white border border-gray-100 text-slate-800 rounded-2xl rounded-tl-sm'
                                         }`}>
-                                        {msg.text}
+                                        {msg.type === 'location' ? (
+                                            <a href={msg.locationUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2">
+                                                <div className="w-full h-24 bg-gray-200 rounded-lg overflow-hidden relative">
+                                                    <img src="https://maps.googleapis.com/maps/api/staticmap?center=38.6431,34.8291&zoom=14&size=400x150&sensor=false" alt="Map" className="w-full h-full object-cover opacity-80" onError={(e) => { e.currentTarget.src='https://placehold.co/400x150/e2e8f0/475569.png?text=Harita+Görünümü' }} />
+                                                    <div className="absolute inset-0 flex items-center justify-center"><span className="text-red-500 text-3xl drop-shadow-md">📍</span></div>
+                                                </div>
+                                                <span className="font-bold underline text-sm">{msg.text} (Buluşma Noktası)</span>
+                                            </a>
+                                        ) : msg.type === 'media' && msg.mediaUrl ? (
+                                            <img src={msg.mediaUrl} alt="Medya" className="max-w-full rounded-lg" />
+                                        ) : (
+                                            <span>
+                                                {msg.type === 'announcement' && <span className="font-bold block mb-1 uppercase tracking-widest text-[11px] text-red-600">!! Önemli Duyuru !!</span>}
+                                                {msg.text}
+                                            </span>
+                                        )}
                                     </div>
 
                                     {/* Saat */}
@@ -224,6 +294,34 @@ export default function GroupChatPage() {
                     </button>
                 </div>
             </footer>
+
+            {/* Medya Arşivi Modal */}
+            {isGalleryOpen && (
+                <div className="fixed inset-0 bg-black/80 z-50 flex flex-col pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center p-4 bg-black/50 text-white">
+                        <h2 className="font-bold text-lg">Medya Arşivi</h2>
+                        <button onClick={() => setIsGalleryOpen(false)} className="p-2 bg-white/10 rounded-full hover:bg-white/20 transition">
+                            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 md:grid-cols-3 gap-2">
+                        {/* Mock Images */}
+                        <div className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative group">
+                            <img src="https://images.unsplash.com/photo-1627885375535-61266b02a7b7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" alt="Medya 1" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative group flex items-center justify-center flex-col gap-2 p-4 text-center">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" className="text-red-500" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/><path d="M9 9h3v3M12 9v4"/></svg>
+                            <span className="text-white text-[10px] font-bold">Tur_Programi.pdf</span>
+                        </div>
+                        <div className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative group">
+                            <img src="https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&q=80&w=400" alt="Medya 2" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="aspect-square bg-gray-800 rounded-xl overflow-hidden flex items-center justify-center text-gray-400">
+                            Hiç Paylaşım Yok
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }
