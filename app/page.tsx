@@ -452,10 +452,10 @@ export default function Home() {
             </p>
 
             {/* Gelişmiş Filtre Çubuğu */}
-            <div className="dropdown-container bg-white p-2 md:p-2 rounded-[16px] md:rounded-[20px] shadow-2xl flex flex-col md:flex-row w-full items-center justify-between border-2 border-white/20 relative z-50 gap-2 md:gap-0" data-dropdown="searchBar">
+            <div className="dropdown-container bg-white p-2 md:p-2 rounded-[16px] md:rounded-[20px] shadow-2xl flex flex-col md:flex-row w-full max-w-4xl items-center justify-between border-2 border-white/20 relative z-50 gap-2 md:gap-0" data-dropdown="searchBar">
 
               {/* 1. Yer Seçimi */}
-              <div className="relative w-full md:w-1/4 h-full">
+              <div className="relative w-full md:w-1/3 h-full">
                 <div
                   onClick={() => { if (activeDropdown !== 'location') toggleDropdown('location'); }}
                   className="flex flex-col items-start px-6 py-2 cursor-text hover:bg-gray-100 rounded-full transition-all h-full justify-center w-full"
@@ -501,7 +501,7 @@ export default function Home() {
               <div className="hidden md:block w-[1px] h-10 bg-gray-200"></div>
 
               {/* 2. Tarih Seçimi */}
-              <div className="relative w-full md:w-1/4 h-full">
+              <div className="relative w-full md:w-1/3 h-full">
                 <div
                   onClick={() => toggleDropdown('date')}
                   className="flex flex-col items-start px-6 py-2 cursor-pointer hover:bg-gray-100 rounded-full transition-all h-full justify-center w-full"
@@ -535,90 +535,10 @@ export default function Home() {
 
               <div className="hidden md:block w-[1px] h-10 bg-gray-200"></div>
 
-              {/* 3. Fiyat & Bütçe */}
-              <div className="relative w-full md:w-1/4 h-full">
-                <div
-                  onClick={() => toggleDropdown('price')}
-                  className="flex flex-col items-start px-6 py-2 cursor-pointer hover:bg-gray-100 rounded-full transition-all h-full justify-center w-full"
-                >
-                  <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">{t.hero.searchPriceLabel}</span>
-                  <span className={`text-sm ${selectedPrice === 'Bütçeniz' ? 'text-gray-400' : 'text-blue-900 font-bold'} truncate w-full text-left`}>{selectedPrice === 'Bütçeniz' ? t.hero.searchPriceLabel : selectedPrice}</span>
-                </div>
 
-                {activeDropdown === 'price' && (
-                  <div className="absolute top-[105%] md:top-[120%] left-0 w-[calc(100vw-40px)] md:w-64 max-w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 text-left">
-                    <h4 className="text-xs font-bold text-gray-400 mb-3 uppercase">Bütçenizi Belirleyin</h4>
-                    <div className="flex items-center gap-2">
-                      <div className="flex-1">
-                        <span className="text-[10px] font-bold text-gray-400 ml-1">MİN (₺)</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={priceMin}
-                          onChange={(e) => setPriceMin(e.target.value)}
-                          placeholder="0"
-                          className="w-full mt-1 bg-slate-50 border border-gray-200 rounded-xl px-3 py-2.5 text-[15px] font-black text-[#008cb3] outline-none focus:border-[#008cb3] focus:bg-white transition-colors [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </div>
-                      <span className="text-gray-300 font-bold mt-5">-</span>
-                      <div className="flex-1">
-                        <span className="text-[10px] font-bold text-gray-400 ml-1">MAX (₺)</span>
-                        <input
-                          type="number"
-                          min="0"
-                          value={priceMax}
-                          onChange={(e) => setPriceMax(e.target.value)}
-                          placeholder="Limit Yok"
-                          className="w-full mt-1 bg-slate-50 border border-gray-200 rounded-xl px-3 py-2.5 text-[15px] font-black text-[#008cb3] outline-none focus:border-[#008cb3] focus:bg-white transition-colors [&::-webkit-inner-spin-button]:appearance-none"
-                        />
-                      </div>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const min = priceMin ? `₺${priceMin}` : '₺0';
-                        const max = priceMax ? `₺${priceMax}` : 'Limitsiz';
-                        setSelectedPrice(`${min} - ${max}`);
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full mt-2 bg-orange-100 text-orange-600 font-bold py-3 rounded-xl hover:bg-orange-500 hover:text-white transition-colors text-[14px] shadow-sm active:scale-95"
-                    >
-                      Bütçeyi Onayla
-                    </button>
-
-                    {/* Hızlı Seçenekler */}
-                    <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-2">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Popüler Aralıklar</h4>
-                      {[
-                        { label: '0₺ - 5.000₺', min: '0', max: '5000' },
-                        { label: '5.000₺ - 15.000₺', min: '5000', max: '15000' },
-                        { label: '15.000₺ - 30.000₺', min: '15000', max: '30000' },
-                        { label: '30.000₺ Üzeri', min: '30000', max: '' },
-                      ].map((range) => (
-                        <button
-                          key={range.label}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setPriceMin(range.min);
-                            setPriceMax(range.max);
-                            // Otomatik onayla
-                            setSelectedPrice(range.label);
-                            setActiveDropdown(null);
-                          }}
-                          className="w-full text-left px-3 py-2 rounded-xl text-sm font-semibold text-slate-700 hover:bg-[#008cb3] hover:text-white transition-colors"
-                        >
-                          {range.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              <div className="hidden md:block w-[1px] h-10 bg-gray-200"></div>
 
               {/* 4. Yolcu & Konaklama */}
-              <div className="relative w-full md:w-1/4 h-full flex items-center justify-between pl-6 pr-2">
+              <div className="relative w-full md:w-1/3 h-full flex items-center justify-between pl-6 pr-2">
                 <div
                   onClick={() => toggleDropdown('guests')}
                   className="flex flex-col items-start py-2 cursor-pointer hover:bg-gray-100 rounded-full transition-all h-full justify-center flex-1"
@@ -660,7 +580,7 @@ export default function Home() {
                 )}
 
                 <button
-                  onClick={() => alert(`Arama Filtreleri:\nYer: ${selectedLocation}\nTarih: ${selectedDate ? selectedDate.toLocaleDateString(locale) : 'Belirtilmedi'}\nFiyat: ${selectedPrice}\nKişi: ${selectedGuests} Kişi`)}
+                  onClick={() => alert(`Arama Filtreleri:\nYer: ${selectedLocation}\nTarih: ${selectedDate ? selectedDate.toLocaleDateString(locale) : 'Belirtilmedi'}\nKişi: ${selectedGuests} Kişi`)}
                   className="mt-2 md:mt-0 md:ml-2 bg-orange-500 text-white rounded-[16px] md:rounded-full p-4 hover:bg-orange-600 transition-all shadow-lg flex items-center justify-center h-14 md:h-12 w-full md:w-12 flex-shrink-0"
                 >
                   <span className="md:hidden font-black text-[15px] uppercase tracking-wider mr-2">{t.hero.searchButton}</span>
@@ -713,19 +633,8 @@ export default function Home() {
         </div>
       </div >
 
-      {/* Kategoriler Eki */}
-      <div className="flex justify-center gap-3 mt-4 px-4 overflow-x-auto pb-6 no-scrollbar max-w-7xl mx-auto">
-        {
-          t.categories.map(cat => (
-            <button key={cat} onClick={() => alert(`${cat} kategorisi turları yakında! `)} className="whitespace-nowrap rounded-full border border-gray-300 bg-white px-6 py-2.5 text-[15px] font-semibold text-gray-700 hover:border-gray-800 transition shadow-sm hover:shadow-md cursor-pointer">
-              {cat}
-            </button>
-          ))
-        }
-      </div>
-
       {/* 1. Neden TourScanner? (Why Book With Us) - Translated */}
-      <div className="bg-white w-full py-16 border-t border-gray-100 mt-4">
+      <div className="bg-white w-full pt-8 pb-12 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 text-center">
           <div className="flex flex-col items-center group cursor-default">
             <div className="w-16 h-16 bg-blue-50 text-[#008cb3] rounded-full flex items-center justify-center mb-6 group-hover:bg-[#008cb3] group-hover:text-white transition-colors duration-300 shadow-sm"><svg width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg></div>
@@ -748,6 +657,17 @@ export default function Home() {
             <p className="text-sm font-medium text-gray-500 leading-relaxed px-2">{t.whyUs.items[3].desc}</p>
           </div>
         </div>
+      </div>
+
+      {/* Kategoriler Eki */}
+      <div className="flex justify-center gap-3 mt-4 px-4 overflow-x-auto pb-6 no-scrollbar max-w-7xl mx-auto">
+        {
+          t.categories.map(cat => (
+            <button key={cat} onClick={() => alert(`${cat} kategorisi turları yakında! `)} className="whitespace-nowrap rounded-full border border-gray-300 bg-white px-6 py-2.5 text-[15px] font-semibold text-gray-700 hover:border-gray-800 transition shadow-sm hover:shadow-md cursor-pointer">
+              {cat}
+            </button>
+          ))
+        }
       </div>
 
       {/* 2. Popüler Destinasyonlar */}
