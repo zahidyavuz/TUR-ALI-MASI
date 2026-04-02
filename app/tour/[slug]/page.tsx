@@ -44,7 +44,33 @@ export default function DynamicTourPage() {
 
                 if (baseTour) {
                     const translation = baseTour.translations?.[locale] || {};
-                    setTour({ ...baseTour, ...translation });
+                    let finalTour = { ...baseTour, ...translation };
+                    
+                    // İş Kuralları: Ek Hizmet Parametresi
+                    if (!finalTour.included.some((i:string) => i.includes('Otel Transferi') || i.includes('VIP Transfer'))) {
+                        finalTour.included.unshift('Otel Transferi (Ücretsiz)');
+                    }
+                    if (!finalTour.included.some((i:string) => i.includes('Rehber') || i.includes('Pilot'))) {
+                        finalTour.included.unshift('Profesyonel Rehberlik / Pilot Hizmeti');
+                    }
+                    
+                    // İş Kuralları: Takvim Modülü (+1 Gün)
+                    const slots = [];
+                    const maxCapacity = String(slug).includes('balon') ? 20 : 15;
+                    for (let i = 1; i <= 14; i++) {
+                        let d = new Date();
+                        d.setDate(d.getDate() + i);
+                        slots.push({
+                            id: `slot_${i}`,
+                            date: d.toISOString().split('T')[0],
+                            is_available: true,
+                            remaining: maxCapacity - Math.floor(Math.random() * 5)
+                        });
+                    }
+                    finalTour.availabilitySlots = slots;
+                    finalTour.maxCapacity = maxCapacity;
+
+                    setTour(finalTour);
                 } else {
                     setError("Tur bulunamadı.");
                 }
@@ -233,11 +259,14 @@ export default function DynamicTourPage() {
                             </div>
 
                             <div className="border border-gray-200 rounded-2xl p-4 bg-slate-50 flex justify-between items-center">
-                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">{t.hero.searchGuestsLabel}</label>
+                                <div>
+                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest block">{t.hero.searchGuestsLabel}</label>
+                                    <span className="text-[10px] font-bold text-red-500">Maksimum {tour.maxCapacity} Kişi</span>
+                                </div>
                                 <div className="flex items-center gap-4">
                                     <button aria-label="Kişi Sayısını Azalt" onClick={() => setGuests(Math.max(1, guests - 1))} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-600 hover:text-blue-600 hover:border-blue-300 transition">-</button>
                                     <span className="font-extrabold text-slate-800 w-4 text-center">{guests}</span>
-                                    <button aria-label="Kişi Sayısını Artır" onClick={() => setGuests(guests + 1)} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-600 hover:text-blue-600 hover:border-blue-300 transition">+</button>
+                                    <button aria-label="Kişi Sayısını Artır" onClick={() => setGuests(Math.min(tour.maxCapacity || 15, guests + 1))} className="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center font-bold text-gray-600 hover:text-blue-600 hover:border-blue-300 transition" disabled={guests >= (tour.maxCapacity || 15)}>+</button>
                                 </div>
                             </div>
                         </div>

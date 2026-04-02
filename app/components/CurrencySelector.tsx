@@ -8,11 +8,7 @@ export default function CurrencySelector() {
     const dropdownRef = useRef<HTMLDivElement>(null);
 
     const currencies: { code: Currency; label: string; flag: string; symbol: string }[] = [
-        { code: 'TRY', label: 'TRY', flag: '🇹🇷', symbol: '₺' },
-        { code: 'USD', label: 'USD', flag: '🇺🇸', symbol: '$' },
         { code: 'EUR', label: 'EUR', flag: '🇪🇺', symbol: '€' },
-        { code: 'RUB', label: 'RUB', flag: '🇷🇺', symbol: '₽' },
-        { code: 'CNY', label: 'CNY', flag: '🇨🇳', symbol: '¥' },
     ];
 
     useEffect(() => {

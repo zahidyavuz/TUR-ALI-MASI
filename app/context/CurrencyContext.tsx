@@ -22,37 +22,12 @@ const FALLBACK_RATES: Record<string, number> = {
 };
 
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [currency, setCurrencyState] = useState<Currency>('TRY');
+    const [currency, setCurrencyState] = useState<Currency>('EUR');
     const [rates, setRates] = useState<Record<string, number>>(FALLBACK_RATES);
 
     useEffect(() => {
-        const determineCurrencyFromIP = async () => {
-            try {
-                const ipRes = await fetch('https://ipapi.co/json/');
-                if (!ipRes.ok) throw new Error("IP API failed");
-                const ipData = await ipRes.json();
-                if (ipData && ipData.country_code) {
-                    const country = ipData.country_code;
-                    let detectedCur: Currency = 'USD'; // Global Default
-                    if (country === 'TR') detectedCur = 'TRY';
-                    else if (['RU', 'BY', 'KZ'].includes(country)) detectedCur = 'RUB';
-                    else if (['CN', 'TW', 'HK'].includes(country)) detectedCur = 'CNY';
-                    else if (['DE', 'FR', 'IT', 'ES', 'NL', 'AT', 'BE', 'PT', 'GR', 'FI', 'IE', 'CY', 'LU', 'MT', 'SK', 'SI', 'EE', 'LV', 'LT'].includes(country)) detectedCur = 'EUR';
-
-                    setCurrencyState(detectedCur);
-                    localStorage.setItem('melih_tours_currency', detectedCur);
-                }
-            } catch (err) {
-                console.warn("IP lokasyonu alınamadı, default TRY.");
-            }
-        };
-
-        const saved = localStorage.getItem('melih_tours_currency') as Currency;
-        if (saved && ['TRY', 'USD', 'EUR', 'RUB', 'CNY'].includes(saved)) {
-            setCurrencyState(saved);
-        } else {
-            determineCurrencyFromIP(); // Kullanıcı ilk defa giriyorsa IP'den bul
-        }
+        setCurrencyState('EUR');
+        localStorage.setItem('melih_tours_currency', 'EUR');
 
         const fetchRates = async () => {
             try {
