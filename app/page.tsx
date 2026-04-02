@@ -674,50 +674,14 @@ export default function Home() {
       <div className="w-full bg-slate-50 py-16 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-6">
           <h2 className="text-[28px] font-extrabold text-[#005e85] tracking-tight mb-8">{t.popularDestinations}</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 md:gap-8 pb-6 px-2">
-            {[
-              { adi: "Balon Turu", img: "https://placehold.co/600x400?text=Balon+Turu" },
-              { adi: "ATV Safari", img: "https://placehold.co/600x400?text=ATV+Safari" },
-              { adi: "Vadi Gezisi", img: "https://placehold.co/600x400?text=Vadi+Gezisi" },
-              { adi: "Yeraltı Şehirleri", img: "https://placehold.co/600x400?text=Yeralti+Sehirleri" },
-              { adi: "Çömlek Yapımı", img: "https://placehold.co/600x400?text=Comlek+Yapimi" },
-              { adi: "Atlı Safari", img: "https://placehold.co/600x400?text=Atli+Safari" },
-              { adi: "Klasik Araç Gezisi", img: "https://placehold.co/600x400?text=Klasik+Arac+Gezisi" },
-              { adi: "Jeep Safari", img: "https://placehold.co/600x400?text=Jeep+Safari" },
-              { adi: "Açık Hava Müzesi", img: "https://placehold.co/600x400?text=Acik+Hava+Muzesi" },
-              { adi: "Türk Gecesi", img: "https://placehold.co/600x400?text=Turk+Gecesi" },
-              { adi: "Yamaç Paraşütü", img: "https://placehold.co/600x400?text=Yamac+Parasutu" },
-              { adi: "Gün Batımı Seyri", img: "https://placehold.co/600x400?text=Gun+Batimi+Seyri" }
-            ].map(dest => (
-              <div key={dest.adi} onClick={() => window.location.href = '/tour/kapadokya'} className="group cursor-pointer flex flex-col items-center w-full transition-transform hover:-translate-y-2 active:scale-95">
-                <div className="relative w-full aspect-square rounded-2xl overflow-hidden shadow-md border-4 border-white group-hover:border-[#008cb3] transition-all">
-                  <Image src={dest.img} alt={dest.adi} fill sizes="(max-width: 768px) 50vw, 25vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                </div>
-                <span className="mt-4 font-bold text-slate-800 text-base md:text-lg group-hover:text-[#008cb3] transition-colors text-center px-2">{dest.adi}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div >
-
-
-
-      {/* 4. En Çok Satan Turlar */}
-      < div className="w-full bg-[#005e85] py-16 text-white" >
-        <div className="max-w-7xl px-6 mx-auto">
-          <div className="flex justify-between items-end mb-10">
-            <h2 className="text-[28px] font-extrabold tracking-tight">{t.bestSellersTitle}</h2>
-            <button className="hidden md:block font-bold text-blue-200 hover:text-white transition">&rarr;</button>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {tours.map((tur: any, i: number) => (
               <div
                 key={tur.id || i}
                 onClick={() => window.location.href = `/tour/${tur.id}`}
-                className="bg-white text-slate-900 rounded-[24px] overflow-hidden shadow-xl hover:-translate-y-2 transition-transform duration-500 border border-gray-100 group cursor-pointer flex flex-col relative"
+                className="bg-white text-slate-900 rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border border-gray-100 group cursor-pointer flex flex-col relative"
               >
-                <div className="relative h-56 overflow-hidden">
+                <div className="relative h-64 overflow-hidden">
                   <Image src={tur.image_main || tur.imageMain} alt={tur.title || tur.ad} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
                   <span className="absolute top-4 left-4 text-[10px] font-black text-white bg-red-600 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-md animate-pulse z-10">{tur.discount ? `%${tur.discount} İNDİRİM` : 'POPÜLER'}</span>
                   <div className="absolute top-4 right-4 z-40" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
@@ -736,7 +700,17 @@ export default function Home() {
                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                     {tur.duration || tur.sure}
                   </span>
+                  {tur.category && (
+                    <span className="inline-block bg-blue-50 text-blue-600 border border-blue-100 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest w-max mb-2">
+                      {tur.category}
+                    </span>
+                  )}
                   <h3 className="text-xl font-black text-slate-800 mb-2 leading-tight group-hover:text-[#008cb3] transition-colors">{tur.title || tur.ad}</h3>
+                  {tur.description && (
+                    <p className="text-sm text-gray-600 font-medium mb-4 line-clamp-2 leading-relaxed">
+                      {tur.description}
+                    </p>
+                  )}
                   {tur.filmedIn && (
                     <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[9px] font-black px-2 py-1 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 shadow-md w-max">
                       🎬 Filmed in {tur.filmedIn}
@@ -752,10 +726,10 @@ export default function Home() {
 
                   <div className="mt-auto flex justify-between items-end pt-4 border-t border-gray-100/20">
                     <div>
-                      <span className="text-xs text-blue-200 font-bold uppercase block mb-1">MİN</span>
-                      <div className="text-2xl font-black text-white">{formatPrice(tur.price)}</div>
+                      <span className="text-xs text-slate-400 font-bold uppercase block mb-1">MİN</span>
+                      <div className="text-2xl font-black text-[#008cb3]">{formatPrice(tur.price)}</div>
                     </div>
-                    <button aria-label="Tura Git" onClick={(e) => { e.stopPropagation(); window.location.href = `/tour/${tur.id}`; }} className="bg-transparent border-2 border-white text-white hover:bg-white hover:text-[#005e85] font-bold py-2 px-5 rounded-xl transition-colors shadow-sm">
+                    <button aria-label="Tura Git" onClick={(e) => { e.stopPropagation(); window.location.href = `/tour/${tur.id}`; }} className="bg-[#008cb3] hover:bg-[#005e85] text-white font-bold py-2 px-5 rounded-xl transition-colors shadow-lg shadow-blue-500/30">
                       ➔
                     </button>
                   </div>
@@ -765,6 +739,10 @@ export default function Home() {
           </div>
         </div>
       </div >
+
+
+
+
 
 
 

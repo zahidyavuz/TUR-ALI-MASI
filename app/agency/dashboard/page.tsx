@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import QRCode from 'react-qr-code';
 import { fetchAPI } from '../../lib/api';
+import { TOUR_DATA } from '../../lib/tours';
 import { auth } from '../../lib/auth';
 import { useRouter } from 'next/navigation';
 
@@ -59,7 +60,7 @@ export default function AgencyDashboard() {
                         { id: 412, user_full_name: 'Ahmet Yılmaz', tour_detail: { title: 'Kapadokya Balon Turu' }, start_date: '2026-04-12', status: 'confirmed', total_price: 3400 },
                         { id: 413, user_full_name: 'Ayşe Kaya', tour_detail: { title: 'Büyük İtalya Turu' }, start_date: '2026-04-15', status: 'completed', total_price: 18150 }
                     ],
-                    tours: []
+                    tours: TOUR_DATA
                 };
 
                 setStats({
@@ -538,6 +539,60 @@ export default function AgencyDashboard() {
                                 </div>
                             )}
 
+                            {/* TAB: MY TOURS (TURLARIM) */}
+                            {activeTab === 'my_tours' && (
+                                <div className="space-y-6 animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="flex justify-between items-center">
+                                        <div>
+                                            <h2 className="text-2xl font-black text-slate-800">Turlarım</h2>
+                                            <p className="text-slate-500 text-sm font-medium">Sistemde listelenen turlarınızı ('Kapadokya'yı Keşfet' Vitrini) yönetin.</p>
+                                        </div>
+                                        <button className="bg-[#008cb3] hover:bg-[#005e85] text-white font-bold py-2.5 px-5 rounded-xl transition-all shadow-md shadow-blue-500/20 flex items-center gap-2">
+                                            <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                                            Yeni Tur Ekle
+                                        </button>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {tours.map((t, idx) => (
+                                            <div key={t.id || idx} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group hover:shadow-xl transition-all duration-300">
+                                                <div className="relative h-48 w-full overflow-hidden">
+                                                    <Image src={t.image_main || t.imageMain || 'https://placehold.co/600x400'} alt={t.title} fill sizes="33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                                                    <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-black px-2 py-1 rounded-md shadow-sm">
+                                                        #{idx + 1}
+                                                    </div>
+                                                </div>
+                                                <div className="p-5 flex flex-col flex-1">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <h3 className="text-base font-bold text-slate-800 leading-tight">{t.title}</h3>
+                                                    </div>
+                                                    {t.category && (
+                                                        <span className="inline-block bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-1 rounded-md uppercase tracking-widest w-max mb-3">
+                                                            {t.category}
+                                                        </span>
+                                                    )}
+                                                    <div className="text-sm font-semibold text-gray-500 mb-4 flex items-center gap-2">
+                                                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        {t.duration}
+                                                    </div>
+                                                    <div className="mt-auto pt-4 border-t border-gray-100 flex justify-between items-center">
+                                                        <div className="text-lg font-black text-[#008cb3]">₺{t.price}</div>
+                                                        <div className="flex gap-2">
+                                                            <button className="p-2 bg-slate-50 text-slate-400 hover:text-[#008cb3] hover:bg-blue-50 rounded-lg transition" title="Düzenle">
+                                                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                                                            </button>
+                                                            <button className="p-2 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition" title="Sil">
+                                                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* TAB: QUICK BOOK */}
                             {activeTab === 'quick_book' && (
                                 <div className="max-w-4xl mx-auto bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
@@ -556,10 +611,16 @@ export default function AgencyDashboard() {
                                                 <div>
                                                     <label className="block text-sm font-bold text-slate-700 mb-1">Tur Seçimi <span className="text-red-500">*</span></label>
                                                     <select className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 outline-none focus:border-blue-400 focus:bg-white transition text-sm font-medium text-slate-800">
-                                                        <option>Kapadokya Balon Turu</option>
-                                                        <option>Büyük İtalya Turu</option>
-                                                        <option>Mavi Yolculuk - Fethiye</option>
-                                                        <option>Kıbrıs Tatili</option>
+                                                        {tours.length > 0 ? tours.map((t, idx) => (
+                                                            <option key={t.id || idx} value={t.id}>{t.title}</option>
+                                                        )) : (
+                                                            <>
+                                                                <option>Kapadokya Balon Turu</option>
+                                                                <option>Büyük İtalya Turu</option>
+                                                                <option>Mavi Yolculuk - Fethiye</option>
+                                                                <option>Kıbrıs Tatili</option>
+                                                            </>
+                                                        )}
                                                     </select>
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-4">
