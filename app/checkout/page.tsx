@@ -43,6 +43,28 @@ function CheckoutLogic() {
         setIsSimulatingPayment(true);
         setTimeout(() => {
             setIsSimulatingPayment(false);
+            
+            // Satın alımı test simülasyonu için localStorage'a kaydet (Acente panelinde görünsün)
+            if (typeof window !== 'undefined') {
+                try {
+                    const existingStr = localStorage.getItem('demo_new_bookings');
+                    const existingBookings = existingStr ? JSON.parse(existingStr) : [];
+                    const newBooking = {
+                        id: Math.floor(Math.random() * 10000) + 1000,
+                        user_full_name: `${formData.firstName} ${formData.lastName}`,
+                        user_email: formData.email,
+                        tour_detail: { title: tour?.title || 'Bilinmeyen Tur' },
+                        start_date: date,
+                        status: 'confirmed',
+                        total_price: tour ? (tour.price || 0) * guests : 0,
+                    };
+                    existingBookings.unshift(newBooking); // En başa ekle
+                    localStorage.setItem('demo_new_bookings', JSON.stringify(existingBookings));
+                } catch (e) {
+                    console.error('Error saving mock booking', e);
+                }
+            }
+
             setStep(3); // Success Output
         }, 3000);
     };

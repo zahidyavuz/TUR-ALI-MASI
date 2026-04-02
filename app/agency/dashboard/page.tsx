@@ -63,6 +63,27 @@ export default function AgencyDashboard() {
                     tours: TOUR_DATA
                 };
 
+                // Merge newly simulated bookings from localStorage (Offline DEMO Mode)
+                if (typeof window !== 'undefined' && !data) {
+                    try {
+                        const localBookings = localStorage.getItem('demo_new_bookings');
+                        if (localBookings) {
+                            const parsed = JSON.parse(localBookings);
+                            if (Array.isArray(parsed)) {
+                                fallbackData.recent_bookings = [...parsed, ...fallbackData.recent_bookings];
+                                
+                                // Update total metrics natively
+                                let addRev = 0;
+                                parsed.forEach(p => { addRev += (Number(p.total_price) || 0) });
+                                fallbackData.metrics.total_revenue += addRev;
+                                fallbackData.metrics.total_bookings += parsed.length;
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error merging mock bookings', e);
+                    }
+                }
+
                 setStats({
                     totalSales: new Intl.NumberFormat('tr-TR', { style: 'currency', currency: 'TRY' }).format(fallbackData.metrics?.total_revenue || 0),
                     activeBookings: fallbackData.metrics?.total_bookings || 0,
