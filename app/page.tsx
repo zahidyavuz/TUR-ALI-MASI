@@ -634,8 +634,8 @@ export default function Home() {
       </div >
 
       {/* 1. Neden TourScanner? (Why Book With Us) - Translated */}
-      <div className="bg-white w-full pt-8 pb-12 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-10 text-center">
+      <div className="bg-white w-full pt-6 pb-6 border-t border-gray-100">
+        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
           <div className="flex flex-col items-center group cursor-default">
             <div className="w-16 h-16 bg-blue-50 text-[#008cb3] rounded-full flex items-center justify-center mb-6 group-hover:bg-[#008cb3] group-hover:text-white transition-colors duration-300 shadow-sm"><svg width="30" height="30" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg></div>
             <h3 className="text-[17px] font-bold text-slate-800 mb-2">{t.whyUs.items[0].title}</h3>
@@ -659,21 +659,10 @@ export default function Home() {
         </div>
       </div>
 
-      {/* Kategoriler Eki */}
-      <div className="flex justify-center gap-3 mt-4 px-4 overflow-x-auto pb-6 no-scrollbar max-w-7xl mx-auto">
-        {
-          t.categories.map(cat => (
-            <button key={cat} onClick={() => alert(`${cat} kategorisi turları yakında! `)} className="whitespace-nowrap rounded-full border border-gray-300 bg-white px-6 py-2.5 text-[15px] font-semibold text-gray-700 hover:border-gray-800 transition shadow-sm hover:shadow-md cursor-pointer">
-              {cat}
-            </button>
-          ))
-        }
-      </div>
-
       {/* 2. Popüler Destinasyonlar */}
-      <div className="w-full bg-slate-50 py-16 border-t border-gray-200">
+      <div className="w-full bg-slate-50 py-10 border-t border-gray-200">
         <div className="max-w-7xl mx-auto px-6">
-          <h2 className="text-[28px] font-extrabold text-[#005e85] tracking-tight mb-8">{t.popularDestinations}</h2>
+          <h2 className="text-[24px] md:text-[28px] font-extrabold text-[#005e85] tracking-tight mb-6">{t.popularDestinations}</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {tours.map((tur: any, i: number) => (
               <div

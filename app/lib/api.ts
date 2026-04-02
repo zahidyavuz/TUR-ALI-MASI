@@ -22,11 +22,14 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         return await res.json();
     } catch (error: any) {
         // Silently handle network errors (backend not running)
-        const msg = (error?.message || '').toLowerCase();
+        const msg = (error?.message || error?.toString() || '').toLowerCase();
+        const causeMsg = (error?.cause?.message || error?.cause?.toString() || '').toLowerCase();
         const isNetworkError =
             msg.includes('fetch') ||
             msg.includes('network') ||
-            msg.includes('econnrefused');
+            msg.includes('econnrefused') ||
+            causeMsg.includes('fetch') ||
+            causeMsg.includes('econnrefused');
 
         if (isNetworkError) {
             // Backend is not available — return null silently
