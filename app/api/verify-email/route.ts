@@ -35,12 +35,12 @@ export async function POST(request: Request) {
 
         // E-posta gönderimi
         const info = await transporter.sendMail({
-            from: '"Melih Tours" <noreply@melihtours.com>', // Kimden
+            from: '"Tourkia" <noreply@tourkia.com>', // Kimden
             to: email, // Kime (Kayıt olan müşteri)
-            subject: "E-Posta Doğrulama Kodunuz - Melih Tours", // Konu
+            subject: "E-Posta Doğrulama Kodunuz - Tourkia", // Konu
             html: `
         <div style="font-family: Arial, sans-serif; padding: 20px; text-align: center; background-color: #f8f9fa;">
-          <h2 style="color: #008cb3;">TourScanner'a Hoş Geldiniz!</h2>
+          <h2 style="color: #008cb3;">Tourkia'ya Hoş Geldiniz!</h2>
           <p style="font-size: 16px; color: #555;">Hesabınızı başarıyla oluşturabilmek için aşağıdaki doğrulama kodunu kullanın.</p>
           
           <div style="margin: 30px 0; padding: 20px; background-color: #ffffff; border-radius: 10px; display: inline-block; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
 
           <p style="font-size: 14px; color: #999;">Bu kodu kimseyle paylaşmayınız. Kod 10 dakika boyunca geçerlidir.</p>
           <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
-          <p style="font-size: 12px; color: #aaa;">TourScanner AŞ. &copy; 2026 Tüm Hakları Saklıdır.</p>
+          <p style="font-size: 12px; color: #aaa;">Tourkia AŞ. &copy; 2026 Tüm Hakları Saklıdır.</p>
         </div>
       `,
         });

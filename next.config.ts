@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
       // Production: backend API hostname
       {
         protocol: 'https',
-        hostname: '*.melihtours.com',
+        hostname: '*.tourkia.com',
         port: '',
         pathname: '/**',
       },
