@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!tour) {
         return {
-            title: 'Tur Bulunamadı | TourScanner',
+            title: 'Tur Bulunamadı | Tourkia',
             description: 'Aradığınız tur bulunamadı.',
         };
     }
@@ -19,7 +19,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description = `${tour.title} turu sadece ${tour.price}₺'den başlayan fiyatlarla. ${(tour.description || '').slice(0, 140)}...`;
 
     return {
-        title: `${tour.title} | ${tour.location} | TourScanner`,
+        title: `${tour.title} | ${tour.location} | Tourkia`,
         description,
         alternates: {
             canonical: `https://melihtours.com/tour/${slug}`,
@@ -30,7 +30,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
             description,
             type: 'website',
             url: `https://melihtours.com/tour/${slug}`,
-            siteName: 'TourScanner',
+            siteName: 'Tourkia',
         },
         twitter: {
             card: 'summary_large_image',
@@ -80,7 +80,7 @@ export default async function TourLayout({
             "availability": "https://schema.org/InStock",
             "seller": {
                 "@type": "Organization",
-                "name": "TourScanner"
+                "name": "Tourkia"
             }
         }
     } : null;

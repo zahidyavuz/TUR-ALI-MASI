@@ -3,8 +3,8 @@ import Image from 'next/image';
 import { fetchBlogs } from '../lib/blog';
 
 export const metadata = {
-    title: 'Seyahat Blogu & Rehberler | TourScanner',
-    description: "Dünyanın dört bir yanından ipuçları, rehberler ve TourScanner uzman kadrosundan eşsiz seyahat anıları.",
+    title: 'Seyahat Blogu & Rehberler | Tourkia',
+    description: "Dünyanın dört bir yanından ipuçları, rehberler ve Tourkia uzman kadrosundan eşsiz seyahat anıları.",
 };
 
 export default async function BlogIndex() {
@@ -16,7 +16,7 @@ export default async function BlogIndex() {
                 <div className="absolute top-[-100px] right-[-50px] w-96 h-96 bg-blue-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
                 <div className="max-w-7xl mx-auto relative z-10 text-center">
                     <Link href="/" className="text-2xl font-extrabold text-white tracking-tighter mb-8 inline-block">
-                        TourScanner<span className="text-blue-400">™</span>
+                        Tourkia<span className="text-blue-400">™</span>
                         <span className="ml-2 text-sm font-medium text-slate-400">| Blog</span>
                     </Link>
                     <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight drop-shadow-md">Gezginin<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">El Kitabı</span></h1>

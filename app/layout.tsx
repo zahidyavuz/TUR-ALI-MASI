@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TourScanner | Global Seyahat & Acenta Platformu",
+  title: "Tourkia | Global Seyahat & Acenta Platformu",
   description: "Türkiye'nin dünyaya açılan, Yandex ve Baidu uyumlu global seyahat platformu. Kapadokya, İtalya, Maldivler ve daha fazlası.",
   verification: {
     google: "google-site-verification-code",
