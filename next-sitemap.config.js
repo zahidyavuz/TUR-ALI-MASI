@@ -1,5 +1,5 @@
 module.exports = {
-    siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://melihtours.com',
+    siteUrl: process.env.NEXT_PUBLIC_SITE_URL || 'https://tourkia.com',
     generateRobotsTxt: true,
     exclude: ['/agency/dashboard*', '/api/*', '/checkout*', '/login', '/register', '/forgot-password', '/reset-password', '/verify-email'],
     robotsTxtOptions: {
