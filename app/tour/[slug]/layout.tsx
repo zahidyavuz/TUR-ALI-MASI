@@ -11,7 +11,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!tour) {
         return {
-            title: 'Tur Bulunamadı | TourScanner',
+            title: 'Tur Bulunamadı | Tourkia',
             description: 'Aradığınız tur bulunamadı.',
         };
     }
@@ -19,18 +19,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const description = `${tour.title} turu sadece ${tour.price}₺'den başlayan fiyatlarla. ${(tour.description || '').slice(0, 140)}...`;
 
     return {
-        title: `${tour.title} | ${tour.location} | TourScanner`,
+        title: `${tour.title} | ${tour.location} | Tourkia`,
         description,
         alternates: {
-            canonical: `https://melihtours.com/tour/${slug}`,
+            canonical: `https://tourkia.com/tour/${slug}`,
         },
         openGraph: {
             images: [tour.imageMain || tour.images?.[0]?.image_url].filter(Boolean),
             title: tour.title,
             description,
             type: 'website',
-            url: `https://melihtours.com/tour/${slug}`,
-            siteName: 'TourScanner',
+            url: `https://tourkia.com/tour/${slug}`,
+            siteName: 'Tourkia',
         },
         twitter: {
             card: 'summary_large_image',
@@ -74,13 +74,13 @@ export default async function TourLayout({
         } : {}),
         "offers": {
             "@type": "Offer",
-            "url": `https://melihtours.com/tour/${slug}`,
+            "url": `https://tourkia.com/tour/${slug}`,
             "priceCurrency": "TRY",
             "price": tour.price,
             "availability": "https://schema.org/InStock",
             "seller": {
                 "@type": "Organization",
-                "name": "TourScanner"
+                "name": "Tourkia"
             }
         }
     } : null;
