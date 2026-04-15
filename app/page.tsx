@@ -633,7 +633,7 @@ export default function Home() {
         </div>
       </div >
 
-      {/* 1. Neden TourScanner? (Why Book With Us) - Translated */}
+      {/* 1. Neden Tourkia? (Why Book With Us) - Translated */}
       <div className="bg-white w-full pt-6 pb-6 border-t border-gray-100">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-6 text-center">
           <div className="flex flex-col items-center group cursor-default">
@@ -706,7 +706,7 @@ export default function Home() {
                     </div>
                   )}
                   <div className="flex items-center gap-1.5 mb-3">
-                    <span className="text-[11px] font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md">TourScanner İşletmesi</span>
+                    <span className="text-[11px] font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md">Tourkia İşletmesi</span>
                     <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md flex items-center gap-1"><svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> +{tur.price / 10 || 240} Puan</span>
                   </div>
                   <div className="flex items-center gap-1 text-yellow-500 mb-6 text-sm font-bold">
@@ -767,7 +767,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { isim: "Ahmet Y.", tur: "Kapadokya Turu", tarih: "2 Hafta Önce", yorum: "Balayımız için tercih etmiştik. Rehberin ilgisi, otelin kalitesi ve VIP transfer hizmeti kusursuzdu. Kesinlikle tavsiye ediyorum!", yildiz: 5 },
-              { isim: "Céline D.", tur: "Mavi Yolculuk", tarih: "1 Ay Önce", yorum: "Fransa'dan geldik, rezervasyon aşamasından turun sonuna kadar TourScanner ekibi inanılmaz profesyoneldi. Yemekler harikaydı.", yildiz: 5 },
+              { isim: "Céline D.", tur: "Mavi Yolculuk", tarih: "1 Ay Önce", yorum: "Fransa'dan geldik, rezervasyon aşamasından turun sonuna kadar Tourkia ekibi inanılmaz profesyoneldi. Yemekler harikaydı.", yildiz: 5 },
               { isim: "Burak & Ece", tur: "Klasik İtalya", tarih: "3 Ay Önce", yorum: "Uçak biletlerinden müze girişlerine kadar her şey önceden hazırdı. Sıra beklemeden Roma'yı gezmek paha biçilemezdi. Teşekkürler!", yildiz: 4 }
             ].map((yorum, i) => (
               <div key={i} className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 relative">
@@ -1200,7 +1200,7 @@ export default function Home() {
                 <h2 className="text-2xl font-black relative z-10 leading-tight">
                   Turlarınızı Dünyayla <br /> Buluşturun!
                 </h2>
-                <p className="text-orange-50 text-xs font-medium mt-2 relative z-10">TourScanner İş Ortaklığı Yönetim Paneli</p>
+                <p className="text-orange-50 text-xs font-medium mt-2 relative z-10">Tourkia İş Ortaklığı Yönetim Paneli</p>
               </div>
 
               {/* Sekmeler (Tabs) */}

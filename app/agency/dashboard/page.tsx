@@ -286,7 +286,7 @@ export default function AgencyDashboard() {
                         </button>
                         <div className="flex items-center gap-3 pl-4 border-l border-gray-200 cursor-pointer">
                             <div className="text-right hidden sm:block">
-                                <p className="text-sm font-bold text-slate-800 leading-tight">TourScanner Acentası</p>
+                                <p className="text-sm font-bold text-slate-800 leading-tight">Tourkia Acentası</p>
                                 <p className="text-[11px] font-semibold text-blue-500 uppercase tracking-widest">Premium Partner</p>
                             </div>
                             <div className="w-10 h-10 rounded-full bg-indigo-100 border-2 border-indigo-200 flex items-center justify-center text-indigo-700 font-black">
@@ -488,7 +488,7 @@ export default function AgencyDashboard() {
                                                                     onClick={() => setSelectedQR(item.id)}
                                                                     className={`p-2 rounded-xl transition-all shadow-sm flex flex-col items-center justify-center gap-1 mx-auto ${item.checkedIn ? 'bg-emerald-50 text-emerald-600 border border-emerald-200' : 'bg-white border border-gray-200 text-slate-600 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200'}`}
                                                                 >
-                                                                    <QRCode value={`https://tourscanner.com/checkin/${item.id}`} size={28} />
+                                                                    <QRCode value={`https://tourkia.com/checkin/${item.id}`} size={28} />
                                                                     <span className="text-[9px] font-black uppercase tracking-widest">{item.checkedIn ? 'GELDİ' : 'BİLET QR'}</span>
                                                                 </button>
                                                             ) : (
@@ -542,7 +542,7 @@ export default function AgencyDashboard() {
                                         <p className="text-xs font-semibold text-gray-400 mb-6 text-center">PNR: {selectedQR}</p>
 
                                         <div className="bg-white p-4 rounded-3xl border-2 border-dashed border-gray-200 mb-6 shadow-sm">
-                                            <QRCode value={`https://tourscanner.com/checkin/${selectedQR}`} size={200} />
+                                            <QRCode value={`https://tourkia.com/checkin/${selectedQR}`} size={200} />
                                         </div>
 
                                         <button
@@ -873,7 +873,7 @@ export default function AgencyDashboard() {
                                             </div>
                                         </div>
                                         <div>
-                                            <h3 className="text-xl font-bold text-slate-800">TourScanner Acentası (Premium)</h3>
+                                            <h3 className="text-xl font-bold text-slate-800">Tourkia Acentası (Premium)</h3>
                                             <p className="text-sm text-gray-400 font-medium">B2B ID: #AGT-902144</p>
                                         </div>
                                     </div>
@@ -883,7 +883,7 @@ export default function AgencyDashboard() {
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Firma / Acenta Ünvanı</label>
-                                                <input type="text" defaultValue="TourScanner Seyahat Acentası Bilişim Tic. Ltd. Şti." className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 text-sm font-medium text-slate-800" readOnly />
+                                                <input type="text" defaultValue="Tourkia Seyahat Acentası Bilişim Tic. Ltd. Şti." className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 text-sm font-medium text-slate-800" readOnly />
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">TÜRSAB Belge No</label>
@@ -905,7 +905,7 @@ export default function AgencyDashboard() {
 
                                         <div className="pt-4 border-t border-gray-100">
                                             <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">İrtibat E-Posta Adresi</label>
-                                            <input type="email" defaultValue="iletisim@tourscanner.com" className="w-full md:w-1/2 border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
+                                            <input type="email" defaultValue="iletisim@tourkia.com" className="w-full md:w-1/2 border border-gray-200 rounded-xl px-4 py-3 bg-slate-50 focus:bg-white outline-none focus:border-blue-400 transition text-sm font-medium text-slate-800" />
                                         </div>
 
                                         <div className="pt-6 text-right">

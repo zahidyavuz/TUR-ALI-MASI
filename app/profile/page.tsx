@@ -26,6 +26,10 @@ export default function ProfilePage() {
         newPasswordConfirm: ''
     });
 
+    const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+    const [showNewPassword, setShowNewPassword] = useState(false);
+    const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setFormState(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
@@ -161,6 +165,36 @@ export default function ProfilePage() {
         } catch (error) {
             console.error(error);
             alert("Bir hata oluştu.");
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!confirm("Profilinizi silmek istediğinize emin misiniz? Bu işlem geri alınamaz.")) return;
+        setIsSaving(true);
+        try {
+            const token = auth.getAccessToken();
+            if (!token) return;
+            const res = await fetch('http://localhost:8000/api/v1/users/me/', {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                alert("Hesabınız başarıyla silindi.");
+                auth.clearTokens();
+                router.push('/');
+            } else {
+                throw new Error("Silme işlemi başarısız oldu.");
+            }
+        } catch (error: any) {
+            console.error(error);
+            const errMsg = error?.message || "";
+            if (errMsg.toLowerCase().includes('fetch') || errMsg.toLowerCase().includes('network')) {
+                alert("Sunucuya bağlanılamadı. Lütfen daha sonra tekrar deneyin.");
+            } else {
+                alert("Bir hata oluştu: " + errMsg);
+            }
         } finally {
             setIsSaving(false);
         }
@@ -368,7 +402,16 @@ export default function ProfilePage() {
                                 <div className="space-y-5">
                                 <div className="relative">
                                     <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Kullanımdaki Mevcut Şifre</label>
-                                    <input type="password" name="currentPassword" value={formState.currentPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                    <div className="relative">
+                                        <input type={showCurrentPassword ? "text" : "password"} name="currentPassword" value={formState.currentPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                        <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                            {showCurrentPassword ? (
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
+                                            ) : (
+                                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                            )}
+                                        </button>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -376,11 +419,29 @@ export default function ProfilePage() {
                                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
                                             <span>Yeni Güçlü Şifre</span>
                                         </label>
-                                        <input type="password" name="newPassword" value={formState.newPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                        <div className="relative">
+                                            <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formState.newPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                            <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                                {showNewPassword ? (
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
+                                                ) : (
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                     <div>
                                         <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Yeni Şifre (Yeniden Yazınız)</label>
-                                        <input type="password" name="newPasswordConfirm" value={formState.newPasswordConfirm} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl px-4 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                        <div className="relative">
+                                            <input type={showConfirmNewPassword ? "text" : "password"} name="newPasswordConfirm" value={formState.newPasswordConfirm} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                            <button type="button" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
+                                                {showConfirmNewPassword ? (
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
+                                                ) : (
+                                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                                                )}
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -389,9 +450,9 @@ export default function ProfilePage() {
                         {/* 5. İşlem ve Kayıt Butonları (Bottom Action Bar) */}
                         <div className="flex flex-col-reverse sm:flex-row items-center justify-between gap-4 pt-6 mt-10">
                             {/* Silme İşlemi (Dikkat çekmeden ve kırmızı şekilde) */}
-                            <button className="text-red-500 hover:text-white hover:bg-red-500 text-sm font-bold px-6 py-3 rounded-xl transition-all w-full sm:w-auto mt-4 sm:mt-0 active:scale-95 flex items-center justify-center gap-2">
+                            <button onClick={handleDeleteAccount} disabled={isSaving} className="text-red-500 hover:text-white hover:bg-red-500 text-sm font-bold px-6 py-3 rounded-xl transition-all w-full sm:w-auto mt-4 sm:mt-0 active:scale-95 flex items-center justify-center gap-2">
                                 <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                Profilimi Süresiz Sil
+                                Profilimi Sil
                             </button>
 
                             {/* Kaydet İşlemi (Vurgulu ve belirgin şekilde) */}
