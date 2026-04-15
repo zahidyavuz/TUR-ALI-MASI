@@ -22,14 +22,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         title: `${tour.title} | ${tour.location} | Tourkia`,
         description,
         alternates: {
-            canonical: `https://melihtours.com/tour/${slug}`,
+            canonical: `https://tourkia.com/tour/${slug}`,
         },
         openGraph: {
             images: [tour.imageMain || tour.images?.[0]?.image_url].filter(Boolean),
             title: tour.title,
             description,
             type: 'website',
-            url: `https://melihtours.com/tour/${slug}`,
+            url: `https://tourkia.com/tour/${slug}`,
             siteName: 'Tourkia',
         },
         twitter: {
@@ -74,7 +74,7 @@ export default async function TourLayout({
         } : {}),
         "offers": {
             "@type": "Offer",
-            "url": `https://melihtours.com/tour/${slug}`,
+            "url": `https://tourkia.com/tour/${slug}`,
             "priceCurrency": "TRY",
             "price": tour.price,
             "availability": "https://schema.org/InStock",

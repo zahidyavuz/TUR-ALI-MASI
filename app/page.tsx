@@ -226,24 +226,23 @@ export default function Home() {
                 <div className="flex flex-col gap-3">
                   {/* Örnek Favori 1 */}
                   <div className="flex gap-3 items-center group cursor-pointer p-2 hover:bg-slate-50 rounded-xl transition">
-                    <div className="relative w-12 h-12 shrink-0">
-                      <Image src="https://images.unsplash.com/photo-1596395819057-afbf19aff3fb?fit=crop&w=100&q=80" alt="Kapadokya" fill sizes="48px" className="rounded-lg object-cover shadow-sm" />
-                    </div>
+                      <div className="relative w-12 h-12 shrink-0">
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Hot_air_balloon_at_sunrise_over_Cappadocia%2C_Turkey.JPG" alt="Kapadokya" fill sizes="48px" className="rounded-lg object-cover shadow-sm" />
+                      </div>
                     <div className="flex-1">
                       <h5 className="font-bold text-[13px] text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight">Kapadokya Balon Turu</h5>
                       <span className="text-[11px] font-semibold text-red-500">₺2.400</span>
                     </div>
                   </div>
-                  {/* Örnek Favori 2 */}
-                  <div className="flex gap-3 items-center group cursor-pointer p-2 hover:bg-slate-50 rounded-xl transition">
-                    <div className="relative w-12 h-12 shrink-0">
-                      <Image src="https://images.unsplash.com/photo-1541432901042-2b8cbc77d2a8?fit=crop&w=100&q=80" alt="Roma" fill sizes="48px" className="rounded-lg object-cover shadow-sm" />
+                    <div className="flex gap-3 items-center group cursor-pointer p-2 hover:bg-slate-50 rounded-xl transition">
+                      <div className="relative w-12 h-12 shrink-0">
+                        <Image src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Atv_tour_in_Cappadocia.jpg" alt="ATV" fill sizes="48px" className="rounded-lg object-cover shadow-sm" />
+                      </div>
+                      <div className="flex-1">
+                        <h5 className="font-bold text-[13px] text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight">Kapadokya ATV Turu</h5>
+                        <span className="text-[11px] font-semibold text-red-500">₺800</span>
+                      </div>
                     </div>
-                    <div className="flex-1">
-                      <h5 className="font-bold text-[13px] text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight">Büyük İtalya Turu</h5>
-                      <span className="text-[11px] font-semibold text-red-500">₺18.150</span>
-                    </div>
-                  </div>
                 </div>
 
                 <button className="w-full mt-3 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-bold text-xs py-2.5 rounded-xl transition-colors cursor-pointer" onClick={() => setActiveDropdown(null)}>
@@ -671,7 +670,7 @@ export default function Home() {
                 className="bg-white text-slate-900 rounded-[24px] overflow-hidden shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-500 border border-gray-100 group cursor-pointer flex flex-col relative"
               >
                 <div className="relative h-64 overflow-hidden">
-                  <Image src={tur.image_main || tur.imageMain} alt={tur.title || tur.ad} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <Image src={tur.image_main || tur.imageMain || 'https://images.unsplash.com/photo-1502485019198-a625bd53ceb7?w=1200&q=80'} alt={tur.title || tur.ad} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
                   <span className="absolute top-4 left-4 text-[10px] font-black text-white bg-red-600 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-md animate-pulse z-10">{tur.discount ? `%${tur.discount} İNDİRİM` : 'POPÜLER'}</span>
                   <div className="absolute top-4 right-4 z-40" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                     <FavoriteButton tourId={tur.id} className="p-2 rounded-full !bg-white/90 hover:!bg-red-50 hover:!text-red-500 shadow-sm" />

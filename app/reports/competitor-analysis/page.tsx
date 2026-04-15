@@ -16,12 +16,12 @@ export default function CompetitorAnalysisReport() {
                             <span className="bg-indigo-100 text-indigo-700 text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest mb-4 inline-block shadow-sm">AI Data Intelligence</span>
                             <h1 className="text-4xl md:text-5xl font-black text-slate-800 mb-4 tracking-tight">Rakip Analizi & Pazar Payı Dashboard'u</h1>
                             <p className="text-gray-500 font-medium text-lg max-w-2xl">
-                                Viator ve GetYourGuide'ın 2024 global trend raporlarıyla Melih Tours veritabanının anlık, görselleştirilmiş kıyaslaması. Yeni Asya/Uzak Doğu turlarının (Bali & Kyoto) eklenmesiyle pazardaki rekabet gücümüz artırıldı.
+                                Viator ve GetYourGuide'ın 2024 global trend raporlarıyla Tourkia veritabanının anlık, görselleştirilmiş kıyaslaması. Yeni Asya/Uzak Doğu turlarının (Bali & Kyoto) eklenmesiyle pazardaki rekabet gücümüz artırıldı.
                             </p>
                         </div>
                         <div className="flex gap-4 shrink-0">
                             <div className="bg-slate-50 border border-gray-200 rounded-2xl p-4 text-center min-w-[120px]">
-                                <p className="text-xs text-slate-500 font-bold uppercase mb-1">Melih Tours</p>
+                                <p className="text-xs text-slate-500 font-bold uppercase mb-1">Tourkia</p>
                                 <p className="text-3xl font-black text-[#008cb3]">10 <span className="text-sm font-semibold">+ Tur</span></p>
                             </div>
                         </div>
@@ -29,7 +29,7 @@ export default function CompetitorAnalysisReport() {
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    {/* Melih Tours vs Global Competitors Graph */}
+                    {/* Tourkia vs Global Competitors Graph */}
                     <div className="bg-white rounded-[32px] p-8 shadow-md border border-gray-100">
                         <h2 className="text-2xl font-black text-slate-800 mb-6 flex items-center gap-2">
                             <span className="text-blue-500">📊</span> Kategori Bazlı Pazar Hacmi
@@ -43,7 +43,7 @@ export default function CompetitorAnalysisReport() {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
-                                        <span className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Melih T.</span>
+                                        <span className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Tourkia</span>
                                         <div className="flex-1 bg-gray-100 rounded-full h-3 relative overflow-hidden">
                                             <div className="absolute left-0 top-0 h-full bg-[#008cb3] rounded-full" style={{ width: '85%' }}></div>
                                         </div>
@@ -66,7 +66,7 @@ export default function CompetitorAnalysisReport() {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
-                                        <span className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Melih T.</span>
+                                        <span className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Tourkia</span>
                                         <div className="flex-1 bg-gray-100 rounded-full h-3 relative overflow-hidden">
                                             <div className="absolute left-0 top-0 h-full bg-emerald-500 rounded-full" style={{ width: '92%' }}></div>
                                         </div>
@@ -89,7 +89,7 @@ export default function CompetitorAnalysisReport() {
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
-                                        <span className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Melih T.</span>
+                                        <span className="w-20 text-[10px] font-bold text-gray-500 uppercase text-right">Tourkia</span>
                                         <div className="flex-1 bg-gray-100 rounded-full h-3 relative overflow-hidden">
                                             <div className="absolute left-0 top-0 h-full bg-orange-500 rounded-full transition-all duration-1000" style={{ width: '65%' }}></div>
                                         </div>
@@ -173,7 +173,7 @@ export default function CompetitorAnalysisReport() {
                             <div>
                                 <h3 className="text-lg font-bold text-white mb-2 line-through opacity-80 decoration-emerald-500 decoration-2">Kişiliksiz Satış Algısı</h3>
                                 <p className="text-slate-300 text-sm">
-                                    <strong className="text-emerald-400">ÇÖZÜLDÜ:</strong> Yapay zeka chatbot (Melih AI) her kültüre özel (ABD, Almanya, Çin, Türkiye) farklı bir kişilik bürünecek şekilde pazarlandı.
+                                    <strong className="text-emerald-400">ÇÖZÜLDÜ:</strong> Yapay zeka chatbot (Tourkia AI) her kültüre özel (ABD, Almanya, Çin, Türkiye) farklı bir kişilik bürünecek şekilde pazarlandı.
                                 </p>
                             </div>
                         </div>
