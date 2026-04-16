@@ -30,6 +30,14 @@ export default function DynamicTourPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // MOCK: Yakın Restoranlar (Bölgeye göre filtrelenebilir)
+    const [nearbyRestaurants, setNearbyRestaurants] = useState<any[]>([
+        { id: 101, name: 'Ziyade Ocakbaşı', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400', menu_name: 'Şefin Özel Menüsü', original_price: 1200, rating: 4.8 },
+        { id: 102, name: 'Stone Kitchen', image: 'https://images.unsplash.com/photo-1559339352-11d035aa65de?w=400', menu_name: 'Anadolu Lezzetleri', original_price: 950, rating: 4.6 },
+        { id: 103, name: 'Peri Bacası Restoran', image: 'https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=400', menu_name: 'Geleneksel Testi Kebabı', original_price: 1450, rating: 4.9 },
+    ]);
+    const [selectedMenuId, setSelectedMenuId] = useState<number | null>(null);
+
     // Yeni Akış State'leri
     const [bookingStep, setBookingStep] = useState<0 | 1 | 2 | 3>(0);
     const [hasInsurance, setHasInsurance] = useState(false);
@@ -102,9 +110,18 @@ export default function DynamicTourPage() {
         setBookingStep(2);
     };
 
+    const selectedRestaurant = nearbyRestaurants.find(r => r.id === selectedMenuId);
+    
+    // Bundle Pricing Logic: %15 discount if a menu is selected
+    const discountRate = selectedMenuId ? 0.15 : 0;
     const basePrice = (tour?.price || 0) * guests;
-    const extrasPrice = (hasInsurance ? 500 * guests : 0) + (hasVipTransfer ? 1200 : 0) + (isMealAdded && tour?.linked_restaurant ? tour.linked_restaurant.price * guests : 0);
-    const totalPriceAmount = basePrice + extrasPrice;
+    const menuBasePrice = selectedRestaurant ? selectedRestaurant.original_price * guests : 0;
+    
+    const subtotal = basePrice + menuBasePrice;
+    const bundleDiscount = subtotal * discountRate;
+    
+    const extrasPrice = (hasInsurance ? 500 * guests : 0) + (hasVipTransfer ? 1200 : 0);
+    const totalPriceAmount = subtotal - bundleDiscount + extrasPrice;
 
     useEffect(() => {
         const handleScroll = () => {
@@ -279,43 +296,76 @@ export default function DynamicTourPage() {
                                 <span className="font-bold text-slate-700">{formatPrice(tour.price * guests)}</span>
                             </div>
                             
-                            {(hasInsurance || hasVipTransfer || isMealAdded) && (
-                                <div className="flex justify-between items-center text-xs font-medium text-emerald-600">
+                            <div className="flex justify-between items-center text-xs font-medium text-emerald-600">
                                     <span>{locale === 'en-US' ? 'Extra Services' : 'Ek Hizmetler'}</span>
                                     <span>+ {formatPrice(extrasPrice)}</span>
                                 </div>
                             )}
 
+                            {bundleDiscount > 0 && (
+                                <div className="flex justify-between items-center text-xs font-bold text-orange-600 bg-orange-50 p-2 rounded-xl border border-orange-100 animate-in slide-in-from-top-1 duration-300">
+                                    <span>Bundle Paket İndirimi (%15)</span>
+                                    <span>- {formatPrice(bundleDiscount)}</span>
+                                </div>
+                            )}
+
                             <div className="flex justify-between items-center pt-2">
                                 <span className="font-black text-slate-800">{locale === 'en-US' ? 'Total' : 'Toplam Tutar'}</span>
-                                <span className="text-2xl font-black text-[#008cb3] tracking-tighter">{formatPrice(totalPriceAmount)}</span>
+                                <div className="text-right">
+                                    {bundleDiscount > 0 && (
+                                        <div className="text-xs text-gray-400 line-through font-bold mb-1 opacity-60">
+                                            {formatPrice(subtotal + extrasPrice)}
+                                        </div>
+                                    )}
+                                    <span className="text-2xl font-black text-[#008cb3] tracking-tighter">{formatPrice(totalPriceAmount)}</span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Akıllı Paket Satış (Cross-Sell) Widget */}
-                        {tour.linked_restaurant && (
-                            <div className={`mb-6 p-4 rounded-2xl border-2 transition-all duration-300 ${isMealAdded ? 'bg-orange-50 border-orange-200 shadow-md' : 'bg-slate-50 border-gray-100 hover:border-orange-200 cursor-pointer'}`} onClick={() => setIsMealAdded(!isMealAdded)}>
-                                <div className="flex items-center justify-between mb-3">
-                                    <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{locale === 'tr-TR' ? 'Hizmet Tamamlayıcı' : 'Smart Add-on'}</h4>
-                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isMealAdded ? 'bg-orange-500 border-orange-500' : 'bg-white border-gray-300'}`}>
-                                        {isMealAdded && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
+                        {/* Deneyimini Tamamla (Dynamic Bundle Builder) */}
+                        <div className="mb-6">
+                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                                Deneyimini Tamamla
+                            </h4>
+                            <div className="space-y-3">
+                                {nearbyRestaurants.map((res: any) => (
+                                    <div 
+                                        key={res.id} 
+                                        onClick={() => setSelectedMenuId(selectedMenuId === res.id ? null : res.id)}
+                                        className={`group relative p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden ${selectedMenuId === res.id ? 'bg-orange-50 border-orange-200 shadow-md ring-1 ring-orange-200' : 'bg-slate-50 border-gray-100 hover:border-orange-200'}`}
+                                    >
+                                        <div className="flex gap-3 relative z-10">
+                                            <div className="w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-white">
+                                                <Image src={res.image} alt={res.name} width={64} height={64} className="object-cover w-full h-full group-hover:scale-110 transition-transform" />
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex justify-between items-start">
+                                                    <h5 className="font-black text-[13px] text-slate-800 leading-tight truncate">{res.name}</h5>
+                                                    <span className="text-[10px] text-yellow-500 font-bold">★ {res.rating}</span>
+                                                </div>
+                                                <p className="text-[11px] text-gray-500 font-medium mt-0.5 line-clamp-1">{res.menu_name}</p>
+                                                <div className="mt-2 flex items-center justify-between">
+                                                    <div className="flex flex-col">
+                                                        <span className="text-[10px] text-gray-400 line-through font-bold leading-none">{formatPrice(res.original_price)}</span>
+                                                        <span className="text-[13px] font-black text-orange-600">Birlikte {formatPrice(res.original_price * 0.85)}</span>
+                                                    </div>
+                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedMenuId === res.id ? 'bg-orange-500 border-orange-500 scale-110' : 'bg-white border-gray-300 group-hover:border-orange-300'}`}>
+                                                        {selectedMenuId === res.id && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {selectedMenuId === res.id && (
+                                            <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-bl-xl shadow-sm z-20">
+                                                PAKET SEÇİLDİ
+                                            </div>
+                                        )}
                                     </div>
-                                </div>
-                                <div className="flex gap-3">
-                                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl shrink-0">🍽️</div>
-                                    <div>
-                                        <h5 className="font-bold text-xs text-slate-800 leading-tight">Tur sonrası yemek ister misin?</h5>
-                                        <p className="text-[10px] font-medium text-gray-500 mt-1">
-                                            <b>{tour.linked_restaurant.name}</b> restoranında geçerli <b>{tour.linked_restaurant.special_menu_name}</b> %{tour.linked_restaurant.discount_rate} indirimle sadece {formatPrice(tour.linked_restaurant.price)}!
-                                        </p>
-                                    </div>
-                                </div>
-                                <div className="mt-3 flex items-center gap-2">
-                                    <span className="text-[11px] font-black text-orange-600">{isMealAdded ? (locale === 'tr-TR' ? '✓ Paket Eklendi' : '✓ Package Added') : (locale === 'tr-TR' ? '+ Sepete Ekle' : '+ Add to Bundle')}</span>
-                                    <span className="text-[10px] text-gray-400 line-through font-bold">{formatPrice(tour.linked_restaurant.original_price)}</span>
-                                </div>
+                                ))}
                             </div>
-                        )}
+                            <p className="text-[10px] text-gray-400 font-bold mt-3 text-center italic">Yemek ücretleri restoranda ödenecektir. Ön provizyon alınmaz.</p>
+                        </div>
 
                         {/* CTA Butonu */}
                         <div className="flex flex-col gap-2 mb-4">
@@ -327,7 +377,7 @@ export default function DynamicTourPage() {
                             return;
                         }
                         const formattedDate = selectedDate.toISOString().split('T')[0];
-                        const menuParam = isMealAdded && tour.linked_restaurant ? `&menuId=${tour.linked_restaurant.id}` : '';
+                        const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
                         router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
                     }}
                                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
@@ -497,7 +547,7 @@ export default function DynamicTourPage() {
                             return;
                         }
                         const formattedDate = selectedDate.toISOString().split('T')[0];
-                        const menuParam = isMealAdded && tour.linked_restaurant ? `&menuId=${tour.linked_restaurant.id}` : '';
+                        const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
                         router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
                     }}
                     className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 text-sm"
