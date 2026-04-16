@@ -166,7 +166,7 @@ export default function Home() {
 
       {/* Navbar: Ana Menü */}
       <nav className="w-full bg-white py-4 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] shadow-sm md:shadow-none">
-        <div className="text-2xl md:text-[28px] font-extrabold text-[#008cb3] tracking-tighter">
+        <div className="text-4xl md:text-5xl font-extrabold text-[#008cb3] tracking-tighter">
           Tour<span className="text-[#005e85]">kia™</span>
         </div>
         <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[14px]">

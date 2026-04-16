@@ -83,7 +83,7 @@ export default function VerifyEmailPage() {
         <div className="flex h-screen w-full bg-slate-50 items-center justify-center p-4">
             <div className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden p-8 border border-gray-100">
                 <div className="text-center mb-6">
-                    <Link href="/" className="text-3xl font-extrabold text-[#008cb3] tracking-tighter inline-block mb-2">
+                    <Link href="/" className="text-5xl font-extrabold text-[#008cb3] tracking-tighter inline-block mb-2">
                         tour<span className="text-[#005e85]">kia™</span>
                     </Link>
                     <h1 className="text-xl font-black text-slate-800">Hesap Doğrulama</h1>
