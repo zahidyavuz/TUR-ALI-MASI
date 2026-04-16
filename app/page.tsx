@@ -53,7 +53,7 @@ const ComboCard = ({ tour, restaurant, discountRate, formatPrice }: { tour: any,
             <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-500 flex items-center justify-center text-lg shadow-md z-10">🎒</div>
             <div className="w-10 h-10 rounded-full border-2 border-white bg-orange-500 flex items-center justify-center text-lg shadow-md z-0">🍽️</div>
           </div>
-          <span className="text-xs font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-3 py-1 rounded-lg border border-orange-100">%{discountRate} Tasarruf</span>
+          <span className="text-xs font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-3 py-1 rounded-lg border border-orange-100">Paket Avantajı: {formatPrice(savings)} Tasarruf</span>
         </div>
         
         <h3 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-4 group-hover:text-[#008cb3] transition-colors">
@@ -834,33 +834,33 @@ export default function Home() {
         </div>
       </div>
 
-      {/* YENİ: Günün Kombo Fırsatları (Keşfet) Section */}
-      <div className="w-full bg-slate-50 py-24 relative overflow-hidden border-t border-b border-gray-100">
+      {/* COMBO_SECTION: Hazır Paketler (Ready-Made Bundles) */}
+      <div id="combo-section" className="w-full bg-slate-50 py-24 relative overflow-hidden border-t border-b border-gray-100">
         <div className="max-w-[1400px] mx-auto px-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="px-3 py-1 bg-orange-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">Sınırlı Süre</div>
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Günün Kombo Fırsatları</h2>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Hazır Paketler</h2>
           </div>
           <p className="text-gray-500 font-medium mb-12 max-w-2xl">
             Sizin için hazırladığımız özel paketlerle tur ve yemek deneyimini birleştirin, <b>%15'e varan</b> indirimlerden faydalanın.
           </p>
 
           <div className="flex flex-col space-y-8">
-            {/* is_bundle verisi burada simüle edilmiştir */}
+            {/* is_package flag'ine sahip kayıtlar simüle ediliyor */}
             {[
               { 
-                is_bundle: true,
+                is_package: true,
                 discountRate: 12,
                 tour: { name: 'Kapadokya Balon Turu', image: 'https://images.unsplash.com/photo-1544833342-a8109041ce04?w=1200&q=80', price: 4200 }, 
                 restaurant: { name: 'Ziyade Ocakbaşı', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80', price: 950 }
               },
               { 
-                is_bundle: true,
+                is_package: true,
                 discountRate: 15,
                 tour: { name: 'Boğaz\'da Gün Batımı', image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=1200&q=80', price: 1200 }, 
                 restaurant: { name: 'Kalamış Sahil', image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=1200&q=80', price: 1100 }
               }
-            ].filter(pkg => pkg.is_bundle).map((pkg, idx) => (
+            ].filter(pkg => pkg.is_package).map((pkg, idx) => (
               <ComboCard 
                 key={idx}
                 formatPrice={formatPrice}
