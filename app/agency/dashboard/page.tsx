@@ -7,9 +7,11 @@ import { fetchAPI } from '../../lib/api';
 import { TOUR_DATA } from '../../lib/tours';
 import { auth } from '../../lib/auth';
 import { useRouter } from 'next/navigation';
+import { useLocale } from '../../context/LocaleContext';
 
 export default function AgencyDashboard() {
     const router = useRouter();
+    const { formatPrice } = useLocale();
     const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'my_tours' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin' | 'tour_chats' | 'menu_mgmt' | 'table_reservations' | 'daily_pricing'>('dashboard');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -784,7 +786,7 @@ export default function AgencyDashboard() {
 
                             {/* TAB: FINANCE */}
                             {activeTab === 'finance' && (
-                                    {/* RESTORAN ÖZEL FİNANS GÖRÜNÜMÜ */}
+                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                     {businessType === 'restoran' ? (
                                         <>
                                             {/* Cüzdan ve Alacaklar */}
