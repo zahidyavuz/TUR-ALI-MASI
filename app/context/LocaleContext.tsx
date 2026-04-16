@@ -11,10 +11,31 @@ type Translations = {
             styles: string;
             memories: string;
             deals: string;
+            taste: string;
             contact: string;
             competitorReport: string;
             customerLogin: string;
             agencyLogin: string;
+        };
+        checkout: {
+            paymentDisclaimer: string;
+        };
+        tastePage: {
+            title: string;
+            subtitle: string;
+            filters: {
+                location: string;
+                cuisine: string;
+                price: string;
+            };
+            actions: {
+                buyMenu: string;
+                reserve: string;
+            };
+            stats: {
+                prepaid: string;
+                rating: string;
+            }
         };
         hero: {
             title: string;
@@ -58,10 +79,31 @@ const TRANSLATIONS: Translations = {
             styles: "Macera Stilleri",
             memories: "Anılar",
             deals: "Fırsatlar",
+            taste: "Lezzet Durakları",
             contact: "Temas",
             competitorReport: "Rakip Analizi",
             customerLogin: "Müşteri Girişi",
             agencyLogin: "Acenta Girişi",
+        },
+        checkout: {
+            paymentDisclaimer: "'Ön Ödemeli Menü' tutarı Tourkia güvencesiyle şu an tahsil edilmektedir. Restoranda vereceğiniz tüm 'Ekstra Siparişler' ise doğrudan işletmeye ödenecektir."
+        },
+        tastePage: {
+            title: "Gastronomi Haritası & Lezzet Durakları",
+            subtitle: "Kapadokya ve ötesindeki en seçkin restoranlarda yerinizi ayırtın, özel menülerle tasarruf edin.",
+            filters: {
+                location: "Bölge Seçin",
+                cuisine: "Mutfak Tipi",
+                price: "Fiyat Seviyesi"
+            },
+            actions: {
+                buyMenu: "Ön Ödemeli Özel Menü Satın Al",
+                reserve: "Ücretsiz Rezervasyon Yap"
+            },
+            stats: {
+                prepaid: "Ön ödemeli menü ile %30 tasarruf",
+                rating: "Misafir Memnuniyeti"
+            }
         },
         hero: {
             title: "Dünyayı Keşfetmenin En Ayrıcalıklı Yolu",
@@ -112,10 +154,31 @@ const TRANSLATIONS: Translations = {
             styles: "Vibes",
             memories: "Epic Moments",
             deals: "Hot Deals",
+            taste: "Taste Hub",
             contact: "Hit Us Up",
             competitorReport: "Market Edge",
             customerLogin: "Traveler Login",
             agencyLogin: "Partner Portal",
+        },
+        checkout: {
+            paymentDisclaimer: "The 'Prepaid Menu' amount is collected now via Tourkia. Any 'Extra Orders' at the restaurant will be paid directly to the establishment."
+        },
+        tastePage: {
+            title: "Gourmet Route & Foodie Hotspots",
+            subtitle: "Secure your table at top-rated restaurants and unlock exclusive prepaid menu deals.",
+            filters: {
+                location: "Pick a Spot",
+                cuisine: "Cuisine Type",
+                price: "Price Range"
+            },
+            actions: {
+                buyMenu: "Buy Pre-paid Special Menu",
+                reserve: "Make a Free Reservation"
+            },
+            stats: {
+                prepaid: "Save up to 30% with prepaid menus",
+                rating: "Guest Satisfaction"
+            }
         },
         hero: {
             title: "Zero Boring Moments. Maximum Adventure.",
@@ -166,10 +229,31 @@ const TRANSLATIONS: Translations = {
             styles: "Reisestile",
             memories: "Erfahrungen",
             deals: "Angebote",
+            taste: "Kulinarik",
             contact: "Kontakt",
             competitorReport: "Marktanalyse",
             customerLogin: "Kunden-Login",
             agencyLogin: "Agentur-Login",
+        },
+        checkout: {
+            paymentDisclaimer: "Der Betrag für das 'Prepaid-Menü' wird jetzt über Tourkia eingezogen. Alle 'Extra-Bestellungen' im Restaurant werden direkt vor Ort bezahlt."
+        },
+        tastePage: {
+            title: "Kulinarische Highlights & Restaurants",
+            subtitle: "Reservieren Sie Ihren Tisch in erstklassigen Restaurants und sparen Sie mit exklusiven Menüs.",
+            filters: {
+                location: "Ort wählen",
+                cuisine: "Küche",
+                price: "Preisklasse"
+            },
+            actions: {
+                buyMenu: "Prepaid-Spezialmenü kaufen",
+                reserve: "Kostenlos reservieren"
+            },
+            stats: {
+                prepaid: "Bis zu 30% sparen mit Prepaid-Menüs",
+                rating: "Gästezufriedenheit"
+            }
         },
         hero: {
             title: "Sicher, Zuverlässig und Perfekt Geplant.",
@@ -220,10 +304,31 @@ const TRANSLATIONS: Translations = {
             styles: "豪华体验",
             memories: "尊享时刻",
             deals: "特惠优选",
+            taste: "美食之都",
             contact: "联系我们",
             competitorReport: "市场优势",
             customerLogin: "贵宾登录",
             agencyLogin: "合作伙伴",
+        },
+        checkout: {
+            paymentDisclaimer: "“预付费套餐”金额现通过 Tourkia 收取。餐厅内的所有“额外订单”将直接支付给店方。"
+        },
+        tastePage: {
+            title: "美食路线与味蕾盛宴",
+            subtitle: "在顶级餐厅预订位置，尊享独家预付费套餐优惠。",
+            filters: {
+                location: "选择地点",
+                cuisine: "菜系类型",
+                price: "价格范围"
+            },
+            actions: {
+                buyMenu: "购买预付费尊享套餐",
+                reserve: "免费预约位置"
+            },
+            stats: {
+                prepaid: "预付套餐最高可省30%",
+                rating: "贵宾评分"
+            }
         },
         hero: {
             title: "尽享奢华，尊贵出行 (VIP之旅)",
@@ -274,10 +379,31 @@ const TRANSLATIONS: Translations = {
             styles: "أنماط المغامرة",
             memories: "ذكريات",
             deals: "عروض",
+            taste: "نكهات",
             contact: "اتصل بنا",
             competitorReport: "تحليل السوق",
             customerLogin: "تسجيل دخول العميل",
             agencyLogin: "بوابة الوكلاء",
+        },
+        checkout: {
+            paymentDisclaimer: "يتم تحصيل مبلغ 'قائمة الطعام مسبقة الدفع' الآن عبر Tourkia. سيتم دفع أي 'طلبات إضافية' في المطعم مباشرة للمنشأة."
+        },
+        tastePage: {
+            title: "خارطة النكهات وأفضل المطاعم",
+            subtitle: "احجز طاولتك في أرقى المطاعم ووفر مع قوائم الطعام مسبقة الدفع.",
+            filters: {
+                location: "اختر الموقع",
+                cuisine: "نوع المطبخ",
+                price: "مستوى السعر"
+            },
+            actions: {
+                buyMenu: "شراء قائمة خاصة مسبقة الدفع",
+                reserve: "حجز طاولة مجاناً"
+            },
+            stats: {
+                prepaid: "وفر حتى 30% مع القوائم مسبقة الدفع",
+                rating: "رضا الضيوف"
+            }
         },
         hero: {
             title: "اكتشف العالم بأرقى الطرق",
@@ -328,10 +454,31 @@ const TRANSLATIONS: Translations = {
             styles: "Estilos",
             memories: "Memorias",
             deals: "Ofertas",
+            taste: "Sabor",
             contact: "Contacto",
             competitorReport: "Análisis de Mercado",
             customerLogin: "Acceso Clientes",
             agencyLogin: "Portal de Agencias",
+        },
+        checkout: {
+            paymentDisclaimer: "El monto del 'Menú Prepagado' se cobra ahora a través de Tourkia. Cualquier 'Pedido Extra' en el restaurante se pagará directamente al establecimiento."
+        },
+        tastePage: {
+            title: "Ruta Gastronómica & Puntos de Sabor",
+            subtitle: "Reserva tu mesa en los mejores restaurantes y ahorra con menús exclusivos prepagados.",
+            filters: {
+                location: "Elegir lugar",
+                cuisine: "Tipo de cocina",
+                price: "Rango de precio"
+            },
+            actions: {
+                buyMenu: "Comprar menú especial prepagado",
+                reserve: "Hacer reserva gratuita"
+            },
+            stats: {
+                prepaid: "Ahorra hasta un 30% con menús prepagados",
+                rating: "Satisfacción del cliente"
+            }
         },
         hero: {
             title: "La Forma Más Exclusiva de Descubrir el Mundo",
@@ -382,10 +529,31 @@ const TRANSLATIONS: Translations = {
             styles: "Styles",
             memories: "Souvenirs",
             deals: "Bons Plans",
+            taste: "Saveurs",
             contact: "Contact",
             competitorReport: "Rapport de Marché",
             customerLogin: "Connexion Client",
             agencyLogin: "Portail Agence",
+        },
+        checkout: {
+            paymentDisclaimer: "Le montant du 'Menu Prépayé' est perçu maintenant via Tourkia. Toute 'Commande Supplémentaire' au restaurant sera payée directement à l'établissement."
+        },
+        tastePage: {
+            title: "Route Gastronomique & Saveurs",
+            subtitle: "Réservez votre table dans les meilleurs restaurants et profitez de menus prépayés exclusifs.",
+            filters: {
+                location: "Choisir un lieu",
+                cuisine: "Cuisine",
+                price: "Gamme de prix"
+            },
+            actions: {
+                buyMenu: "Acheter un menu spécial prépayé",
+                reserve: "Faire une réservation gratuite"
+            },
+            stats: {
+                prepaid: "Économisez jusqu'à 30% avec les menus prépayés",
+                rating: "Satisfaction client"
+            }
         },
         hero: {
             title: "La Façon La Plus Exclusive de Découvrir le Monde",

@@ -4,13 +4,16 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { fetchTour } from '../lib/tours';
+import { useLocale } from '../context/LocaleContext';
 
 function CheckoutLogic() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const { t } = useLocale();
     const tourId = searchParams.get('tourId');
     const guests = parseInt(searchParams.get('guests') || '1');
     const date = searchParams.get('date');
+    const menuId = searchParams.get('menuId');
 
     const [tour, setTour] = useState<any>(null);
     const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Info, 2: Payment Gateway, 3: Success
@@ -72,7 +75,9 @@ function CheckoutLogic() {
     if (!tourId) return <div className="p-10 text-center">Eksik Rezervasyon Parametreleri</div>;
     if (!tour && step === 1) return <div className="p-10 text-center">Tur detayları yükleniyor...</div>;
 
-    const totalPrice = tour ? tour.price * guests : 0;
+    const tourPrice = tour ? tour.price * guests : 0;
+    const mealPrice = (menuId && tour?.linked_restaurant && tour.linked_restaurant.id === menuId) ? tour.linked_restaurant.price * guests : 0;
+    const totalPrice = tourPrice + mealPrice;
 
     return (
         <div className="w-full max-w-6xl mx-auto mt-8 flex flex-col lg:flex-row gap-8">
@@ -114,6 +119,15 @@ function CheckoutLogic() {
                             <button type="submit" className="w-full bg-[#008cb3] hover:bg-[#005e85] text-white font-black text-lg py-4 rounded-xl shadow-lg shadow-blue-500/30 transition">
                                 Ödemeye Geç (Payment Gateway)
                             </button>
+
+                            <div className="flex items-start gap-3 bg-blue-50/50 p-4 rounded-2xl border border-blue-100/50 mt-4">
+                                <div className="text-blue-500 mt-0.5">
+                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                </div>
+                                <p className="text-[12px] font-medium text-blue-800 leading-relaxed italic">
+                                    {t.checkout.paymentDisclaimer}
+                                </p>
+                            </div>
                         </form>
                     </div>
                 )}
@@ -128,13 +142,16 @@ function CheckoutLogic() {
                                 <div className="bg-slate-50 p-6 rounded-2xl border border-gray-200 w-full max-w-sm mb-8 space-y-4">
                                     <div className="flex justify-between font-bold text-slate-700">
                                         <span>Ödenecek Tutar</span>
-                                        <span className="text-[#008cb3]">€ {totalPrice}</span>
+                                        <span className="text-[#008cb3]">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
                                     </div>
                                     <div className="h-px bg-gray-200"></div>
                                     <button onClick={handleSimulatePaymentProcess} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition flex items-center justify-center gap-2">
                                         🔒 Güvenli Ödeme Yap
                                     </button>
                                 </div>
+                                <p className="text-[11px] font-semibold text-slate-400 max-w-sm text-center italic mt-2">
+                                    {t.checkout.paymentDisclaimer}
+                                </p>
                             </>
                         ) : (
                             <div className="flex flex-col items-center justify-center gap-4">
@@ -219,11 +236,17 @@ function CheckoutLogic() {
                                     <span className="text-gray-500">🗣️ Rehberlik:</span>
                                     <span className="font-bold text-green-600">Profesyonel Tur Rehberi Dahil</span>
                                 </div>
+                                {menuId && tour?.linked_restaurant && (
+                                    <div className="flex justify-between border-t border-emerald-100 pt-2 mt-2">
+                                        <span className="text-emerald-600 font-bold flex items-center gap-1">🍽️ Yemek Paketi:</span>
+                                        <span className="font-bold text-slate-800">{tour.linked_restaurant.special_menu_name}</span>
+                                    </div>
+                                )}
                             </div>
 
                             <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
-                                <span className="font-black text-slate-800">Toplam Tutar:</span>
-                                <span className="text-2xl font-black text-[#008cb3]">€ {totalPrice}</span>
+                                <span className="font-black text-slate-800">Toplam Tutur:</span>
+                                <span className="text-2xl font-black text-[#008cb3]">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
                             </div>
                         </>
                     ) : (
