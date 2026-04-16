@@ -120,7 +120,7 @@ export default function DynamicTourPage() {
             {/* Navbar (Basitleştirilmiş) */}
             <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
                 <Link href="/" className="text-4xl font-extrabold text-[#008cb3] tracking-tighter">
-                    tour<span className="text-[#005e85]">kia™</span>
+                    tour<span className="text-[#005e85]">kia</span>
                 </Link>
                 <div className="flex gap-4 items-center">
                     <CurrencySelector />
