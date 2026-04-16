@@ -934,7 +934,6 @@ export default function AgencyDashboard() {
                                     )}
                                 </div>
                             )}
-                            )}
 
                             {/* TAB: DEALS (KAMPANYALAR) */}
                             {activeTab === 'deals' && (
