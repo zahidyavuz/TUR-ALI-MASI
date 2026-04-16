@@ -13,6 +13,7 @@ class AdminAgencyListSerializer(serializers.ModelSerializer):
         model = Agency
         fields = [
             'id', 'name', 'logo', 'is_verified', 'is_active', 'is_demo',
+            'business_type',
             'tursab_no', 'commission_rate', 'sub_merchant_id',
             'phone', 'email', 'trust_score', 'tour_count',
             'owner_username', 'created_at'
@@ -38,6 +39,7 @@ class AdminAgencyDetailSerializer(serializers.ModelSerializer):
             'id', 'name', 'logo', 'description',
             'phone', 'email', 'address', 'website',
             'trust_score', 'tursab_no', 'commission_rate', 'sub_merchant_id',
+            'business_type',
             'is_verified', 'is_active', 'is_demo',
             'owner', 'owner_username',
             'tour_count', 'total_bookings', 'total_revenue',

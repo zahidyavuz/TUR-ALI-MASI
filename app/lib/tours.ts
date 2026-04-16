@@ -84,6 +84,7 @@ export async function fetchTour(slug: string) {
             imageSub2: t.image_sub2 || t.image_main,
             included: t.included || [],
             excluded: t.excluded || [],
+            linked_restaurant: t.linked_restaurant || null,
             translations: {},
             availabilitySlots: t.availability_slots || []
         };
@@ -146,7 +147,17 @@ export const TOUR_DATA = [
         excluded: ['Ekstra İçecekler', 'Kişisel Harcamalar'],
         rating: 4.8,
         reviews_count: 856,
-        fomo_count: 18
+        fomo_count: 18,
+        linked_restaurant: {
+            id: 'urgup-sofrasi',
+            name: 'Ürgüp Sofrası',
+            description: 'Bölgenin en köklü Kapadokya mutfağı. Gün turu misafirlerine özel fiyatlar.',
+            image: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=400&q=80',
+            menu: [
+                { id: 'menu-4', name: 'Kapadokya Öğle Menüsü', description: 'Mercimek çorbası, ana yemek (güveç veya ızgara seçenekli), tatlı ve içecek.', original_price: 420, discounted_price: 295, discount_pct: 30, category: 'main' },
+                { id: 'menu-5', name: 'Vegetaryen Set', description: 'Taze gözleme, sebze yemekleri, cacık ve mevsim salatası.', original_price: 320, discounted_price: 220, discount_pct: 31, category: 'main' },
+            ]
+        }
     },
     {
         id: 'yesil-tur-guney',
@@ -164,7 +175,17 @@ export const TOUR_DATA = [
         excluded: ['İçecekler'],
         rating: 4.9,
         reviews_count: 730,
-        fomo_count: 22
+        fomo_count: 22,
+        linked_restaurant: {
+            id: 'ihlara-vadi-lokantasi',
+            name: 'Ihlara Vadi Lokantası',
+            description: 'Serin vadi kenarında, nehrin sesine eşlik eden otantik yöresel lezzetler.',
+            image: 'https://images.unsplash.com/photo-1466978913421-dad2ebd01d17?w=400&q=80',
+            menu: [
+                { id: 'menu-6', name: 'Vadi Mangal Menüsü', description: 'Açık ateşte pişmiş et, köy ekmeği, cacık ve ayran dahil.', original_price: 500, discounted_price: 350, discount_pct: 30, category: 'main' },
+                { id: 'menu-7', name: 'Balık & Doğa Seti', description: 'Taze alabalık, sebze grateni ve meyve tabağı.', original_price: 560, discounted_price: 390, discount_pct: 30, category: 'main' },
+            ]
+        }
     },
     {
         id: 'gun-batimi-atv',

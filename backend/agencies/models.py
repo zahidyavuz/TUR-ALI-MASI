@@ -4,11 +4,24 @@ from django.utils import timezone
 
 
 class Agency(models.Model):
+    BUSINESS_TYPE_CHOICES = [
+        ('acenta', 'Tur Acentası'),
+        ('restoran', 'Restoran'),
+    ]
+
     owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name='agency_profile', null=True, blank=True)
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='agencies/logos/', blank=True, null=True)
     trust_score = models.DecimalField(max_digits=3, decimal_places=1, default=5.0)
     description = models.TextField(blank=True, null=True)
+
+    # Business type (Acenta / Restoran)
+    business_type = models.CharField(
+        max_length=20,
+        choices=BUSINESS_TYPE_CHOICES,
+        default='acenta',
+        verbose_name='İşletme Türü'
+    )
 
     # Contact info
     phone = models.CharField(max_length=30, blank=True, null=True)
@@ -28,7 +41,137 @@ class Agency(models.Model):
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
-        return self.name
+        return f'{self.name} ({self.get_business_type_display()})'
 
     class Meta:
         verbose_name_plural = "Agencies"
+
+
+class Menu(models.Model):
+    """
+    Restoran işletmelerine ait menü kalemleri.
+    Agency.business_type == 'restoran' olan kayıtlarla ilişkilendirilir.
+    """
+    CATEGORY_CHOICES = [
+        ('starter', 'Başlangıç'),
+        ('main', 'Ana Yemek'),
+        ('dessert', 'Tatlı'),
+        ('drink', 'İçecek'),
+        ('special', 'Günün Özel Menüsü'),
+    ]
+
+    restaurant = models.ForeignKey(
+        Agency,
+        on_delete=models.CASCADE,
+        related_name='menus',
+        limit_choices_to={'business_type': 'restoran'},
+        verbose_name='Restoran'
+    )
+    name = models.CharField(max_length=255, verbose_name='Ürün Adı')
+    description = models.TextField(blank=True, null=True, verbose_name='Açıklama')
+    category = models.CharField(
+        max_length=20,
+        choices=CATEGORY_CHOICES,
+        default='main',
+        verbose_name='Kategori'
+    )
+    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name='Fiyat (₺)')
+    daily_price = models.DecimalField(
+        max_digits=10, decimal_places=2,
+        blank=True, null=True,
+        verbose_name='Günlük Özel Fiyat (₺)'
+    )
+    is_available = models.BooleanField(default=True, verbose_name='Mevcut mu?')
+    is_daily_special = models.BooleanField(default=False, verbose_name='Günün Özel Menüsü mü?')
+    image = models.URLField(blank=True, null=True, verbose_name='Görsel URL')
+    created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def effective_price(self):
+        """Günlük özel fiyat varsa onu, yoksa standart fiyatı döndürür."""
+        if self.is_daily_special and self.daily_price:
+            return self.daily_price
+        return self.price
+
+    def __str__(self):
+        return f'{self.restaurant.name} | {self.name} ({self.get_category_display()})'
+
+    class Meta:
+        verbose_name = 'Menü Kalemi'
+        verbose_name_plural = 'Menü Kalemleri'
+        ordering = ['category', 'name']
+
+
+class Table(models.Model):
+    """
+    Restoran masalarını tanımlar.
+    """
+    restaurant = models.ForeignKey(
+        Agency,
+        on_delete=models.CASCADE,
+        related_name='tables',
+        limit_choices_to={'business_type': 'restoran'},
+        verbose_name='Restoran'
+    )
+    table_number = models.CharField(max_length=20, verbose_name='Masa Numarası/Adı')
+    capacity = models.PositiveIntegerField(default=4, verbose_name='Kapasite')
+    is_active = models.BooleanField(default=True, verbose_name='Kullanımda mı?')
+
+    def __str__(self):
+        return f'{self.restaurant.name} - Masa: {self.table_number}'
+
+    class Meta:
+        verbose_name = 'Masa'
+        verbose_name_plural = 'Masalar'
+
+
+class TableReservation(models.Model):
+    """
+    Restoran masa rezervasyonları.
+    """
+    STATUS_CHOICES = [
+        ('pending', 'Bekliyor'),
+        ('confirmed', 'Onaylandı'),
+        ('seated', 'Masaya Alındı'),
+        ('completed', 'Tamamlandı'),
+        ('cancelled', 'İptal Edildi'),
+    ]
+
+    restaurant = models.ForeignKey(
+        Agency,
+        on_delete=models.CASCADE,
+        related_name='table_reservations',
+        limit_choices_to={'business_type': 'restoran'},
+        verbose_name='Restoran'
+    )
+    guest_name = models.CharField(max_length=255, verbose_name='Misafir Adı')
+    guest_phone = models.CharField(max_length=30, verbose_name='Telefon')
+    guest_email = models.EmailField(blank=True, null=True, verbose_name='E-posta')
+    guest_count = models.PositiveIntegerField(default=1, verbose_name='Kişi Sayısı')
+    table = models.ForeignKey(
+        Table,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='reservations',
+        verbose_name='Atanan Masa'
+    )
+    table_number = models.CharField(max_length=20, blank=True, null=True, verbose_name='Masa No (Serbest Metin)')
+    reservation_date = models.DateField(verbose_name='Rezervasyon Tarihi')
+    reservation_time = models.TimeField(verbose_name='Saat')
+    notes = models.TextField(blank=True, null=True, verbose_name='Notlar')
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='pending',
+        verbose_name='Durum'
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f'{self.restaurant.name} | {self.guest_name} | {self.reservation_date} {self.reservation_time}'
+
+    class Meta:
+        verbose_name = 'Masa Rezervasyonu'
+        verbose_name_plural = 'Masa Rezervasyonları'
+        ordering = ['reservation_date', 'reservation_time']

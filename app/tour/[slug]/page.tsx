@@ -34,6 +34,7 @@ export default function DynamicTourPage() {
     const [bookingStep, setBookingStep] = useState<0 | 1 | 2 | 3>(0);
     const [hasInsurance, setHasInsurance] = useState(false);
     const [hasVipTransfer, setHasVipTransfer] = useState(false);
+    const [isMealAdded, setIsMealAdded] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'eft' | 'cash'>('eft'); // Yeni ödeme yöntemleri
 
     useEffect(() => {
@@ -102,7 +103,7 @@ export default function DynamicTourPage() {
     };
 
     const basePrice = (tour?.price || 0) * guests;
-    const extrasPrice = (hasInsurance ? 500 * guests : 0) + (hasVipTransfer ? 1200 : 0);
+    const extrasPrice = (hasInsurance ? 500 * guests : 0) + (hasVipTransfer ? 1200 : 0) + (isMealAdded && tour?.linked_restaurant ? tour.linked_restaurant.price * guests : 0);
     const totalPriceAmount = basePrice + extrasPrice;
 
     useEffect(() => {
@@ -272,12 +273,49 @@ export default function DynamicTourPage() {
                         </div>
 
                         {/* Toplam Fiyat Hesaplama */}
-                        <div className="flex justify-between items-center mb-6 pt-4 border-t border-gray-100">
-                            <span className="font-bold text-gray-600 underline decoration-gray-300 underline-offset-4">{formatPrice(tour.price)} x {guests}</span>
-                            <span className="font-black text-xl text-slate-800">{formatPrice(tour.price * guests)}</span>
+                        <div className="space-y-2 mb-6 pt-4 border-t border-gray-100">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="font-bold text-gray-500 underline decoration-gray-300 underline-offset-4">{locale === 'en-US' ? 'Tour Subtotal' : 'Tur Bedeli'} ({guests})</span>
+                                <span className="font-bold text-slate-700">{formatPrice(tour.price * guests)}</span>
+                            </div>
+                            
+                            {(hasInsurance || hasVipTransfer || isMealAdded) && (
+                                <div className="flex justify-between items-center text-xs font-medium text-emerald-600">
+                                    <span>{locale === 'en-US' ? 'Extra Services' : 'Ek Hizmetler'}</span>
+                                    <span>+ {formatPrice(extrasPrice)}</span>
+                                </div>
+                            )}
+
+                            <div className="flex justify-between items-center pt-2">
+                                <span className="font-black text-slate-800">{locale === 'en-US' ? 'Total' : 'Toplam Tutar'}</span>
+                                <span className="text-2xl font-black text-[#008cb3] tracking-tighter">{formatPrice(totalPriceAmount)}</span>
+                            </div>
                         </div>
 
-                        {/* Error Message Removed */}
+                        {/* Akıllı Paket Satış (Cross-Sell) Widget */}
+                        {tour.linked_restaurant && (
+                            <div className={`mb-6 p-4 rounded-2xl border-2 transition-all duration-300 ${isMealAdded ? 'bg-orange-50 border-orange-200 shadow-md' : 'bg-slate-50 border-gray-100 hover:border-orange-200 cursor-pointer'}`} onClick={() => setIsMealAdded(!isMealAdded)}>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="text-[10px] font-black text-orange-600 uppercase tracking-widest">{locale === 'tr-TR' ? 'Hizmet Tamamlayıcı' : 'Smart Add-on'}</h4>
+                                    <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors ${isMealAdded ? 'bg-orange-500 border-orange-500' : 'bg-white border-gray-300'}`}>
+                                        {isMealAdded && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
+                                    </div>
+                                </div>
+                                <div className="flex gap-3">
+                                    <div className="w-12 h-12 bg-white rounded-xl shadow-sm flex items-center justify-center text-2xl shrink-0">🍽️</div>
+                                    <div>
+                                        <h5 className="font-bold text-xs text-slate-800 leading-tight">Tur sonrası yemek ister misin?</h5>
+                                        <p className="text-[10px] font-medium text-gray-500 mt-1">
+                                            <b>{tour.linked_restaurant.name}</b> restoranında geçerli <b>{tour.linked_restaurant.special_menu_name}</b> %{tour.linked_restaurant.discount_rate} indirimle sadece {formatPrice(tour.linked_restaurant.price)}!
+                                        </p>
+                                    </div>
+                                </div>
+                                <div className="mt-3 flex items-center gap-2">
+                                    <span className="text-[11px] font-black text-orange-600">{isMealAdded ? (locale === 'tr-TR' ? '✓ Paket Eklendi' : '✓ Package Added') : (locale === 'tr-TR' ? '+ Sepete Ekle' : '+ Add to Bundle')}</span>
+                                    <span className="text-[10px] text-gray-400 line-through font-bold">{formatPrice(tour.linked_restaurant.original_price)}</span>
+                                </div>
+                            </div>
+                        )}
 
                         {/* CTA Butonu */}
                         <div className="flex flex-col gap-2 mb-4">
@@ -289,7 +327,8 @@ export default function DynamicTourPage() {
                             return;
                         }
                         const formattedDate = selectedDate.toISOString().split('T')[0];
-                        router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}`);
+                        const menuParam = isMealAdded && tour.linked_restaurant ? `&menuId=${tour.linked_restaurant.id}` : '';
+                        router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
                     }}
                                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
                             >
@@ -448,7 +487,7 @@ export default function DynamicTourPage() {
             <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white border-t border-gray-200 px-6 py-4 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] z-[60] flex items-center justify-between pb-[calc(1rem+env(safe-area-inset-bottom))]">
                 <div>
                     <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Toplam ({guests} Kişi)</p>
-                    <p className="text-2xl font-black text-slate-800 leading-none">{formatPrice(tour.price * guests)}</p>
+                    <p className="text-2xl font-black text-slate-800 leading-none">{formatPrice(totalPriceAmount)}</p>
                 </div>
                 <button
                     onClick={(e) => {
@@ -458,7 +497,8 @@ export default function DynamicTourPage() {
                             return;
                         }
                         const formattedDate = selectedDate.toISOString().split('T')[0];
-                        router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}`);
+                        const menuParam = isMealAdded && tour.linked_restaurant ? `&menuId=${tour.linked_restaurant.id}` : '';
+                        router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
                     }}
                     className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 text-sm"
                 >

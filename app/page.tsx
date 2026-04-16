@@ -60,6 +60,7 @@ export default function Home() {
 
   // Checkout / Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Filtre State'leri
   const [selectedLocation, setSelectedLocation] = useState('Nereye gitmek istersin?');
@@ -166,11 +167,12 @@ export default function Home() {
 
       {/* Navbar: Ana Menü */}
       <nav className="w-full bg-white py-4 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] shadow-sm md:shadow-none">
-        <div className="text-4xl md:text-5xl font-extrabold text-[#008cb3] tracking-tighter">
-          Tour<span className="text-[#005e85]">kia</span>
+        <div className="text-2xl md:text-[28px] font-extrabold text-[#008cb3] tracking-tighter">
+          Tour<span className="text-[#005e85]">kie</span>
         </div>
         <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[14px]">
           <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.destinations}</Link>
+          <Link href="/taste" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.taste}</Link>
           <Link href="/profile/styles" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.styles}</Link>
           <Link href="/profile/memories" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.memories}</Link>
           <Link href="/profile/deals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.deals}</Link>
@@ -179,7 +181,11 @@ export default function Home() {
         </div>
         <div className="flex items-center gap-3 md:gap-5">
           {/* Mobil Hamburger Butonu */}
-          <button className="flex lg:hidden items-center justify-center text-gray-600 hover:text-[#008cb3] w-10 h-10 rounded-full hover:bg-gray-50 transition cursor-pointer" aria-label="Mobil Menüyü Aç">
+          <button 
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="flex lg:hidden items-center justify-center text-gray-600 hover:text-[#008cb3] w-10 h-10 rounded-full hover:bg-gray-50 transition cursor-pointer" 
+            aria-label="Mobil Menüyü Aç"
+          >
             <svg className="pointer-events-none" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
 
@@ -273,7 +279,7 @@ export default function Home() {
                   <div className="px-5 py-3 mb-1 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col items-start border-b border-gray-100/50">
                     <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-widest mb-1.5 flex items-center gap-1"><svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> Sadakat Programı</span>
                     <div className="flex justify-between items-center w-full">
-                      <span className="font-extrabold text-sm text-slate-800 tracking-tight">TourkiaPuan</span>
+                      <span className="font-extrabold text-sm text-slate-800 tracking-tight">TourPuan™</span>
                       <span className="bg-[#008cb3] text-white font-black text-[11px] px-2.5 py-1 rounded-full shadow-sm animate-pulse">1.450 Puan</span>
                     </div>
                     <p className="text-[10px] text-gray-500 font-bold mt-1.5">Mevcut Bakiyeniz: <span className="text-green-600">₺145 İndirim!</span></p>
@@ -423,7 +429,39 @@ export default function Home() {
         </div>
       </nav>
 
-      {/* Hero: Pazarlama Tasarımı */}
+      {/* Mobil Menü Overlay */}
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-[100] lg:hidden">
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <div className="absolute top-0 right-0 w-[80%] max-w-[320px] h-full bg-white shadow-2xl animate-in slide-in-from-right duration-300 flex flex-col">
+            <div className="p-6 flex justify-between items-center border-b border-gray-100">
+              <span className="text-2xl font-black text-[#008cb3]">Menu</span>
+              <button onClick={() => setIsMobileMenuOpen(false)} className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors">
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-2">
+                <Link href="/profile/goals" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.destinations}</Link>
+                <Link href="/taste" className="px-4 py-4 rounded-2xl bg-orange-50 text-orange-600 font-bold flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
+                    <span className="text-xl">🍽️</span> {t.nav.taste}
+                    <span className="ml-auto text-[10px] bg-orange-500 text-white px-2 py-0.5 rounded-full uppercase">Yeni</span>
+                </Link>
+                <Link href="/profile/styles" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.styles}</Link>
+                <Link href="/profile/memories" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.memories}</Link>
+                <Link href="/profile/deals" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.deals}</Link>
+                <button onClick={() => alert('Çok Yakında!')} className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold text-left">{t.nav.contact}</button>
+            </div>
+            <div className="p-6 border-t border-gray-100">
+                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Uygulamalarımızı İndirin</p>
+                <div className="flex gap-3">
+                    <div className="flex-1 h-10 bg-black rounded-lg flex items-center justify-center text-white text-[10px] font-bold">App Store</div>
+                    <div className="flex-1 h-10 bg-black rounded-lg flex items-center justify-center text-white text-[10px] font-bold">Play Store</div>
+                </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Hero: Pazarlama Tasarımı */}
       <div className="w-full relative z-0">
         <div className="w-full py-8 px-4 text-center text-white relative flex flex-col items-center justify-center min-h-[28vh]">

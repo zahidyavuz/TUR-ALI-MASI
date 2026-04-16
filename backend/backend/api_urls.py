@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from tours.views import TourViewSet, CategoryViewSet
-from agencies.views import AgencyViewSet
+from agencies.views import AgencyViewSet, MenuViewSet, TableReservationViewSet
 from reviews.views import ReviewViewSet
 from bookings.views import BookingViewSet
 from blogs.views import BlogViewSet, TagViewSet
@@ -23,6 +23,8 @@ router.register(r'leads', LeadViewSet, basename='lead')
 router.register(r'users/wishlist', WishlistViewSet, basename='wishlist')
 router.register(r'users/notifications', NotificationViewSet, basename='notification')
 router.register(r'admin/agencies', AdminAgencyViewSet, basename='admin-agency')
+router.register(r'menus', MenuViewSet, basename='menu')
+router.register(r'table-reservations', TableReservationViewSet, basename='table-reservation')
 
 urlpatterns = [
     path('agencies/dashboard/', AgencyDashboardView.as_view(), name='agency-dashboard'),
