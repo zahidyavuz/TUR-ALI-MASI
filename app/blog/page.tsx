@@ -15,7 +15,7 @@ export default async function BlogIndex() {
             <div className="bg-[#0f172a] text-white py-20 px-6 sm:px-12 relative overflow-hidden">
                 <div className="absolute top-[-100px] right-[-50px] w-96 h-96 bg-blue-500 rounded-full blur-[100px] opacity-20 pointer-events-none"></div>
                 <div className="max-w-7xl mx-auto relative z-10 text-center">
-                    <Link href="/" className="text-2xl font-extrabold text-white tracking-tighter mb-8 inline-block">
+                    <Link href="/" className="text-4xl font-extrabold text-white tracking-tighter mb-8 inline-block">
                         Tourkia<span className="text-blue-400">™</span>
                         <span className="ml-2 text-sm font-medium text-slate-400">| Blog</span>
                     </Link>

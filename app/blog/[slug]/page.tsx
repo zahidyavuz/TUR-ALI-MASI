@@ -81,7 +81,7 @@ export default async function BlogPostPage({ params }: Props) {
             <main className="min-h-screen bg-white font-sans text-slate-800 pb-20">
                 {/* Navbar */}
                 <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-                    <Link href="/" className="text-2xl font-extrabold text-[#008cb3] tracking-tighter">
+                    <Link href="/" className="text-4xl font-extrabold text-[#008cb3] tracking-tighter">
                         tour<span className="text-[#005e85]">kia™</span>
                         <span className="ml-2 text-sm font-medium text-slate-400">| Blog</span>
                     </Link>
