@@ -77,7 +77,23 @@ function CheckoutLogic() {
 
     const tourPrice = tour ? tour.price * guests : 0;
     const mealPrice = (menuId && tour?.linked_restaurant && tour.linked_restaurant.id === menuId) ? tour.linked_restaurant.price * guests : 0;
-    const totalPrice = tourPrice + mealPrice;
+    
+    // BACKEND LOGIC: Dynamic_Discount_Engine
+    const calculateBundleDiscount = (tPrice: number, mPrice: number) => {
+        if (tPrice > 0 && mPrice > 0) {
+            const sum = tPrice + mPrice;
+            const discount = sum * 0.10; // %10 Paket İndirimi
+            return {
+                isBundle: true,
+                discountAmount: discount,
+                finalTotal: sum - discount
+            };
+        }
+        return { isBundle: false, discountAmount: 0, finalTotal: tPrice + mPrice };
+    };
+
+    const bundleLogic = calculateBundleDiscount(tourPrice, mealPrice);
+    const totalPrice = bundleLogic.finalTotal;
 
     return (
         <div className="w-full max-w-6xl mx-auto mt-8 flex flex-col lg:flex-row gap-8">
@@ -244,9 +260,23 @@ function CheckoutLogic() {
                                 )}
                             </div>
 
+                             {bundleLogic.isBundle && (
+                                <div className="flex justify-between items-center text-xs font-bold text-orange-600 bg-orange-50 p-2 rounded-xl border border-orange-100 animate-in slide-in-from-top-1 duration-300 mb-4">
+                                    <span className="flex items-center gap-1">✨ Paket Avantajı (%10):</span>
+                                    <span>- {bundleLogic.discountAmount.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
+                                </div>
+                             )}
+
                             <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                                 <span className="font-black text-slate-800">Toplam Tutur:</span>
-                                <span className="text-2xl font-black text-[#008cb3]">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
+                                <div className="text-right">
+                                    {bundleLogic.isBundle && (
+                                        <div className="text-xs text-gray-400 line-through font-bold mb-1 opacity-60">
+                                            {(tourPrice + mealPrice).toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}
+                                        </div>
+                                    )}
+                                    <span className="text-2xl font-black text-[#008cb3]">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
+                                </div>
                             </div>
                         </>
                     ) : (

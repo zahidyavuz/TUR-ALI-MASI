@@ -296,7 +296,8 @@ export default function DynamicTourPage() {
                                 <span className="font-bold text-slate-700">{formatPrice(tour.price * guests)}</span>
                             </div>
                             
-                            <div className="flex justify-between items-center text-xs font-medium text-emerald-600">
+                            {extrasPrice > 0 && (
+                                <div className="flex justify-between items-center text-xs font-medium text-emerald-600">
                                     <span>{locale === 'en-US' ? 'Extra Services' : 'Ek Hizmetler'}</span>
                                     <span>+ {formatPrice(extrasPrice)}</span>
                                 </div>
