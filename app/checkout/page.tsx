@@ -59,7 +59,7 @@ function CheckoutLogic() {
                         tour_detail: { title: tour?.title || 'Bilinmeyen Tur' },
                         start_date: date,
                         status: 'confirmed',
-                        total_price: tour ? (tour.price || 0) * guests : 0,
+                        total_price: totalPrice,
                     };
                     existingBookings.unshift(newBooking); // En başa ekle
                     localStorage.setItem('demo_new_bookings', JSON.stringify(existingBookings));
