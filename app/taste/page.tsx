@@ -220,12 +220,24 @@ export default function TastePage() {
                             </div>
 
                             <div className="p-6 flex-1 flex flex-col">
-                                <div className="flex justify-between items-center mb-6">
-                                    <span className="text-lg font-black text-slate-800">{res.priceLevel} <span className="text-xs text-gray-400 font-bold uppercase ml-1">Bütçe</span></span>
-                                    <div className="bg-green-50 text-green-600 px-3 py-1.5 rounded-xl border border-green-100 text-[10px] font-black uppercase tracking-widest">
+                                <div className="flex justify-between items-end mb-6">
+                                    <div className="flex flex-col">
+                                        <span className="text-[10px] text-gray-400 font-bold uppercase">Özel Menü Fiyatı</span>
+                                        <span className="text-xl font-black text-slate-800">{formatPrice(isVip ? res.specialMenuPrice * 0.95 : res.specialMenuPrice)}</span>
+                                        
+                                        <div className={`mt-1 flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[9px] font-black transition-all ${isVip ? 'bg-yellow-50 text-orange-600 border border-yellow-200' : 'bg-gray-100 text-gray-400 border border-gray-200'}`}>
+                                            <span>👑 VIP: {formatPrice(res.specialMenuPrice * 0.95)}</span>
+                                            {!isVip && <svg width="8" height="8" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 5a3 3 0 016 0v3H9V7zm3 10a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" /></svg>}
+                                        </div>
+                                    </div>
+                                    <div className="bg-green-50 text-green-600 px-3 py-1.5 rounded-xl border border-green-100 text-[10px] font-black uppercase tracking-widest h-fit">
                                         {t.tastePage.stats.prepaid}
                                     </div>
                                 </div>
+
+                                {!isVip && (
+                                    <Link href="/profile" className="text-[10px] font-bold text-[#008cb3] hover:underline mb-4 block">VIP Ol, Bu Fiyattan Satın Al</Link>
+                                )}
 
                                 <div className="space-y-3 mt-auto">
                                     <button
