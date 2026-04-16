@@ -53,7 +53,7 @@ export default function ReviewsPage() {
 
     useEffect(() => {
         setIsClient(true);
-        const savedReviews = localStorage.getItem('melih_tours_reviews');
+        const savedReviews = localStorage.getItem('tourkia_reviews');
         if (savedReviews) {
             setReviews(JSON.parse(savedReviews));
         }
@@ -68,7 +68,7 @@ export default function ReviewsPage() {
 
     const saveReviews = (newReviews: Review[]) => {
         setReviews(newReviews);
-        localStorage.setItem('melih_tours_reviews', JSON.stringify(newReviews));
+        localStorage.setItem('tourkia_reviews', JSON.stringify(newReviews));
     };
 
     const openReviewModal = (tourId: string, tourName: string) => {

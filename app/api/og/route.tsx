@@ -6,7 +6,7 @@ export const runtime = 'edge';
 export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
-        const title = searchParams.get('title') || 'Melih Tours';
+        const title = searchParams.get('title') || 'Tourkia';
         const image = searchParams.get('image') || 'https://images.unsplash.com/photo-1596395819057-afbf19aff3fb?fit=crop&w=1200&q=80';
 
         return new ImageResponse(
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
                                 fontWeight: 'bold',
                             }}
                         >
-                            Melih Tours - Sizin İçin Özel Seçilmiş Turlar
+                            Tourkia - Sizin İçin Özel Seçilmiş Turlar
                         </div>
                     </div>
                 </div>

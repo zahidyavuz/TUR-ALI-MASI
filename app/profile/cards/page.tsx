@@ -26,7 +26,7 @@ export default function CardsPage() {
 
     useEffect(() => {
         setIsClient(true);
-        const savedCards = localStorage.getItem('melih_tours_cards');
+        const savedCards = localStorage.getItem('tourkia_cards');
         if (savedCards) {
             setCards(JSON.parse(savedCards));
         }
@@ -34,7 +34,7 @@ export default function CardsPage() {
 
     const saveCards = (newCards: CreditCard[]) => {
         setCards(newCards);
-        localStorage.setItem('melih_tours_cards', JSON.stringify(newCards));
+        localStorage.setItem('tourkia_cards', JSON.stringify(newCards));
     };
 
     const detectCardType = (number: string): 'Visa' | 'Mastercard' | 'Amex' | 'Unknown' => {

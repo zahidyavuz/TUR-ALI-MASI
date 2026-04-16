@@ -6,11 +6,11 @@ import Link from 'next/link';
 export default function BlogKuzeyIsiklari() {
     return (
         <main className="min-h-screen bg-slate-50 flex flex-col">
-            {/* Header (Melih Tours Global Style) */}
+            {/* Header (Tourkia Global Style) */}
             <header className="bg-white/80 backdrop-blur-lg border-b border-gray-100 sticky top-0 z-50">
                 <div className="max-w-[1440px] mx-auto px-6 h-20 flex items-center justify-between">
                     <Link href="/" className="text-2xl font-black text-[#005e85] tracking-tighter">
-                        melihtours<span className="text-[#008cb3]">™</span><span className="text-[10px] ml-1 px-1.5 py-0.5 bg-[#005e85]/10 rounded-md">BLOG</span>
+                        tourkia<span className="text-[#008cb3]">™</span><span className="text-[10px] ml-1 px-1.5 py-0.5 bg-[#005e85]/10 rounded-md">BLOG</span>
                     </Link>
                     <Link href="/" className="text-sm font-semibold text-slate-500 hover:text-slate-800 transition-colors">Ana Sayfa'ya Dön ➔</Link>
                 </div>

@@ -3,7 +3,7 @@ import { fetchTours } from './lib/tours';
 import { fetchBlogs } from './lib/blog';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-    const baseUrl = 'https://melihtours.com';
+    const baseUrl = 'https://tourkia.com';
     const tourData: any = await fetchTours();
     const blogData = await fetchBlogs();
 
