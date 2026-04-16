@@ -26,8 +26,11 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
     const [rates, setRates] = useState<Record<string, number>>(FALLBACK_RATES);
 
     useEffect(() => {
-        setCurrencyState('EUR');
-        localStorage.setItem('tourkia_currency', 'EUR');
+        // Load initial currency from localStorage if available
+        const savedCurrency = localStorage.getItem('tourkia_currency') as Currency;
+        if (savedCurrency && ['TRY', 'USD', 'EUR', 'RUB', 'CNY'].includes(savedCurrency)) {
+            setCurrencyState(savedCurrency);
+        }
 
         const fetchRates = async () => {
             try {

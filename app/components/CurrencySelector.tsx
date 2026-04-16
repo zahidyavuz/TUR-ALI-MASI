@@ -9,6 +9,10 @@ export default function CurrencySelector() {
 
     const currencies: { code: Currency; label: string; flag: string; symbol: string }[] = [
         { code: 'EUR', label: 'EUR', flag: '🇪🇺', symbol: '€' },
+        { code: 'USD', label: 'USD', flag: '🇺🇸', symbol: '$' },
+        { code: 'TRY', label: 'TRY', flag: '🇹🇷', symbol: '₺' },
+        { code: 'CNY', label: 'CNY', flag: '🇨🇳', symbol: '¥' },
+        { code: 'RUB', label: 'RUB', flag: '🇷🇺', symbol: '₽' },
     ];
 
     useEffect(() => {
