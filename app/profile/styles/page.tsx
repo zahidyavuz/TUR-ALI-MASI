@@ -24,13 +24,13 @@ export default function StylesPage() {
 
     useEffect(() => {
         setIsClient(true);
-        const saved = localStorage.getItem('melih_tours_style');
+        const saved = localStorage.getItem('tourkia_style');
         if (saved) setSelectedStyle(saved);
     }, []);
 
     const handleSelect = (id: string) => {
         setSelectedStyle(id);
-        localStorage.setItem('melih_tours_style', id);
+        localStorage.setItem('tourkia_style', id);
     };
 
     if (!isClient) return null;

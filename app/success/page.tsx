@@ -28,7 +28,7 @@ export default function SuccessPage() {
                     <div className="space-y-3">
                         <div>
                             <p className="text-[10px] text-gray-500 font-bold uppercase">Alıcı Adı:</p>
-                            <p className="text-sm font-semibold text-slate-700">Melih Turizm ve Seyahat A.Ş.</p>
+                            <p className="text-sm font-semibold text-slate-700">Tourkia Turizm ve Seyahat A.Ş.</p>
                         </div>
                         <div>
                             <p className="text-[10px] text-gray-500 font-bold uppercase">Banka:</p>

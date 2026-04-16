@@ -205,7 +205,7 @@ export default function ProfilePage() {
         <div className="min-h-screen bg-slate-50 py-12 font-sans overflow-x-hidden">
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
-                {/* Üst Kısım: Başlık & Rol Değiştirici (MelihPuan vb. yerine demo amaçlı) */}
+                {/* Üst Kısım: Başlık & Rol Değiştirici (TourkiaPuan vb. yerine demo amaçlı) */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
                         <h1 className="text-3xl font-extrabold text-[#005e85] tracking-tight">Kişisel Bilgilerim</h1>
@@ -369,7 +369,7 @@ export default function ProfilePage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5 relative z-10">
                                     <div>
                                         <label className="block text-[11px] font-bold text-orange-700 uppercase tracking-widest mb-1.5 ml-1">Firma / Ünvan Adı</label>
-                                        <input type="text" defaultValue="Yılmazlar Turizm Otelcilik A.Ş." className="w-full bg-white border border-orange-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm" />
+                                        <input type="text" defaultValue="Tourkia Turizm A.Ş." className="w-full bg-white border border-orange-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm" />
                                     </div>
                                     <div>
                                         <label className="block text-[11px] font-bold text-orange-700 uppercase tracking-widest mb-1.5 ml-1">TÜRSAB Belge Numarası</label>

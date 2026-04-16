@@ -27,7 +27,7 @@ type GeofenceContextValue = {
 
 const GeofenceContext = createContext<GeofenceContextValue | null>(null);
 
-const BANNER_DISMISS_KEY = 'melih_tours_geofence_banner_dismissed';
+const BANNER_DISMISS_KEY = 'tourkia_geofence_banner_dismissed';
 
 function getBannerDismissedId(): string | null {
   if (typeof window === 'undefined') return null;

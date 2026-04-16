@@ -41,7 +41,7 @@ export default function ForgotPasswordPage() {
             <div className="w-full max-w-md bg-white rounded-3xl shadow-xl overflow-hidden p-8 border border-gray-100">
                 <div className="text-center mb-8">
                     <Link href="/" className="text-3xl font-extrabold text-[#008cb3] tracking-tighter inline-block mb-2">
-                        melih<span className="text-[#005e85]">tours™</span>
+                        tour<span className="text-[#005e85]">kia™</span>
                     </Link>
                     <h1 className="text-2xl font-black text-slate-800">Şifremi Unuttum</h1>
                     <p className="text-gray-500 font-medium text-sm mt-2">Kayıtlı e-posta adresinizi girerek şifrenizi sıfırlayabilirsiniz.</p>

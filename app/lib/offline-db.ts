@@ -5,7 +5,7 @@
 
 import type { OfflineTicket } from './offline-types';
 
-const DB_NAME = 'melih_tours_offline';
+const DB_NAME = 'tourkia_offline';
 const STORE_NAME = 'tickets';
 const DB_VERSION = 1;
 

@@ -17,13 +17,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     if (!post) {
         return {
-            title: 'Yazı Bulunamadı | Melih Tours Blog',
+            title: 'Yazı Bulunamadı | Tourkia Blog',
             description: 'Aradığınız blog yazısı bulunamadı.',
         };
     }
 
     return {
-        title: `${post.title} | Melih Tours Rehberi`,
+        title: `${post.title} | Tourkia Rehberi`,
         description: post.excerpt,
         openGraph: {
             images: [post.coverImage],
@@ -51,7 +51,7 @@ export default async function BlogPostPage({ params }: Props) {
         "@type": "Article",
         "mainEntityOfPage": {
             "@type": "WebPage",
-            "@id": `https://melihtours.com/blog/${slug}`
+            "@id": `https://tourkia.com/blog/${slug}`
         },
         "headline": post.title,
         "description": post.excerpt,
@@ -62,10 +62,10 @@ export default async function BlogPostPage({ params }: Props) {
         },
         "publisher": {
             "@type": "Organization",
-            "name": "Melih Tours",
+            "name": "Tourkia",
             "logo": {
                 "@type": "ImageObject",
-                "url": "https://melihtours.com/logo.png"
+                "url": "https://tourkia.com/logo.png"
             }
         },
         "datePublished": post.publishedAt,
@@ -82,7 +82,7 @@ export default async function BlogPostPage({ params }: Props) {
                 {/* Navbar */}
                 <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
                     <Link href="/" className="text-2xl font-extrabold text-[#008cb3] tracking-tighter">
-                        melih<span className="text-[#005e85]">tours™</span>
+                        tour<span className="text-[#005e85]">kia™</span>
                         <span className="ml-2 text-sm font-medium text-slate-400">| Blog</span>
                     </Link>
                     <div className="flex gap-4 items-center">

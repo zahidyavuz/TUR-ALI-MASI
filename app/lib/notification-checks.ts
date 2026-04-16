@@ -15,7 +15,7 @@ const TR_MONTHS: Record<string, number> = {
   temmuz: 6, ağustos: 7, eylül: 8, ekim: 9, kasım: 10, aralık: 11,
 };
 
-const REMINDER_SENT_KEY = 'melih_tours_reminder_sent';
+const REMINDER_SENT_KEY = 'tourkia_reminder_sent';
 function getReminderSent(): Record<string, number> {
   if (typeof window === 'undefined') return {};
   try {

@@ -49,12 +49,12 @@ export const DEFAULT_PREFS: NotificationPrefs = {
 };
 
 export const STORAGE_KEYS = {
-  prefs: 'melih_tours_notification_prefs',
-  notifications: 'melih_tours_notifications',
+  prefs: 'tourkia_notification_prefs',
+  notifications: 'tourkia_notifications',
   /** Günlük gönderim sayacı: { date: "YYYY-MM-DD", count: number } */
-  dailyCount: 'melih_tours_notification_daily_count',
+  dailyCount: 'tourkia_notification_daily_count',
   /** Hava durumu önbelleği: locationKey -> { temp, condition, date } */
-  weatherCache: 'melih_tours_weather_cache',
+  weatherCache: 'tourkia_weather_cache',
   /** İndirim son bildirim: tourId -> { discount, date } */
-  discountLastNotified: 'melih_tours_discount_last',
+  discountLastNotified: 'tourkia_discount_last',
 } as const;

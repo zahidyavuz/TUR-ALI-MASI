@@ -27,7 +27,7 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     useEffect(() => {
         setCurrencyState('EUR');
-        localStorage.setItem('melih_tours_currency', 'EUR');
+        localStorage.setItem('tourkia_currency', 'EUR');
 
         const fetchRates = async () => {
             try {
@@ -56,7 +56,7 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     const setCurrency = (cur: Currency) => {
         setCurrencyState(cur);
-        localStorage.setItem('melih_tours_currency', cur);
+        localStorage.setItem('tourkia_currency', cur);
     };
 
     const formatPrice = (amountInTRY: number) => {

@@ -446,7 +446,7 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
     const [locale, setLocale] = useState<Locale>('tr-TR');
 
     useEffect(() => {
-        const saved = localStorage.getItem('melih_tours_locale') as Locale;
+        const saved = localStorage.getItem('tourkia_locale') as Locale;
         if (saved && ['tr-TR', 'en-US', 'de-DE', 'zh-CN', 'ar-SA', 'es-ES', 'fr-FR'].includes(saved)) {
             setLocale(saved);
         }
@@ -454,7 +454,7 @@ export const LocaleProvider: React.FC<{ children: ReactNode }> = ({ children }) 
 
     const handleSetLocale = (newLocale: Locale) => {
         setLocale(newLocale);
-        localStorage.setItem('melih_tours_locale', newLocale);
+        localStorage.setItem('tourkia_locale', newLocale);
     };
 
     const { formatPrice } = useCurrency();

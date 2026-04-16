@@ -6,15 +6,15 @@ services:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: tourscanner_db
-      POSTGRES_USER: tourscanner
+      POSTGRES_DB: tourkia_db
+      POSTGRES_USER: tourkia
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U tourscanner -d tourscanner_db"]
+      test: ["CMD-SHELL", "pg_isready -U tourkia -d tourkia_db"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,7 +28,7 @@ services:
     environment:
       - DEBUG=False
       - SECRET_KEY=${SECRET_KEY}
-      - DATABASE_URL=postgres://tourscanner:${DB_PASSWORD:-changeme}@db:5432/tourscanner_db
+      - DATABASE_URL=postgres://tourkia:${DB_PASSWORD:-changeme}@db:5432/tourkia_db
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1}
       - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}

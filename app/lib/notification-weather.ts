@@ -93,7 +93,7 @@ export async function fetchWeather(location: string): Promise<WeatherSnapshot | 
   }
 }
 
-const STORAGE_WEATHER = 'melih_tours_weather_cache';
+const STORAGE_WEATHER = 'tourkia_weather_cache';
 
 function getWeatherCache(): Record<string, { snapshot: WeatherSnapshot; fetched: string }> {
   if (typeof window === 'undefined') return {};

@@ -89,8 +89,8 @@ class Command(BaseCommand):
                 'content': "Kapadokya, volkanik patlamaların ve rüzgarların binlerce yılda yonttuğu doğal şaheserleriyle kelimenin tam anlamıyla dünya dışı bir manzaraya sahiptir.",
                 'cover_image': 'https://images.unsplash.com/photo-1596395819057-afbf19aff3fb',
                 'reading_time': '4 dk',
-                'author_name': 'Melih Yılmaz',
-                'author_role': 'Kurucu Yönetici & Gezgin',
+                'author_name': 'Tourkia Ekibi',
+                'author_role': 'Kurumsal Editör',
                 'author_avatar': 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e',
                 'category': 'Rehberler',
                 'related_tour_slug': 'kapadokya'

@@ -1,4 +1,4 @@
-# Melih Tours – Ücretsiz Deploy (Vercel)
+# Tourkia – Ücretsiz Deploy (Vercel)
 
 ## Yöntem 1: Vercel CLI (Hızlı)
 
@@ -13,7 +13,7 @@
    - "Set up and deploy?" → **Y** (Enter).
    - Proje adı/ayarlar için Enter ile varsayılanları kabul edebilirsin.
 
-4. Bittiğinde örnek link: `https://melih-tours-xxxx.vercel.app`
+4. Bittiğinde örnek link: `https://tourkia-xxxx.vercel.app`
 
 5. **Production (kalıcı) link için:**
    ```bash
@@ -24,21 +24,21 @@
 
 ## Yöntem 2: GitHub + Vercel (Otomatik güncelleme)
 
-1. **GitHub’da repo oluştur:** [github.com/new](https://github.com/new) → `melih-tours` adında boş repo.
+1. **GitHub’da repo oluştur:** [github.com/new](https://github.com/new) → `tourkia-web` adında boş repo.
 
 2. **Projede Git ve push:**
    ```bash
-   cd "c:\Users\Melih\Desktop\melih tur\melih-tours"
+   cd "/Users/mehmetzahidyavuz/Desktop/TUR-ALI-MASI"
    git init
    git add .
-   git commit -m "Initial commit"
+   git commit -m "Initial commit - Tourkia Rebranding"
    git branch -M main
-   git remote add origin https://github.com/KULLANICI_ADIN/melih-tours.git
+   git remote add origin https://github.com/KULLANICI_ADIN/tourkia-web.git
    git push -u origin main
    ```
    (`KULLANICI_ADIN` yerine kendi GitHub kullanıcı adını yaz.)
 
-3. **Vercel’e bağla:** [vercel.com/new](https://vercel.com/new) → "Import Git Repository" → GitHub’dan `melih-tours` seç → Deploy.
+3. **Vercel’e bağla:** [vercel.com/new](https://vercel.com/new) → "Import Git Repository" → GitHub’dan `tourkia-web` seç → Deploy.
 
 4. Her `git push` sonrası site otomatik güncellenir.
 
