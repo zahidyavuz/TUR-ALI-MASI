@@ -29,6 +29,7 @@ export default function DynamicTourPage() {
     const [isSticky, setIsSticky] = useState(false);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [isVip, setIsVip] = useState(false);
 
     // MOCK: Yakın Restoranlar (Bölgeye göre filtrelenebilir)
     const [nearbyRestaurants, setNearbyRestaurants] = useState<any[]>([
@@ -82,6 +83,17 @@ export default function DynamicTourPage() {
                     setTour(finalTour);
                 } else {
                     setError("Tur bulunamadı.");
+                }
+
+                // VIP Check
+                if (typeof window !== 'undefined') {
+                    const vipData = localStorage.getItem('vip_membership');
+                    if (vipData) {
+                        const { level, expiry } = JSON.parse(vipData);
+                        if (level === 'VIP' && new Date(expiry) > new Date()) {
+                            setIsVip(true);
+                        }
+                    }
                 }
             } catch (err) {
                 setError("Tur yüklenirken bir sorun oluştu.");
@@ -205,7 +217,19 @@ export default function DynamicTourPage() {
                                 {tour.originalPrice && (
                                     <p className="text-gray-400 text-sm font-bold line-through">{formatPrice(parseInt(String(tour.originalPrice).replace(/\./g, '')))}</p>
                                 )}
-                                <h3 className="text-3xl font-black text-slate-800">{formatPrice(tour.price)} <span className="text-sm font-medium text-gray-500 tracking-normal">/{locale === 'en-US' ? 'per person' : locale === 'de-DE' ? 'pro person' : locale === 'zh-CN' ? '每人' : 'kişi başı'}</span></h3>
+                                <h3 className="text-3xl font-black text-slate-800">{formatPrice(isVip ? tour.price * 0.95 : tour.price)} <span className="text-sm font-medium text-gray-500 tracking-normal">/{locale === 'en-US' ? 'per person' : locale === 'de-DE' ? 'pro person' : locale === 'zh-CN' ? '每人' : 'kişi başı'}</span></h3>
+                                
+                                {/* VIP Fiyat Etiketi */}
+                                <div className="mt-2 flex items-center gap-2">
+                                    <div className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase flex items-center gap-1.5 transition-all ${isVip ? 'bg-yellow-50 text-orange-600 border border-yellow-200' : 'bg-gray-100 text-gray-400 border border-gray-200 opacity-60'}`}>
+                                        <span className={isVip ? 'animate-pulse' : ''}>👑 VIP Fiyatı:</span>
+                                        <span>{formatPrice(tour.price * 0.95)}</span>
+                                        {!isVip && <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 5a3 3 0 016 0v3H9V7zm3 10a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" /></svg>}
+                                    </div>
+                                    {!isVip && (
+                                        <Link href="/profile" className="text-[9px] font-bold text-[#008cb3] hover:underline">VIP Ol, Bu Fiyattan Al</Link>
+                                    )}
+                                </div>
                             </div>
                             {tour.discount && (
                                 <div className="bg-red-50 text-red-600 text-xs font-bold px-3 py-1.5 rounded-xl border border-red-100 flex flex-col items-center">

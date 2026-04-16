@@ -92,6 +92,20 @@ export default function TastePage() {
     const cuisines = ['All', ...Array.from(new Set(RESTAURANTS.map(r => r.cuisine)))];
     const prices = ['All', '₺₺', '₺₺₺', '₺₺₺₺'];
 
+    const [isVip, setIsVip] = useState(false);
+
+    useEffect(() => {
+        if (typeof window !== 'undefined') {
+            const vipData = localStorage.getItem('vip_membership');
+            if (vipData) {
+                const { level, expiry } = JSON.parse(vipData);
+                if (level === 'VIP' && new Date(expiry) > new Date()) {
+                    setIsVip(true);
+                }
+            }
+        }
+    }, []);
+
     const filteredRestaurants = RESTAURANTS.filter(r => {
         return (selectedLoc === 'All' || r.location === selectedLoc) &&
                (selectedCuisine === 'All' || r.cuisine === selectedCuisine) &&

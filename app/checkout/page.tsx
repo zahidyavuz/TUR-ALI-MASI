@@ -61,6 +61,16 @@ function CheckoutLogic() {
                         status: 'confirmed',
                         total_price: totalPrice,
                     };
+                    // VIP-Badge-Logic-Engine: Bundle alımı veya 5000 TL üzeri harcama VIP yapar
+                    if (bundleLogic.isBundle || totalPrice >= 5000) {
+                        const expiry = new Date();
+                        expiry.setDate(expiry.getDate() + 30);
+                        localStorage.setItem('vip_membership', JSON.stringify({
+                            level: 'VIP',
+                            expiry: expiry.toISOString()
+                        }));
+                    }
+
                     existingBookings.unshift(newBooking); // En başa ekle
                     localStorage.setItem('demo_new_bookings', JSON.stringify(existingBookings));
                 } catch (e) {

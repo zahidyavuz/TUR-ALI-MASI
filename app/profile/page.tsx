@@ -11,6 +11,7 @@ export default function ProfilePage() {
     const router = useRouter();
     // Örnek Auth State'i (Gerçekte Context/Store'dan gelecek)
     const [userRole, setUserRole] = useState<'customer' | 'agency'>('customer');
+    const [isVip, setIsVip] = useState(false);
 
     // Müşteri / Acenta Verileri Form State
     const [formState, setFormState] = useState({
@@ -79,8 +80,27 @@ export default function ProfilePage() {
             if (data.profile?.avatar) {
                 setProfileImage(`http://localhost:8000${data.profile.avatar}`);
             }
+
+            // VIP Check
+            const vipData = localStorage.getItem('vip_membership');
+            if (vipData) {
+                const { level, expiry } = JSON.parse(vipData);
+                if (level === 'VIP' && new Date(expiry) > new Date()) {
+                    setIsVip(true);
+                }
+            }
         })
-        .catch(err => console.error("Profile load error:", err));
+        .catch(err => {
+            console.error("Profile load error:", err);
+            // Mock Fallback for VIP if network fails
+            const vipData = localStorage.getItem('vip_membership');
+            if (vipData) {
+                const { level, expiry } = JSON.parse(vipData);
+                if (level === 'VIP' && new Date(expiry) > new Date()) {
+                    setIsVip(true);
+                }
+            }
+        });
     }, [router]);
 
     // Global Tercihler State'leri
@@ -238,9 +258,16 @@ export default function ProfilePage() {
                                 Fotoğrafı Değiştir
                             </button>
 
-                            <h2 className="relative z-10 mt-4 text-xl font-black text-slate-800 text-center tracking-tight">{formState.firstName} {formState.lastName}</h2>
-                            <span className="relative z-10 text-xs font-bold text-gray-400 mt-1 mb-2 bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
-                                {userRole === 'agency' ? '🌟 VIP Acenta İş Ortağı' : '✨ Diamond Gezgin'}
+                            <h2 className="relative z-10 mt-4 text-xl font-black text-slate-800 text-center tracking-tight flex items-center justify-center gap-2">
+                                {formState.firstName} {formState.lastName}
+                                {isVip && (
+                                    <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-tr from-yellow-400 via-orange-500 to-yellow-300 rounded-full shadow-[0_0_15px_rgba(234,179,8,0.6)] animate-pulse border border-yellow-200" title="VIP Üye">
+                                        <span className="text-[10px] font-black text-white">VIP</span>
+                                    </div>
+                                )}
+                            </h2>
+                            <span className={`relative z-10 text-xs font-bold mt-1 mb-2 px-3 py-1 rounded-md border ${isVip ? 'bg-yellow-50 text-orange-600 border-yellow-200 shadow-sm' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
+                                {userRole === 'agency' ? '🌟 VIP Acenta İş Ortağı' : isVip ? '🏆 Premium VIP Gezgin' : '✨ Diamond Gezgin'}
                             </span>
 
                             {/* Aktif Tur Sohbetim Button */}
