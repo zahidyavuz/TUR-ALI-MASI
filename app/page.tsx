@@ -12,6 +12,74 @@ import CurrencySelector from './components/CurrencySelector';
 import NotificationCenter from './components/NotificationCenter';
 import FavoriteButton from './components/FavoriteButton';
 import { useAuth } from './context/AuthContext';
+import { useRouter } from 'next/navigation';
+
+// --- YENİ BİLEŞEN: ComboCard (Geniş / Wide Format) ---
+const ComboCard = ({ tour, restaurant, discountRate, formatPrice }: { tour: any, restaurant: any, discountRate: number, formatPrice: (p: number) => string }) => {
+  // Bundle_Pricing Logic
+  const originalTotal = tour.price + restaurant.price;
+  const discountAmount = originalTotal * (discountRate / 100);
+  const bundlePrice = originalTotal - discountAmount;
+  const savings = Math.round(discountAmount);
+
+  return (
+    <div className="relative bg-white rounded-[40px] overflow-hidden shadow-2xl hover:shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-700 group cursor-pointer border border-gray-100 flex flex-col md:flex-row w-full mb-8"> 
+      {/* Görsel Alanı (Geniş Split) */}
+      <div className="relative h-72 md:h-auto md:w-[45%] overflow-hidden flex">
+        <div className="w-1/2 h-full relative border-r-2 border-white z-10 shrink-0">
+          <Image src={tour.image} alt={tour.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+        </div>
+        <div className="w-1/2 h-full relative shrink-0">
+          <Image src={restaurant.image} alt={restaurant.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
+        </div>
+        
+        {/* Ortasındaki "Birlikte Daha Güçlü" İkonu */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-full shadow-2xl flex items-center justify-center z-20 border-8 border-slate-50 transform group-hover:rotate-12 transition-transform">
+          <span className="text-2xl font-bold text-orange-500">＋</span>
+        </div>
+
+        {/* Rozetler */}
+        <div className="absolute top-6 left-6 z-30">
+          <span className="bg-[#008cb3] text-white text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-[0.2em] shadow-lg border border-white/20">Günün Kombo Fırsatı</span>
+        </div>
+      </div>
+
+      {/* İçerik Alanı (Geniş Segment) */}
+      <div className="p-8 md:p-12 flex flex-col flex-1 justify-center bg-gradient-to-br from-white to-slate-50">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="flex -space-x-3">
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-500 flex items-center justify-center text-lg shadow-md z-10">🎒</div>
+            <div className="w-10 h-10 rounded-full border-2 border-white bg-orange-500 flex items-center justify-center text-lg shadow-md z-0">🍽️</div>
+          </div>
+          <span className="text-xs font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-3 py-1 rounded-lg border border-orange-100">%{discountRate} Tasarruf</span>
+        </div>
+        
+        <h3 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-4 group-hover:text-[#008cb3] transition-colors">
+          {tour.name} <span className="text-gray-300 font-light mx-2">&</span> {restaurant.name}
+        </h3>
+        
+        <p className="text-sm md:text-base text-gray-500 font-medium mb-8 leading-relaxed max-w-xl">
+          Eşsiz bir gezi deneyimi ve gurme bir akşam yemeği şimdi tek pakette! Ayrı ayrı almak yerine bu komboyu seçin, <b>{formatPrice(savings)}</b> kazançlı çıkın.
+        </p>
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 border-t border-gray-200">
+          <div>
+            <p className="text-xs font-black text-gray-400 uppercase tracking-[0.1em] mb-2">Toplam Paket Fiyatı</p>
+            <div className="flex items-baseline gap-3">
+              <span className="text-lg text-gray-400 line-through font-bold">{formatPrice(originalTotal)}</span>
+              <span className="text-4xl font-black text-slate-900 tracking-tighter">{formatPrice(bundlePrice)}</span>
+            </div>
+          </div>
+          <button className="bg-[#008cb3] text-white font-black px-10 py-5 rounded-2xl hover:bg-slate-900 transition-all shadow-[0_10px_30px_rgba(0,140,179,0.3)] hover:shadow-xl active:scale-95 text-lg">
+            Hemen Rezervasyon Yap ➔
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const BACKGROUND_IMAGES = [
   'https://picsum.photos/seed/cappadocia1/1200/600',
@@ -764,7 +832,53 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </div >
+      </div>
+
+      {/* YENİ: Günün Kombo Fırsatları (Keşfet) Section */}
+      <div className="w-full bg-slate-50 py-24 relative overflow-hidden border-t border-b border-gray-100">
+        <div className="max-w-[1400px] mx-auto px-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="px-3 py-1 bg-orange-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">Sınırlı Süre</div>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Günün Kombo Fırsatları</h2>
+          </div>
+          <p className="text-gray-500 font-medium mb-12 max-w-2xl">
+            Sizin için hazırladığımız özel paketlerle tur ve yemek deneyimini birleştirin, <b>%15'e varan</b> indirimlerden faydalanın.
+          </p>
+
+          <div className="flex flex-col space-y-8">
+            {/* is_bundle verisi burada simüle edilmiştir */}
+            {[
+              { 
+                is_bundle: true,
+                discountRate: 12,
+                tour: { name: 'Kapadokya Balon Turu', image: 'https://images.unsplash.com/photo-1544833342-a8109041ce04?w=1200&q=80', price: 4200 }, 
+                restaurant: { name: 'Ziyade Ocakbaşı', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80', price: 950 }
+              },
+              { 
+                is_bundle: true,
+                discountRate: 15,
+                tour: { name: 'Boğaz\'da Gün Batımı', image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=1200&q=80', price: 1200 }, 
+                restaurant: { name: 'Kalamış Sahil', image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=1200&q=80', price: 1100 }
+              }
+            ].filter(pkg => pkg.is_bundle).map((pkg, idx) => (
+              <ComboCard 
+                key={idx}
+                formatPrice={formatPrice}
+                tour={pkg.tour}
+                restaurant={pkg.restaurant}
+                discountRate={pkg.discountRate}
+              />
+            ))}
+          </div>
+
+          <div className="mt-12 text-center">
+            <button className="text-[13px] font-black text-[#008cb3] hover:text-[#005e85] flex items-center gap-2 mx-auto transition-colors group">
+              TÜM KOMBO PAKETLERİ GÖR
+              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+            </button>
+          </div>
+        </div>
+      </div>
 
 
 
