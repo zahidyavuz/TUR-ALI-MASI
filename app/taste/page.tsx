@@ -273,8 +273,22 @@ export default function TastePage() {
                 )}
             </div>
 
-            {/* CTA Section */}
+            {/* Business Onboarding CTA */}
             <div className="max-w-7xl mx-auto px-6 mt-20">
+                <div className="bg-white rounded-[40px] p-8 md:p-12 border-2 border-dashed border-orange-200 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-orange-500 transition-all duration-500">
+                    <div className="flex-1 text-center md:text-left">
+                        <span className="bg-orange-100 text-orange-600 text-[10px] uppercase font-black px-3 py-1 rounded-full mb-4 inline-block tracking-widest">İşletme Sahipleri İçin</span>
+                        <h2 className="text-2xl md:text-4xl font-black text-slate-800 mb-4 transition-colors group-hover:text-orange-600">Restoranınızı veya Kafanızı <br /> Sisteme Ekleyin!</h2>
+                        <p className="text-gray-500 font-bold max-w-xl">Maliyetleri düşürün, rezervasyonlarınızı tek panelden yönetin ve binlerce turiste anında ulaşın. Üstelik ilk 3 ay komisyon ödemeyin.</p>
+                    </div>
+                    <Link href="/?showAgencyModal=true" className="bg-slate-900 text-white px-10 py-5 rounded-[24px] font-black text-lg transition-all shadow-xl hover:bg-orange-500 hover:shadow-orange-500/20 active:scale-95 whitespace-nowrap">
+                        Hemen Başvur ➔
+                    </Link>
+                </div>
+            </div>
+
+            {/* CTA Section */}
+            <div className="max-w-7xl mx-auto px-6 mt-12 mb-20">
                 <div className="bg-[#005e85] rounded-[48px] p-8 md:p-16 text-center text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/20 rounded-full -ml-32 -mb-32 blur-3xl"></div>

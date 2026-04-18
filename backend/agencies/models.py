@@ -7,6 +7,7 @@ class Agency(models.Model):
     BUSINESS_TYPE_CHOICES = [
         ('acenta', 'Tur Acentası'),
         ('restoran', 'Restoran'),
+        ('kafe', 'Kafe'),
     ]
 
     owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name='agency_profile', null=True, blank=True)
