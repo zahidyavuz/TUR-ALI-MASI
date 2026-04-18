@@ -12,7 +12,7 @@ import CurrencySelector from './components/CurrencySelector';
 import NotificationCenter from './components/NotificationCenter';
 import FavoriteButton from './components/FavoriteButton';
 import { useAuth } from './context/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 // --- YENİ BİLEŞEN: ComboCard (Geniş / Wide Format) ---
 const ComboCard = ({ tour, restaurant, discountRate, formatPrice }: { tour: any, restaurant: any, discountRate: number, formatPrice: (p: number) => string }) => {
@@ -129,6 +129,7 @@ export default function Home() {
   // Checkout / Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [agencyBusinessType, setAgencyBusinessType] = useState('acenta');
 
   // Filtre State'leri
   const [selectedLocation, setSelectedLocation] = useState('Nereye gitmek istersin?');
@@ -139,6 +140,14 @@ export default function Home() {
   const [selectedGuests, setSelectedGuests] = useState<number | ''>(1);
 
   const POPULAR_LOCATIONS = ['Kapadokya, Türkiye', 'Ege Kıyıları, Türkiye', 'Roma, İtalya', 'Paris, Fransa', 'Bali, Endonezya', 'Moskova, Rusya', 'Pekin, Çin', 'Maldivler', 'Dubai, BAE'];
+  const searchParams = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('showAgencyModal') === 'true') {
+      setShowAgencyModal(true);
+      setAgencyTab('register');
+    }
+  }, [searchParams]);
 
   // Canlı Kur Simülasyonu State
   const initialRates = [
@@ -1349,9 +1358,9 @@ export default function Home() {
               <div className="bg-gradient-to-r from-orange-400 to-orange-500 pt-8 pb-6 px-8 text-white relative overflow-hidden">
                 <svg className="absolute right-0 bottom-0 opacity-20 transform translate-x-1/4 translate-y-1/4" width="120" height="120" fill="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                 <h2 className="text-2xl font-black relative z-10 leading-tight">
-                  Turlarınızı Dünyayla <br /> Buluşturun!
+                  İşletmenizi Dünyayla <br /> Buluşturun!
                 </h2>
-                <p className="text-orange-50 text-xs font-medium mt-2 relative z-10">Tourkia İş Ortaklığı Yönetim Paneli</p>
+                <p className="text-orange-50 text-xs font-medium mt-2 relative z-10">Tourkia İş Ortaklığı & İşletme Paneli</p>
               </div>
 
               {/* Sekmeler (Tabs) */}
@@ -1396,13 +1405,33 @@ export default function Home() {
                     {agencyTab === 'register' && (
                       <>
                         <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Firma Adı (Unvan)</label>
-                          <input type="text" placeholder="Örn: X Turizm LTD. ŞTİ." className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
+                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme Türü</label>
+                          <select 
+                            value={agencyBusinessType}
+                            onChange={(e) => setAgencyBusinessType(e.target.value)}
+                            className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-bold text-slate-700"
+                          >
+                            <option value="acenta">Tur Acentası</option>
+                            <option value="restoran">Restoran</option>
+                            <option value="kafe">Kafe</option>
+                          </select>
                         </div>
                         <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">TURSAB Belge No</label>
-                          <input type="text" placeholder="Örn: 12345" className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
+                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme / Firma Adı</label>
+                          <input type="text" placeholder="Örn: Gurme Restoran veya X Turizm" className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
                         </div>
+                        {agencyBusinessType === 'acenta' && (
+                          <div className="animate-in slide-in-from-top-2 duration-300">
+                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">TURSAB Belge No</label>
+                            <input type="text" placeholder="Örn: 12345" className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
+                          </div>
+                        )}
+                        {(agencyBusinessType === 'restoran' || agencyBusinessType === 'kafe') && (
+                          <div className="animate-in slide-in-from-top-2 duration-300">
+                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme Adresi / Şehir</label>
+                            <input type="text" placeholder="Örn: Kapadokya, Nevşehir" className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
+                          </div>
+                        )}
                       </>
                     )}
                     <div>
@@ -1418,7 +1447,7 @@ export default function Home() {
                     </div>
 
                     <button className="w-full bg-orange-500 text-white font-black text-[15px] py-4 rounded-2xl mt-4 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30 hover:shadow-xl active:scale-[0.98] duration-200">
-                      {agencyTab === 'login' ? 'Yönetim Paneline Gir' : 'Acentelik Başvurusu Yap'}
+                      {agencyTab === 'login' ? 'Yönetim Paneline Gir' : 'Hemen Başvuru Yap'}
                     </button>
                   </form>
                 )}
