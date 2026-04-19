@@ -33,10 +33,10 @@ export default function Chatbot() {
 
     // Dynamic welcome message
     const initialMsgs: Record<string, string> = {
-        'tr-TR': "Merhaba! Hayalinizdeki tatili bana anlatın, turları analiz edip size özel 3 rota önereyim. (Örn: Romantik deniz tatili)",
-        'en-US': "Hi there! Tell me about your dream vacation, and I'll drop 3 epic itineraries just for you. (e.g. Action-packed safari)",
-        'de-DE': "Hallo! Erzählen Sie mir von Ihrem Traumurlaub, und ich schlage Ihnen 3 perfekt geplante Routen vor. (z.B. Kultur und Geschichte)",
-        'zh-CN': "您好！告诉我您梦寐以求的假期，我将为您推荐3款尊贵路线。（例如：浪漫游艇海岛之旅）"
+        'tr-TR': "Merhaba! Ben Cappo, Türkiye'nin her köşesini avucunun içi gibi bilen kıdemli seyahat danışmanın. Hayalindeki tatili anlat, senin için efsanevi bir rota çizeyim.",
+        'en-US': "Hi there! I'm Cappo, your Senior Travel Specialist. Tell me about your dream Turkish vacation, and I'll craft the perfect itinerary.",
+        'de-DE': "Hallo! Ich bin Cappo, dein Senior Travel Specialist für die Türkei. Erzähl mir von deinem Traumurlaub.",
+        'zh-CN': "您好！我是 Cappo，您的土耳其高级旅行专家。告诉我您梦寐以求的假期吧。"
     };
 
     const [messages, setMessages] = useState<Message[]>([]);
@@ -65,16 +65,16 @@ export default function Chatbot() {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
                 // If inactive for 30 seconds, pro-actively jump in
-                let message = "Bir sorun mu var kanka? İstersen bu adımı senin için anlatabilirim.";
+                let message = "Nasıl yardımcı olabilirim? Sana Türkiye'nin en güzel köşelerinden efsanevi bir rota çizebilirim.";
 
                 if (pathname === '/') {
-                    message = "Sana en popüler turları bulmamı ister misin?";
+                    message = "Türkiye'nin gizli cennetlerini keşfetmek ister misin? Bana sadece kaç gün vaktin olduğunu söyle.";
                 } else if (pathname.includes('/tour')) {
-                    message = "Bu turun içeriği hakkında merak ettiğin bir şey var mı?";
+                    message = "Bu turun içeriği harikadır! Ancak rotayla ilgili kıyafet veya hava durumu tavsiyesine ihtiyacın varsa hemen yardımcı olabilirim.";
                 } else if (pathname.includes('/agency')) {
-                    message = "Bugünkü hakediş raporunu hazırlamamı ister misin?";
+                    message = "Acenta detaylarına bakıyorsun sanırım. Senin için en verimli turları filtreleyebilirim.";
                 } else if (pathname.includes('/checkout')) {
-                    message = "Ödeme adımında takıldığın bir yer var mı kanka? İstersen bu adımı senin için anlatabilirim.";
+                    message = "Ödeme adımındasın. Tüm işlemler şifreli ve güvendedir. Aklına takılan bir detay var mı?";
                 }
 
                 setIsOpen(true);
@@ -112,7 +112,7 @@ export default function Chatbot() {
                 setMessages(prev => [...prev, { id: Date.now(), text: e.detail.message, sender: 'bot' }]);
             } else if (e.detail?.action === 'site_tour') {
                 setIsOpen(true);
-                setMessages(prev => [...prev, { id: Date.now(), text: "Sana siteyi gezdirmemi ister misin? Yukarıdan para birimini değiştirebilir, blog sayfamıza göz atabilir veya aşağıdaki sana özel turları inceleyebilirsin!", sender: 'bot' }]);
+                setMessages(prev => [...prev, { id: Date.now(), text: "Hoş geldin! Ben Cappo. Türkiye'de unutulmaz bir deneyim yaşaman için buradayım. İstediğin bir rota varsa, hava durumundan bütçesine kadar her detayını birlikte planlayabiliriz.", sender: 'bot' }]);
             }
         };
 
@@ -206,11 +206,11 @@ export default function Chatbot() {
                         </div>
                         <div>
                             <h3 className="text-white font-bold text-sm tracking-wide">
-                                {locale === 'en-US' ? 'Cappo AI Concierge' : locale === 'de-DE' ? 'Cappo KI Berater' : locale === 'zh-CN' ? 'Cappo 私人管家' : 'Cappo Asistan'}
+                                Cappo
                             </h3>
                             <p className="text-blue-100 text-xs flex items-center gap-1">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
-                                {locale === 'en-US' ? 'Live Data Analyst' : locale === 'de-DE' ? 'Online Datenanalyst' : locale === 'zh-CN' ? '24小时贴心服务' : 'Çevrimiçi Veri Analisti'}
+                                Senior Travel Specialist
                             </p>
                         </div>
                     </div>
@@ -232,7 +232,7 @@ export default function Chatbot() {
                                         <div className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"></div>
                                     </div>
                                 ) : (
-                                    <p className="leading-relaxed">{msg.text}</p>
+                                    <p className="leading-relaxed whitespace-pre-line">{msg.text}</p>
                                 )}
                             </div>
 
@@ -371,7 +371,7 @@ export default function Chatbot() {
                             <div className="absolute top-[-2px] right-[-2px] w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-[#008cb3] animate-pulse"></div>
                         </div>
                         <span className="font-extrabold text-[15px] tracking-wide whitespace-nowrap hidden sm:block">
-                            {locale === 'en-US' ? 'Cappo AI' : locale === 'de-DE' ? 'Cappo KI' : locale === 'zh-CN' ? 'Cappo AI管家' : 'Cappo Asistan'}
+                            Cappo
                         </span>
                     </>
                 )}
