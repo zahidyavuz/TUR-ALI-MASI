@@ -6,6 +6,33 @@ export async function POST(req: NextRequest) {
         const { message, locale, pathname } = await req.json();
         const lowerMsg = message.toLowerCase();
 
+        // Canlı Kur Çekimi (Finansal Zeka)
+        let usdToTry = 35.15;
+        try {
+            const curRes = await fetch('https://api.exchangerate-api.com/v4/latest/USD');
+            const data = await curRes.json();
+            if (data?.rates?.TRY) usdToTry = data.rates.TRY;
+        } catch (e) { console.error("Kur hatası:", e); }
+
+        // Kısıtlama: Seyahat dışı konu filtresi
+        const offTopic = ['siyaset', 'ekonomi', 'futbol', 'gündem', 'parti', 'dolar ne olur'];
+        if (offTopic.some(k => lowerMsg.includes(k))) {
+            return NextResponse.json({
+                reply: "Benim tutkum Türkiye'nin eşsiz köşeleri, gel sana başka bir rota bakalım.",
+                options: []
+            });
+        }
+
+        // Demo / Ultra Skill Showcase (Örnek Diyalog)
+        if (lowerMsg.includes('antalya') && lowerMsg.includes('kapadokya') || lowerMsg.includes('efsanevi örnek') || lowerMsg.includes('4 günlük plan')) {
+            await new Promise(resolve => setTimeout(resolve, 1500));
+            return NextResponse.json({
+                reply: `Harika bir rota seçimi! 4 Günlük Antalya & Kapadokya kombinasyonu tam benim uzmanlık alanım.\n\n🌦️ **Hava & Kıyafet Analizi:** \nŞu an Antalya'da güneşli ve ılık bir sahil havası var; ince yazlık kıyafetler ve güneş kremi şart. Ancak Kapadokya'ya geçince sabahları balon kalkışında ciddi bir ayaz olacak, bu yüzden mutlaka kat kat giyinmelisin. Vadi yürüyüşü için de bileği saran sağlam bir bot almayı unutma!\n\n💰 **Finansal Zeka:** \nOluşturduğum VIP paketin (Transferler dahil) toplam maliyeti 450 USD. Sistemimizden anlık çektiğim güncel banka kuruna göre (1 USD = ${usdToTry.toFixed(2)} TL), bu turun bedeli şeffaf olarak **${(450 * usdToTry).toLocaleString('tr-TR', { maximumFractionDigits: 0 })} TL**'dir.\n\n🔥 **Cappo'nun Tavsiyesi:** \nBalon turunu sabaha planladık, ertesi gün peri bacalarının arasında gün batımına karşı bir 'At Safari' harika bir tamamlayıcı olur. Sana rezervasyon adımlarını açayım mı?`,
+                options: [],
+                action: 'guide'
+            });
+        }
+
         // Site Rehberi Yetenekleri (Yeni Eklendi)
         if (lowerMsg.includes('bilet') || lowerMsg.includes('sipariş') || lowerMsg.includes('rezervasyonlar')) {
             return NextResponse.json({
@@ -172,7 +199,14 @@ export async function POST(req: NextRequest) {
             'zh-CN': `太棒了！我已经为您匹配了3款最受贵宾欢迎的专属定制行程，请问您最中意哪一款？`
         };
 
-        const reply = replies[locale] || replies['tr-TR'];
+        let reply = replies[locale] || replies['tr-TR'];
+
+        // Smart Upselling Injection Focus
+        if (lowerMsg.includes('balon')) {
+            reply = "Bu balon rotası inanılmaz! Yalnız sana benden bir profesyonel tavsiye: Balon turu alan misafirlerimiz için ertesi gün At Safari harika bir tamamlayıcı oluyor. İncelemek istersen seçeneklere ekledim.";
+        } else if (lowerMsg.includes('deniz') || lowerMsg.includes('yüzme')) {
+            reply = "Mavi sulara aşık olduğunu görebiliyorum. Seçtiğim deniz turlarının yanına, gün batımında küçük bir tekne turu da mükemmel bir tamamlayıcı olur!";
+        }
 
         // İsteklerin çok hızlı dönmemesi için yapay bir delay ekleyelim (Analiz simülasyonu)
         await new Promise(resolve => setTimeout(resolve, 1500));
