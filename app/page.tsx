@@ -244,17 +244,14 @@ export default function Home() {
 
       {/* Navbar: Ana Menü */}
       <nav className="w-full bg-white py-4 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] shadow-sm md:shadow-none">
-        <div className="text-2xl md:text-[28px] font-extrabold text-[#008cb3] tracking-tighter">
-          Tour<span className="text-[#005e85]">kie</span>
+        <div className="text-4xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter">
+          Tour<span className="text-[#005e85]">kia</span>
         </div>
-        <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[14px]">
+        <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[16px]">
           <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.destinations}</Link>
           <Link href="/taste" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.taste}</Link>
           <Link href="/profile/styles" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.styles}</Link>
           <Link href="/profile/memories" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.memories}</Link>
-          <Link href="/profile/deals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.deals}</Link>
-          <button className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors" onClick={() => alert('Çok Yakında!')}>{t.nav.contact}</button>
-
         </div>
         <div className="flex items-center gap-3 md:gap-5">
           {/* Mobil Hamburger Butonu */}
@@ -525,8 +522,6 @@ export default function Home() {
                 </Link>
                 <Link href="/profile/styles" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.styles}</Link>
                 <Link href="/profile/memories" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.memories}</Link>
-                <Link href="/profile/deals" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.deals}</Link>
-                <button onClick={() => alert('Çok Yakında!')} className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold text-left">{t.nav.contact}</button>
             </div>
             <div className="p-6 border-t border-gray-100">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Uygulamalarımızı İndirin</p>
