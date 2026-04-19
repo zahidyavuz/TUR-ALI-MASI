@@ -164,21 +164,56 @@ export default function Home() {
   const [rateColors, setRateColors] = useState<{ [key: string]: 'text-green-500' | 'text-red-500' | 'text-[#005e85]' }>({});
 
   useEffect(() => {
-    // Sadece tarayıcı (client) tarafında çalışması için useEffect içi kullanıyoruz, Hydration hatasını önler.
-    const interval = setInterval(() => {
+    let apiInterval: NodeJS.Timeout;
+    
+    // API'den gerçek kurları çekme fonksiyonu
+    const fetchRealRates = async () => {
+      try {
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/TRY');
+        const data = await res.json();
+        if (data && data.rates) {
+          const tryRates = data.rates;
+          const updatedRates = [
+            { birim: '1 USD', karsilik: 1 / tryRates.USD, ikon: '🇺🇸', isim: 'Amerikan Doları' },
+            { birim: '1 EUR', karsilik: 1 / tryRates.EUR, ikon: '🇪🇺', isim: 'Euro' },
+            { birim: '1 GBP', karsilik: 1 / tryRates.GBP, ikon: '🇬🇧', isim: 'İngiliz Sterlini' },
+            { birim: '1 CNY', karsilik: 1 / tryRates.CNY, ikon: '🇨🇳', isim: 'Çin Yuanı' },
+            { birim: '1 AED', karsilik: 1 / tryRates.AED, ikon: '🇦🇪', isim: 'BAE Dirhemi' },
+            { birim: '1 RUB', karsilik: 1 / tryRates.RUB, ikon: '🇷🇺', isim: 'Rus Rublesi' },
+            { birim: '1 SAR', karsilik: 1 / tryRates.SAR, ikon: '🇸🇦', isim: 'Suudi Riyali' },
+            { birim: '1 INR', karsilik: 1 / tryRates.INR, ikon: '🇮🇳', isim: 'Hindistan Rupisi' }
+          ];
+          setLiveRates(updatedRates);
+        }
+      } catch (error) {
+        console.error("Kur güncellenemedi:", error);
+      }
+    };
+
+    // İlk yüklemede kurları çek
+    fetchRealRates();
+    // Saatte bir API'den güncel veriyi al
+    apiInterval = setInterval(fetchRealRates, 3600000);
+
+    // Borsa efekti simülasyonunu (küçük dalgalanmaları) devam ettir
+    const simInterval = setInterval(() => {
       setLiveRates(prevRates => {
         const newColors: { [key: string]: 'text-green-500' | 'text-red-500' | 'text-[#005e85]' } = {};
         const updated = prevRates.map(rate => {
-          // Borsa efekti: Kura %0.01 ile %0.1 arası rastgele ufak bir değişim ekle (+ veya -)
-          const change = rate.karsilik * (Math.random() * 0.002 - 0.001);
+          // Borsa efekti: Kura çok çok ufak bir değişim ekle
+          const change = rate.karsilik * (Math.random() * 0.0004 - 0.0002);
           newColors[rate.birim] = change > 0 ? 'text-green-500' : 'text-red-500';
           return { ...rate, karsilik: rate.karsilik + change };
         });
         setRateColors(newColors);
         return updated;
       });
-    }, 3000); // 3 saniyede bir oranları güncelle
-    return () => clearInterval(interval);
+    }, 3000);
+
+    return () => {
+      clearInterval(apiInterval);
+      clearInterval(simInterval);
+    };
   }, []);
 
   useEffect(() => {
