@@ -141,6 +141,21 @@ export default function Home() {
 
   const POPULAR_LOCATIONS = ['Kapadokya, Türkiye', 'Ege Kıyıları, Türkiye', 'Roma, İtalya', 'Paris, Fransa', 'Bali, Endonezya', 'Moskova, Rusya', 'Pekin, Çin', 'Maldivler', 'Dubai, BAE'];
   const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const handleSearchClick = () => {
+    const params = new URLSearchParams();
+    if (selectedLocation && selectedLocation !== 'Nereye gitmek istersin?') {
+      params.append('location', selectedLocation);
+    }
+    if (selectedDate) {
+      params.append('date', selectedDate.toISOString().split('T')[0]);
+    }
+    if (selectedGuests) {
+      params.append('guests', selectedGuests.toString());
+    }
+    router.push(`/search?${params.toString()}`);
+  };
 
   useEffect(() => {
     if (searchParams.get('showAgencyModal') === 'true') {
@@ -724,7 +739,7 @@ export default function Home() {
                 )}
 
                 <button
-                  onClick={() => alert(`Arama Filtreleri:\nYer: ${selectedLocation}\nTarih: ${selectedDate ? selectedDate.toLocaleDateString(locale) : 'Belirtilmedi'}\nKişi: ${selectedGuests} Kişi`)}
+                  onClick={handleSearchClick}
                   className="mt-2 md:mt-0 md:ml-2 bg-orange-500 text-white rounded-[16px] md:rounded-full p-4 hover:bg-orange-600 transition-all shadow-lg flex items-center justify-center h-14 md:h-12 w-full md:w-12 flex-shrink-0"
                 >
                   <span className="md:hidden font-black text-[15px] uppercase tracking-wider mr-2">{t.hero.searchButton}</span>

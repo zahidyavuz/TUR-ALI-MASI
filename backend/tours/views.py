@@ -2,6 +2,7 @@ from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
+from django.db.models import F
 
 from .models import Tour, Category, TourAvailability
 from .serializers import TourListSerializer, TourDetailSerializer, CategorySerializer, TourAvailabilitySerializer
@@ -27,6 +28,23 @@ class TourViewSet(viewsets.ModelViewSet):
     filterset_class = TourFilter
     search_fields = ['title', 'description', 'location']
     ordering_fields = ['price', 'rating', 'reviews_count', 'fomo_count']
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        date_param = self.request.query_params.get('date')
+        guests_param = self.request.query_params.get('guests')
+
+        if date_param:
+            try:
+                guests = int(guests_param) if guests_param else 1
+                queryset = queryset.filter(
+                    availability_slots__date=date_param,
+                    availability_slots__max_capacity__gte=F('availability_slots__booked_count') + guests
+                ).distinct()
+            except ValueError:
+                queryset = queryset.filter(availability_slots__date=date_param).distinct()
+
+        return queryset
 
     @method_decorator(cache_page(60 * 15))  # Cache for 15 minutes
     def list(self, request, *args, **kwargs):
