@@ -693,7 +693,7 @@ export default function Home() {
 
                 {activeDropdown === 'guests' && (
                   <div className="absolute top-[105%] md:top-[120%] right-0 lg:-right-4 w-[calc(100vw-40px)] md:w-64 max-w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 text-left flex flex-col gap-4">
-                    <h4 className="text-xs font-bold text-gray-400 uppercase">Konaklayacak Kişiler</h4>
+                    <h4 className="text-xs font-bold text-gray-400 uppercase">Kişi sayısı</h4>
                     <div className="flex items-center justify-between bg-slate-50 border border-gray-200 rounded-[16px] p-2">
                       <button
                         onClick={(e) => { e.stopPropagation(); setSelectedGuests(prev => (typeof prev === 'number' && prev > 1 ? prev - 1 : 1)); }}
