@@ -216,7 +216,7 @@ function CheckoutLogic() {
                             </div>
                         </div>
 
-                        <div className="mt-8 flex gap-4 w-full">
+                        <div className="mt-8 flex flex-col sm:flex-row gap-4 w-full">
                             <button onClick={()=>router.push('/')} className="flex-1 bg-white border-2 border-[#008cb3] text-[#008cb3] font-bold py-3 rounded-xl hover:bg-blue-50 transition">
                                 Ana Sayfaya Dön
                             </button>
