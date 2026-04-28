@@ -293,8 +293,8 @@ export default function Home() {
       </div>
 
       {/* Navbar: Ana Menü */}
-      <nav className="w-full bg-white py-4 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] shadow-sm md:shadow-none">
-        <div className="text-4xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter">
+      <nav className="w-full bg-white py-3 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] border-b border-gray-100 shadow-sm md:shadow-none">
+        <div className="text-3xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter">
           Tour<span className="text-[#005e85]">kia</span>
         </div>
         <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[16px]">
@@ -303,25 +303,27 @@ export default function Home() {
           <Link href="/profile/styles" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.styles}</Link>
           <Link href="/profile/memories" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.memories}</Link>
         </div>
-        <div className="flex items-center gap-3 md:gap-5">
+        <div className="flex items-center justify-end w-full md:w-auto gap-4 md:gap-5">
           {/* Mobil Hamburger Butonu */}
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
             className="flex lg:hidden items-center justify-center text-gray-600 hover:text-[#008cb3] w-10 h-10 rounded-full hover:bg-gray-50 transition cursor-pointer" 
             aria-label="Mobil Menüyü Aç"
           >
-            <svg className="pointer-events-none" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
+            <svg className="pointer-events-none" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
 
           {/* Para Birimi Değiştirici */}
-          <CurrencySelector />
+          <div className="block">
+            <CurrencySelector />
+          </div>
 
           {/* Dil Değiştirici */}
           <select
             value={locale}
             aria-label="Dil / Lokasyon Seçimi"
             onChange={(e) => setLocale(e.target.value as Locale)}
-            className="h-10 bg-white border text-sm font-bold border-gray-200 text-gray-700 px-3 rounded-full outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm cursor-pointer appearance-none pr-8 relative hover:bg-gray-50 transition"
+            className="block h-10 bg-white border text-sm font-bold border-gray-200 text-gray-700 px-3 rounded-full outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm cursor-pointer appearance-none pr-8 relative hover:bg-gray-50 transition"
             style={{ backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
           >
             <option value="tr-TR">🇹🇷 TR</option>
@@ -337,7 +339,7 @@ export default function Home() {
           <GeofenceTrigger compact className="hidden sm:flex" />
 
           {/* Favoriler Butonu ve Dropdown */}
-          <div className="relative flex items-center justify-center dropdown-container" data-dropdown="favorites">
+          <div className="hidden md:flex relative items-center justify-center dropdown-container" data-dropdown="favorites">
             <button
               onClick={() => toggleDropdown('favorites')}
               aria-label="Favoriler"
@@ -383,9 +385,11 @@ export default function Home() {
           </div>
 
           {/* Bildirim Merkezi (Çakışmaları önlemek için buraya alındı) */}
-          <NotificationCenter />
+          <div className="hidden md:block">
+            <NotificationCenter />
+          </div>
 
-          <div className="relative dropdown-container flex items-center justify-center" data-dropdown="userMenu">
+          <div className="hidden md:flex relative dropdown-container items-center justify-center" data-dropdown="userMenu">
             <button
               onClick={() => toggleDropdown('userMenu')}
               aria-label="Kullanıcı Menüsü"
@@ -572,6 +576,28 @@ export default function Home() {
                 </Link>
                 <Link href="/profile/styles" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.styles}</Link>
                 <Link href="/profile/memories" className="px-4 py-4 rounded-2xl bg-slate-50 text-slate-800 font-bold hover:bg-blue-50 hover:text-blue-500 transition-all">{t.nav.memories}</Link>
+                
+                <div className="mt-4 pt-4 border-t border-gray-100 flex flex-col gap-3">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Site Ayarları</p>
+                    <div className="flex items-center gap-3">
+                        <CurrencySelector />
+                        <select
+                            value={locale}
+                            aria-label="Dil / Lokasyon Seçimi"
+                            onChange={(e) => setLocale(e.target.value as Locale)}
+                            className="h-10 flex-1 bg-gray-50 border border-gray-200 text-sm font-bold text-gray-700 px-3 rounded-full outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm cursor-pointer appearance-none pr-8 relative transition"
+                            style={{ backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
+                        >
+                            <option value="tr-TR">🇹🇷 TR</option>
+                            <option value="en-US">🇺🇸 EN</option>
+                            <option value="de-DE">🇩🇪 DE</option>
+                            <option value="zh-CN">🇨🇳 CN</option>
+                            <option value="ar-SA">🇸🇦 AR</option>
+                            <option value="es-ES">🇪🇸 ES</option>
+                            <option value="fr-FR">🇫🇷 FR</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div className="p-6 border-t border-gray-100">
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Uygulamalarımızı İndirin</p>
@@ -600,7 +626,7 @@ export default function Home() {
               />
             ))}
             {/* Karanlık Overlay (Yazıların okunabilmesi için) */}
-            <div className="absolute inset-0 bg-blue-900/40" />
+            <div className="absolute inset-0 bg-black/40" />
           </div>
 
           {/* İçerik */}
@@ -611,15 +637,15 @@ export default function Home() {
             </p>
 
             {/* Gelişmiş Filtre Çubuğu */}
-            <div className="dropdown-container bg-white p-2 md:p-2 rounded-[16px] md:rounded-[20px] shadow-2xl flex flex-col md:flex-row w-full max-w-4xl items-center justify-between border-2 border-white/20 relative z-50 gap-2 md:gap-0" data-dropdown="searchBar">
+            <div className="dropdown-container bg-white p-4 md:p-2 rounded-2xl md:rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col md:flex-row w-full max-w-4xl items-stretch md:items-center justify-between relative z-50 gap-0" data-dropdown="searchBar">
 
               {/* 1. Yer Seçimi */}
-              <div className="relative w-full md:w-1/3 h-full">
+              <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 md:border-none">
                 <div
                   onClick={() => { if (activeDropdown !== 'location') toggleDropdown('location'); }}
-                  className="flex flex-col items-start px-6 py-2 cursor-text hover:bg-gray-100 rounded-full transition-all h-full justify-center w-full"
+                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-text hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
                 >
-                  <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">{t.hero.searchLocationLabel}</span>
+                  <span className="text-[10px] md:text-xs font-black text-gray-700 md:text-gray-900 uppercase tracking-wider">{t.hero.searchLocationLabel}</span>
                   <input
                     type="text"
                     value={selectedLocation === 'Nereye gitmek istersin?' ? '' : selectedLocation}
@@ -629,7 +655,7 @@ export default function Home() {
                     }}
                     onFocus={() => setActiveDropdown('location')}
                     placeholder={t.hero.searchLocationPlaceholder}
-                    className="w-full bg-transparent outline-none text-sm text-blue-900 font-bold placeholder-gray-400 truncate mt-0.5"
+                    className="w-full bg-transparent outline-none text-sm text-blue-900 font-extrabold placeholder-gray-400 truncate mt-0.5"
                   />
                 </div>
 
@@ -660,13 +686,13 @@ export default function Home() {
               <div className="hidden md:block w-[1px] h-10 bg-gray-200"></div>
 
               {/* 2. Tarih Seçimi */}
-              <div className="relative w-full md:w-1/3 h-full">
+              <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 md:border-none">
                 <div
                   onClick={() => toggleDropdown('date')}
-                  className="flex flex-col items-start px-6 py-2 cursor-pointer hover:bg-gray-100 rounded-full transition-all h-full justify-center w-full"
+                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-pointer hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
                 >
-                  <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">{t.hero.searchDateLabel}</span>
-                  <span className={`text-sm ${!selectedDate ? 'text-gray-400' : 'text-blue-900 font-bold'} truncate w-full text-left`}>
+                  <span className="text-[10px] md:text-xs font-black text-gray-700 md:text-gray-900 uppercase tracking-wider">{t.hero.searchDateLabel}</span>
+                  <span className={`text-sm ${!selectedDate ? 'text-gray-400' : 'text-blue-900 font-extrabold'} truncate w-full text-left mt-0.5`}>
                     {selectedDate ? selectedDate.toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' }) : t.hero.searchDateLabel}
                   </span>
                 </div>
@@ -694,16 +720,14 @@ export default function Home() {
 
               <div className="hidden md:block w-[1px] h-10 bg-gray-200"></div>
 
-
-
-              {/* 4. Yolcu & Konaklama */}
-              <div className="relative w-full md:w-1/3 h-full flex items-center justify-between pl-6 pr-2">
+              {/* 3. Yolcu & Konaklama */}
+              <div className="relative w-full md:w-1/3 h-auto md:h-full flex items-center justify-between px-0 md:pl-6 md:pr-2">
                 <div
                   onClick={() => toggleDropdown('guests')}
-                  className="flex flex-col items-start py-2 cursor-pointer hover:bg-gray-100 rounded-full transition-all h-full justify-center flex-1"
+                  className="flex flex-col items-start px-2 md:px-0 py-3 md:py-2 cursor-pointer hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center flex-1 w-full"
                 >
-                  <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">{t.hero.searchGuestsLabel}</span>
-                  <span className="text-sm text-blue-900 font-bold truncate w-full text-left">{selectedGuests === '' ? '0' : selectedGuests}</span>
+                  <span className="text-[10px] md:text-xs font-black text-gray-700 md:text-gray-900 uppercase tracking-wider">{t.hero.searchGuestsLabel}</span>
+                  <span className="text-sm text-blue-900 font-extrabold truncate w-full text-left mt-0.5">{selectedGuests === '' ? '0' : selectedGuests}</span>
                 </div>
 
                 {activeDropdown === 'guests' && (
@@ -737,10 +761,13 @@ export default function Home() {
                     </div>
                   </div>
                 )}
+              </div>
 
+              {/* 4. Arama Butonu (Mobile: Alt Satır, Desktop: Sağda) */}
+              <div className="w-full md:w-auto mt-3 md:mt-0 md:ml-2">
                 <button
                   onClick={handleSearchClick}
-                  className="mt-2 md:mt-0 md:ml-2 bg-orange-500 text-white rounded-[16px] md:rounded-full p-4 hover:bg-orange-600 transition-all shadow-lg flex items-center justify-center h-14 md:h-12 w-full md:w-12 flex-shrink-0"
+                  className="bg-orange-500 text-white rounded-xl md:rounded-full py-4 md:p-4 hover:bg-orange-600 transition-all shadow-lg flex items-center justify-center w-full md:w-12 md:h-12 flex-shrink-0"
                 >
                   <span className="md:hidden font-black text-[15px] uppercase tracking-wider mr-2">{t.hero.searchButton}</span>
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5">
@@ -748,19 +775,19 @@ export default function Home() {
                   </svg>
                 </button>
               </div>
+
             </div>
 
             {/* Smart Search Tags - Viator/GetYourGuide Trendi */}
-            <div className="mt-6 flex flex-wrap justify-center items-center gap-2 md:gap-3 px-4 w-full">
+            <div className="mt-6 flex flex-wrap justify-center items-center gap-3 md:gap-4 px-4 w-full">
               <span className="text-white/80 text-xs font-bold uppercase tracking-wider hidden sm:block">Popüler Aramalar:</span>
               {['Kapadokya Balon', 'Boğaz Turu', 'Peri Bacaları', 'Ayasofya', 'Kapadokya ATV'].map((tag) => (
                 <button
                   key={tag}
                   onClick={() => {
                     setSelectedLocation(tag);
-                    // alert(`${tag} aranıyor...`);
                   }}
-                  className="bg-white/20 hover:bg-white/30 backdrop-blur-md border border-white/30 text-white text-[11px] md:text-sm font-semibold px-3 md:px-4 py-1.5 md:py-2 rounded-full cursor-pointer transition-all active:scale-95"
+                  className="bg-white/30 hover:bg-orange-500 hover:border-orange-500 backdrop-blur-md border border-white/30 text-white text-[11px] md:text-sm font-semibold px-4 md:px-5 py-2 md:py-2.5 rounded-full cursor-pointer transition-all active:scale-95"
                 >
                   {tag}
                 </button>
