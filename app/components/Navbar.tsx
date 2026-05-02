@@ -12,7 +12,9 @@ import { useRouter } from 'next/navigation';
 
 export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAgencyModal?: (val: boolean) => void, setAgencyTab?: (val: 'login' | 'register') => void }) {
   const { t, locale, setLocale } = useLocale();
-  const { isLoggedIn, logout, userRole } = useAuth();
+  const { user, logout } = useAuth();
+  const isLoggedIn = !!user;
+  const userRole = user?.is_agency ? 'agency' : 'customer';
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const router = useRouter();
@@ -49,7 +51,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
       <nav className="w-full bg-white py-3 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] border-b border-gray-100 shadow-sm md:shadow-none">
         <Link href="/" className="text-3xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter">
           Tour<span className="text-[#005e85]">kia</span>
-        </div>
+        </Link>
         <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[16px]">
           <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.destinations}</Link>
           <Link href="/taste" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.taste}</Link>
