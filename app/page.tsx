@@ -15,72 +15,6 @@ import FavoriteButton from './components/FavoriteButton';
 import { useAuth } from './context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-// --- YENİ BİLEŞEN: ComboCard (Geniş / Wide Format) ---
-const ComboCard = ({ tour, restaurant, discountRate, formatPrice }: { tour: any, restaurant: any, discountRate: number, formatPrice: (p: number) => string }) => {
-  // Bundle_Pricing Logic
-  const originalTotal = tour.price + restaurant.price;
-  const discountAmount = originalTotal * (discountRate / 100);
-  const bundlePrice = originalTotal - discountAmount;
-  const savings = Math.round(discountAmount);
-
-  return (
-    <div className="relative bg-white rounded-[40px] overflow-hidden shadow-2xl hover:shadow-[0_20px_50px_rgba(0,0,0,0.15)] transition-all duration-700 group cursor-pointer border border-gray-100 flex flex-col md:flex-row w-full mb-8"> 
-      {/* Görsel Alanı (Geniş Split) */}
-      <div className="relative h-72 md:h-auto md:w-[45%] overflow-hidden flex">
-        <div className="w-1/2 h-full relative border-r-2 border-white z-10 shrink-0">
-          <Image src={tour.image} alt={tour.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-        </div>
-        <div className="w-1/2 h-full relative shrink-0">
-          <Image src={restaurant.image} alt={restaurant.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
-        </div>
-        
-        {/* Ortasındaki "Birlikte Daha Güçlü" İkonu */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-white rounded-full shadow-2xl flex items-center justify-center z-20 border-8 border-slate-50 transform group-hover:rotate-12 transition-transform">
-          <span className="text-2xl font-bold text-orange-500">＋</span>
-        </div>
-
-        {/* Rozetler */}
-        <div className="absolute top-6 left-6 z-30">
-          <span className="bg-[#008cb3] text-white text-[10px] font-black px-4 py-2 rounded-full uppercase tracking-[0.2em] shadow-lg border border-white/20">Günün Kombo Fırsatı</span>
-        </div>
-      </div>
-
-      {/* İçerik Alanı (Geniş Segment) */}
-      <div className="p-8 md:p-12 flex flex-col flex-1 justify-center bg-gradient-to-br from-white to-slate-50">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex -space-x-3">
-            <div className="w-10 h-10 rounded-full border-2 border-white bg-blue-500 flex items-center justify-center text-lg shadow-md z-10">🎒</div>
-            <div className="w-10 h-10 rounded-full border-2 border-white bg-orange-500 flex items-center justify-center text-lg shadow-md z-0">🍽️</div>
-          </div>
-          <span className="text-xs font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-3 py-1 rounded-lg border border-orange-100">Paket Avantajı: {formatPrice(savings)} Tasarruf</span>
-        </div>
-        
-        <h3 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight mb-4 group-hover:text-[#008cb3] transition-colors">
-          {tour.name} <span className="text-gray-300 font-light mx-2">&</span> {restaurant.name}
-        </h3>
-        
-        <p className="text-sm md:text-base text-gray-500 font-medium mb-8 leading-relaxed max-w-xl">
-          Eşsiz bir gezi deneyimi ve gurme bir akşam yemeği şimdi tek pakette! Ayrı ayrı almak yerine bu komboyu seçin, <b>{formatPrice(savings)}</b> kazançlı çıkın.
-        </p>
-        
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-6 pt-8 border-t border-gray-200">
-          <div>
-            <p className="text-xs font-black text-gray-400 uppercase tracking-[0.1em] mb-2">Toplam Paket Fiyatı</p>
-            <div className="flex items-baseline gap-3">
-              <span className="text-lg text-gray-400 line-through font-bold">{formatPrice(originalTotal)}</span>
-              <span className="text-4xl font-black text-slate-900 tracking-tighter">{formatPrice(bundlePrice)}</span>
-            </div>
-          </div>
-          <button className="bg-[#008cb3] text-white font-black px-10 py-5 rounded-2xl hover:bg-slate-900 transition-all shadow-[0_10px_30px_rgba(0,140,179,0.3)] hover:shadow-xl active:scale-95 text-lg">
-            Hemen Rezervasyon Yap ➔
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
 
 const BACKGROUND_IMAGES = [
   'https://picsum.photos/seed/cappadocia1/1200/600',
@@ -592,52 +526,68 @@ export default function Home() {
         </div>
       </div>
 
-      {/* COMBO_SECTION: Hazır Paketler (Ready-Made Bundles) */}
-      <div id="combo-section" className="w-full bg-slate-50 py-24 relative overflow-hidden border-t border-b border-gray-100">
-        <div className="max-w-[1400px] mx-auto px-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="px-3 py-1 bg-orange-500 text-white text-[10px] font-black rounded-lg uppercase tracking-widest">Sınırlı Süre</div>
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Hazır Paketler</h2>
+      {/* 4. Öne Çıkan Turlar */}
+      < div className="w-full bg-[#005e85] py-16 text-white" >
+        <div className="max-w-7xl px-6 mx-auto">
+          <div className="flex justify-between items-end mb-10">
+            <h2 className="text-[28px] font-extrabold tracking-tight">Öne Çıkan Turlar</h2>
+            <button className="hidden md:block font-bold text-blue-200 hover:text-white transition">&rarr;</button>
           </div>
-          <p className="text-gray-500 font-medium mb-12 max-w-2xl">
-            Sizin için hazırladığımız özel paketlerle tur ve yemek deneyimini birleştirin, <b>%15'e varan</b> indirimlerden faydalanın.
-          </p>
 
-          <div className="flex flex-col space-y-8">
-            {/* is_package flag'ine sahip kayıtlar simüle ediliyor */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { 
-                is_package: true,
-                discountRate: 12,
-                tour: { name: 'Kapadokya Balon Turu', image: 'https://images.unsplash.com/photo-1544833342-a8109041ce04?w=1200&q=80', price: 4200 }, 
-                restaurant: { name: 'Ziyade Ocakbaşı', image: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=1200&q=80', price: 950 }
-              },
-              { 
-                is_package: true,
-                discountRate: 15,
-                tour: { name: 'Boğaz\'da Gün Batımı', image: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=1200&q=80', price: 1200 }, 
-                restaurant: { name: 'Kalamış Sahil', image: 'https://images.unsplash.com/photo-1552566626-52f8b828add9?w=1200&q=80', price: 1100 }
-              }
-            ].filter(pkg => pkg.is_package).map((pkg, idx) => (
-              <ComboCard 
-                key={idx}
-                formatPrice={formatPrice}
-                tour={pkg.tour}
-                restaurant={pkg.restaurant}
-                discountRate={pkg.discountRate}
-              />
+              { ad: "Kapadokya Balon & Peri Bacaları", sure: "3 Saat (1 Saat Uçuş)", fiyat: 3500, puan: "4.9", resim: "https://upload.wikimedia.org/wikipedia/commons/7/7e/Hot_air_balloon_at_sunrise_over_Cappadocia%2C_Turkey.JPG", etiket: "TÜKENİYOR", fomo: "Şu an 14 kişi inceliyor", mPuan: 350, slug: 'kapadokya-klasik-balon' },
+              { ad: "Lüks Yatta Boğaz Turu", sure: "3 Saat", fiyat: 2500, puan: "4.9", resim: "https://images.unsplash.com/photo-1541426062085-74dc3dbfb0d1?w=800", etiket: "EN ÇOK SATAN", fomo: "Son 2 saatte 5 kişi aldı", mPuan: 250, slug: 'istanbul-bogaz-turu' },
+              { ad: "Kekova Mavi Tur", sure: "Tam Gün", fiyat: 1800, puan: "5.0", resim: "https://images.unsplash.com/photo-1615714088231-318e805d76ea?w=800", etiket: "YENİ", fomo: "Bu hafta çok popüler", mPuan: 180, slug: 'antalya-mavi-tur' }
+            ].map((tur, i) => (
+              <div
+                key={i}
+                onClick={() => window.location.href = `/tour/${tur.slug}`}
+                className="bg-white text-slate-900 rounded-[24px] overflow-hidden shadow-xl hover:-translate-y-2 transition-transform duration-500 border border-gray-100 group cursor-pointer flex flex-col relative"
+              >
+                <div className="relative h-56 overflow-hidden">
+                  <Image src={tur.resim} alt={tur.ad} fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <span className="absolute top-4 left-4 text-[10px] font-black text-white bg-red-600 px-3 py-1.5 rounded-full uppercase tracking-widest shadow-md animate-pulse z-10">{tur.etiket}</span>
+                  <button aria-label="Favorilere Ekle" className="absolute top-4 right-4 bg-white/90 p-2 rounded-full hover:bg-red-50 hover:text-red-500 transition-colors z-10">
+                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                  </button>
+                </div>
+                <div className="p-6 flex-1 flex flex-col relative">
+
+                  {/* FOMO Etiketi */}
+                  <div className="absolute -top-4 right-6 bg-red-50 text-red-600 border border-red-100 text-[10px] font-bold px-3 py-1.5 rounded-full shadow-sm flex items-center gap-1.5 z-10">
+                    <span className="w-1.5 h-1.5 bg-red-500 rounded-full animate-ping"></span>
+                    {tur.fomo}
+                  </div>
+
+                  <span className="text-sm font-semibold text-gray-500 mb-2 flex items-center gap-2">
+                    <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    {tur.sure}
+                  </span>
+                  <h3 className="text-xl font-black text-slate-800 mb-2 leading-tight group-hover:text-[#008cb3] transition-colors">{tur.ad}</h3>
+                  <div className="flex items-center gap-1.5 mb-3">
+                    <span className="text-[11px] font-bold text-gray-600 bg-gray-100 px-2.5 py-1 rounded-md">Tourkia İşletmesi</span>
+                    <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-100 px-2 py-0.5 rounded-md flex items-center gap-1"><svg width="10" height="10" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> +{tur.mPuan} Puan</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-yellow-500 mb-6 text-sm font-bold">
+                    ★ ★ ★ ★ ★ <span className="text-gray-400 text-xs ml-1 font-medium">({tur.puan} - {134 + i * 47} İnceleme)</span>
+                  </div>
+
+                  <div className="mt-auto flex justify-between items-end pt-4 border-t border-gray-100/20">
+                    <div>
+                      <span className="text-xs text-slate-400 font-bold uppercase block mb-1">MİN</span>
+                      <div className="text-2xl font-black text-[#008cb3]">{formatPrice(tur.fiyat)}</div>
+                    </div>
+                    <button aria-label="Tura Git" className="bg-[#008cb3] hover:bg-[#005e85] text-white font-bold py-2 px-5 rounded-xl transition-colors shadow-lg shadow-blue-500/30">
+                      ➔
+                    </button>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
-
-          <div className="mt-12 text-center">
-            <button className="text-[13px] font-black text-[#008cb3] hover:text-[#005e85] flex items-center gap-2 mx-auto transition-colors group">
-              TÜM KOMBO PAKETLERİ GÖR
-              <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
-            </button>
-          </div>
         </div>
-      </div>
-
+      </div >
 
 
 
