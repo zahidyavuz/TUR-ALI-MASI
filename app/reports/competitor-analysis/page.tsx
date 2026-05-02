@@ -16,7 +16,7 @@ export default function CompetitorAnalysisReport() {
                             <span className="bg-indigo-100 text-indigo-700 text-xs font-black px-4 py-1.5 rounded-full uppercase tracking-widest mb-4 inline-block shadow-sm">AI Data Intelligence</span>
                             <h1 className="text-4xl md:text-5xl font-black text-slate-800 mb-4 tracking-tight">Rakip Analizi & Pazar Payı Dashboard'u</h1>
                             <p className="text-gray-500 font-medium text-lg max-w-2xl">
-                                Viator ve GetYourGuide'ın 2024 global trend raporlarıyla Tourkia veritabanının anlık, görselleştirilmiş kıyaslaması. Yeni Asya/Uzak Doğu turlarının (Bali & Kyoto) eklenmesiyle pazardaki rekabet gücümüz artırıldı.
+                                Viator ve GetYourGuide'ın 2024 global trend raporlarıyla Tourkia veritabanının anlık, görselleştirilmiş kıyaslaması. Yeni Akdeniz turlarının (Kaş & Kemer) eklenmesiyle pazardaki rekabet gücümüz artırıldı.
                             </p>
                         </div>
                         <div className="flex gap-4 shrink-0">
@@ -62,7 +62,7 @@ export default function CompetitorAnalysisReport() {
                             {/* Chart Row 2 */}
                             <div>
                                 <div className="flex justify-between items-end mb-2">
-                                    <span className="text-sm font-bold text-slate-700">Mistisizm & Ruhani (Örn: Bali Ormanları)</span>
+                                    <span className="text-sm font-bold text-slate-700">Doğa & Ruhani (Örn: Kaz Dağları)</span>
                                 </div>
                                 <div className="space-y-2">
                                     <div className="flex items-center gap-3">
@@ -121,7 +121,7 @@ export default function CompetitorAnalysisReport() {
                                 </div>
                                 <span className="bg-green-100 text-green-700 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">Yüksek Dominasyon</span>
                                 <h3 className="font-bold text-slate-800 text-lg mb-1">Uzak Doğu (Asya)</h3>
-                                <p className="text-xs text-gray-500 mb-3">Kyoto ve Bali eklentileriyle Asya pazarında büyük acentaları lokal hizmetle geride bırakıyoruz.</p>
+                                <p className="text-xs text-gray-500 mb-3">Kaş ve Kemer eklentileriyle Akdeniz pazarında büyük acentaları lokal hizmetle geride bırakıyoruz.</p>
                                 <div className="flex justify-between items-center text-sm font-bold text-slate-700 mt-auto pt-4 border-t border-gray-200">
                                     <span>Pazar Payı Hedefi</span>
                                     <span className="text-green-600">%45</span>
@@ -133,7 +133,7 @@ export default function CompetitorAnalysisReport() {
                                     <span className="text-8xl">🍕</span>
                                 </div>
                                 <span className="bg-blue-100 text-blue-700 text-[10px] font-black px-2 py-1 rounded-full uppercase tracking-wider mb-2 inline-block">Odak Noktası</span>
-                                <h3 className="font-bold text-slate-800 text-lg mb-1">Avrupa (İtalya vb.)</h3>
+                                <h3 className="font-bold text-slate-800 text-lg mb-1">Metropol (İstanbul vb.)</h3>
                                 <p className="text-xs text-gray-500 mb-3">Gastronomi alanında paket turlarda güçlüyüz ancak 'günübirlik' aktivitelerde Viator'ın %60 pazar payı var.</p>
                                 <div className="flex justify-between items-center text-sm font-bold text-slate-700 mt-auto pt-4 border-t border-gray-200">
                                     <span>Pazar Payı Hedefi</span>
@@ -163,7 +163,7 @@ export default function CompetitorAnalysisReport() {
                             <div>
                                 <h3 className="text-lg font-bold text-white mb-2 line-through opacity-80 decoration-emerald-500 decoration-2">Asya Turları Eksikliği</h3>
                                 <p className="text-slate-300 text-sm">
-                                    <strong className="text-emerald-400">ÇÖZÜLDÜ:</strong> Veritabanına Bali Sonsuzluk Havuzları ve Kyoto Çay Seremonisi turları eklendi. Çin kültürüne lokalize edildi.
+                                    <strong className="text-emerald-400">ÇÖZÜLDÜ:</strong> Veritabanına Kaş Sonsuzluk Havuzları ve Kapadokya Şarap Tadımı turları eklendi. Türkiye kültürüne lokalize edildi.
                                 </p>
                             </div>
                         </div>

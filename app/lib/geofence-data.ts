@@ -67,7 +67,7 @@ export const GEOFENCE_SPOTS: GeofenceSpot[] = [
   {
     slug: 'buyuk-italya',
     tourId: 'buyuk-italya',
-    title: 'Büyük İtalya Turu',
+    title: 'Tarihi Yarımada Yürüyüşü',
     lat: 41.9028,
     lon: 12.4964,
     radiusMeters: 600,

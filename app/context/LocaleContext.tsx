@@ -136,8 +136,8 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Haftanın En Çok Satan Turları",
         dealOfTheDay: {
             badge: "Sadece Bugüne Özel",
-            title: "Yarı Fiyatına Rüya Gibi Bir Bali Tatili",
-            desc: "Sınırlı sayıda kontenjan! Tropikal cennet Bali'deki 7 gecelik ultra lüks konaklama paketini %50 indirimle yakalayarak hayatınızın tatilini yapın.",
+            title: "Yarı Fiyatına Rüya Gibi Bir Antalya Tatili",
+            desc: "Sınırlı sayıda kontenjan! Akdeniz'in incisi Antalya'daki 7 gecelik ultra lüks konaklama paketini %50 indirimle yakalayarak hayatınızın tatilini yapın.",
             button: "Hemen Rezerve Et",
             savings: "KAZANÇ"
         },
@@ -211,8 +211,8 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Most Hyped Tours This Week",
         dealOfTheDay: {
             badge: "Flash Sale Alert",
-            title: "Half-Off Bali VIP Getaway",
-            desc: "Don't get FOMO! Secure this insanely discounted 7-night luxury Bali getaway before spots sell out.",
+            title: "Half-Off Antalya VIP Getaway",
+            desc: "Don't get FOMO! Secure this insanely discounted 7-night luxury Antalya getaway before spots sell out.",
             button: "Snag The Deal",
             savings: "YOU SAVE"
         },
@@ -286,7 +286,7 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Meistgebuchte Premium-Touren",
         dealOfTheDay: {
             badge: "Exklusives Zeitangebot",
-            title: "50% Ersparnis: Bali Premium-Urlaub",
+            title: "50% Ersparnis: Antalya Premium-Urlaub",
             desc: "Sichern Sie sich ein exzellent bewertetes 7-Nächte-Paket mit geprüften 5-Sterne-Hotels und durchgeplanter Reiseroute.",
             button: "Jetzt Verbindlich Buchen",
             savings: "ERSPARNIS"
@@ -511,7 +511,7 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Los Tours Más Vendidos",
         dealOfTheDay: {
             badge: "Solo Por Hoy",
-            title: "Vacaciones de Ensueño en Bali a Mitad de Precio",
+            title: "Vacaciones de Ensueño en Antalya a Mitad de Precio",
             desc: "Cupos limitados. Consigue tu paquete premium de 7 noches con un 50% de descuento.",
             button: "Reservar Ahora",
             savings: "AHORRAS"
@@ -586,7 +586,7 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Nos Meilleures Ventes",
         dealOfTheDay: {
             badge: "Seulement Aujourd'hui",
-            title: "Des vacances de rêve à Bali à moitié prix",
+            title: "Des vacances de rêve à Antalya à moitié prix",
             desc: "Places limitées. Obtenez un forfait premium de 7 nuits avec une réduction de 50%.",
             button: "Réservez Maintenant",
             savings: "VOUS ÉCONOMISEZ"

@@ -1000,7 +1000,7 @@ export default function Home() {
             {[
               { isim: "Ahmet Y.", tur: "Kapadokya Turu", tarih: "2 Hafta Önce", yorum: "Balayımız için tercih etmiştik. Rehberin ilgisi, otelin kalitesi ve VIP transfer hizmeti kusursuzdu. Kesinlikle tavsiye ediyorum!", yildiz: 5 },
               { isim: "Céline D.", tur: "Mavi Yolculuk", tarih: "1 Ay Önce", yorum: "Fransa'dan geldik, rezervasyon aşamasından turun sonuna kadar Tourkia ekibi inanılmaz profesyoneldi. Yemekler harikaydı.", yildiz: 5 },
-              { isim: "Burak & Ece", tur: "Klasik İtalya", tarih: "3 Ay Önce", yorum: "Uçak biletlerinden müze girişlerine kadar her şey önceden hazırdı. Sıra beklemeden Roma'yı gezmek paha biçilemezdi. Teşekkürler!", yildiz: 4 }
+              { isim: "Burak & Ece", tur: "Klasik Kapadokya", tarih: "3 Ay Önce", yorum: "Müze girişlerine kadar her şey önceden hazırdı. Sıra beklemeden Kapadokya'yı gezmek paha biçilemezdi. Teşekkürler!", yildiz: 4 }
             ].map((yorum, i) => (
               <div key={i} className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 relative">
                 <div className="absolute top-6 right-6 text-[#008cb3] opacity-20">

@@ -13,9 +13,9 @@ interface Goal {
 export default function GoalsPage() {
     const [goals, setGoals] = useState<Goal[]>([
         { id: '1', place: 'Kapadokya, Türkiye', isVisited: true, image: 'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&q=80&w=400' },
-        { id: '2', place: 'Bali, Endonezya', isVisited: false, image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&q=80&w=400' },
-        { id: '3', place: 'Roma, İtalya', isVisited: false, image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&q=80&w=400' },
-        { id: '4', place: 'Paris, Fransa', isVisited: true, image: 'https://images.unsplash.com/photo-1502602881469-447819086e49?auto=format&fit=crop&q=80&w=400' }
+        { id: '2', place: 'Kemer, Antalya', isVisited: false, image: 'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&q=80&w=400' },
+        { id: '3', place: 'Sultanahmet, İstanbul', isVisited: false, image: 'https://images.unsplash.com/photo-1552832230-c0197dd311b5?auto=format&fit=crop&q=80&w=400' },
+        { id: '4', place: 'Kaş, Antalya', isVisited: true, image: 'https://images.unsplash.com/photo-1502602881469-447819086e49?auto=format&fit=crop&q=80&w=400' }
     ]);
 
     const [newGoal, setNewGoal] = useState('');
@@ -71,7 +71,7 @@ export default function GoalsPage() {
                         <p className="text-white/80 text-sm leading-relaxed max-w-2xl">
                             Listendeki <strong>{goals.filter(g => !g.isVisited).length}</strong> henüz gidilmeyen hedef için hava durumu, yoğunluk ve bilet fiyatlarını analiz ediyorum.
                             <br className="hidden sm:block" />
-                            <em>Bali için en uygun zamanın Kasım başı olduğunu biliyor muydun? O döneme özel uçuşları senin için takip ediyorum!</em>
+                            <em>Antalya için en uygun zamanın Eylül başı olduğunu biliyor muydun? O döneme özel turları senin için takip ediyorum!</em>
                         </p>
                     </div>
                     <button className="relative z-10 sm:ml-auto bg-white text-[#008cb3] font-black text-xs uppercase tracking-widest px-6 py-3 rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all">

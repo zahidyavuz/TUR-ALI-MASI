@@ -33,7 +33,7 @@ const RESTAURANTS = [
     {
         id: 'r3',
         name: 'Le Globe - World Cuisine',
-        location: 'Roma, İtalya',
+        location: 'Sultanahmet, İstanbul',
         cuisine: 'Dünya Mutfağı',
         priceLevel: '₺₺₺₺',
         rating: 4.7,
