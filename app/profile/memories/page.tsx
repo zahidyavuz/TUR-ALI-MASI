@@ -14,7 +14,7 @@ interface MemoryFolder {
 export default function MemoriesPage() {
     const folders: MemoryFolder[] = [
         { id: '1', tourName: 'Kapadokya Balon & Vadi Turu', year: '2024', coverPhoto: 'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&q=80&w=400', photosCount: 24 },
-        { id: '2', tourName: 'Büyük İtalya Rotası', year: '2023', coverPhoto: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=400', photosCount: 56 },
+        { id: '2', tourName: 'Tarihi Yarımada Yürüyüşü', year: '2023', coverPhoto: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=400', photosCount: 56 },
         { id: '3', tourName: 'Karadeniz Rüyası', year: '2023', coverPhoto: 'https://images.unsplash.com/photo-1589133177309-dd773addb838?auto=format&fit=crop&q=80&w=400', photosCount: 12 },
     ];
 

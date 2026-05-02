@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Tourkia | Global Seyahat & Acenta Platformu",
-  description: "Türkiye'nin dünyaya açılan, Yandex ve Baidu uyumlu global seyahat platformu. Kapadokya, İtalya, Maldivler ve daha fazlası.",
+  description: "Türkiye'nin dünyaya açılan, Yandex ve Baidu uyumlu global seyahat platformu. Kapadokya, İstanbul, Antalya ve daha fazlası.",
   verification: {
     google: "google-site-verification-code",
     yandex: "yandex-verification-code", // Yandex Webmaster SEO Entagrasyonu
