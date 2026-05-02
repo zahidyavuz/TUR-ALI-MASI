@@ -139,7 +139,7 @@ export default function Home() {
   const [priceMax, setPriceMax] = useState<string>('');
   const [selectedGuests, setSelectedGuests] = useState<number | ''>(1);
 
-  const POPULAR_LOCATIONS = ['Kapadokya, Türkiye', 'Ege Kıyıları, Türkiye', 'Roma, İtalya', 'Paris, Fransa', 'Bali, Endonezya', 'Moskova, Rusya', 'Pekin, Çin', 'Maldivler', 'Dubai, BAE'];
+  const POPULAR_LOCATIONS = ['Kapadokya, Nevşehir', 'Göreme, Kapadokya', 'Ürgüp, Kapadokya', 'Sultanahmet, İstanbul', 'Boğaz, İstanbul', 'Kaş, Antalya', 'Kaleiçi, Antalya', 'Kemer, Antalya'];
   const searchParams = useSearchParams();
   const router = useRouter();
 
