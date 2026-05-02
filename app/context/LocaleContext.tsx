@@ -106,8 +106,8 @@ const TRANSLATIONS: Translations = {
             }
         },
         hero: {
-            title: "Dünyayı Keşfetmenin En Ayrıcalıklı Yolu",
-            subtitle: "Unutulmaz anılar biriktirmeye hazır mısın? Özel rehberler, premium konaklama ve ruhunuza hitap edecek benzersiz rotalarla hayalinizdeki tatili şimdi keşfedin.",
+            title: "Türkiye'yi Keşfetmenin En Ayrıcalıklı Yolu",
+            subtitle: "Anadolu'nun kalbinden Akdeniz'in mavisine uzanan en seçkin deneyimler... Özel rehberler, premium konaklama ve benzersiz rotalarla hayalinizdeki tatili keşfedin.",
             searchLocationLabel: "Gidilecek Yer",
             searchLocationPlaceholder: "Nereye gitmek istersin?",
             searchDateLabel: "Tarih",
@@ -116,8 +116,8 @@ const TRANSLATIONS: Translations = {
             searchButton: "Turları Bul"
         },
         trustTexts: [
-            "⭐ 10 Yılı Aşkın Turizm Tecrübesiyle Güvenli Seyahat",
-            "🌍 500+ Farklı Rota, Binlerce Unutulmaz Anı",
+            "⭐ Türkiye'nin En Seçkin Rotalarında Güvenli Seyahat",
+            "🌍 İstanbul'dan Kapadokya'ya Binlerce Unutulmaz Anı",
             "🛡️ TURSAB Onaylı %100 Müşteri Memnuniyeti",
             "💸 En İyi Fiyat Garantisi ve Taksit İmkanları"
         ],
@@ -181,8 +181,8 @@ const TRANSLATIONS: Translations = {
             }
         },
         hero: {
-            title: "Zero Boring Moments. Maximum Adventure.",
-            subtitle: "Fast-track your bucket list. We cut the planning stress so you can dive straight into high-energy experiences, epic parties, and ultimate relaxation.",
+            title: "The Most Exclusive Way to Discover Turkey",
+            subtitle: "From the heart of Anatolia to the blue of the Mediterranean... Dive straight into high-energy experiences and ultimate relaxation in Turkey.",
             searchLocationLabel: "Where to?",
             searchLocationPlaceholder: "Type a vibe or city...",
             searchDateLabel: "When?",
@@ -191,8 +191,8 @@ const TRANSLATIONS: Translations = {
             searchButton: "Let's Go!"
         },
         trustTexts: [
-            "🚀 Quick Bookings, Instant Confirmations",
-            "🎉 Handpicked Experiences for Maximum Fun",
+            "🚀 Quick Bookings for Turkey's Best Spots",
+            "🎉 Handpicked Experiences in Istanbul & Cappadocia",
             "😎 Used by 25,000+ Adventure Seekers",
             "💳 Pay Over Time - Book Now, Pay Later"
         ],

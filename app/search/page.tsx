@@ -63,12 +63,25 @@ function SearchResultsContent() {
     loadData();
   }, [location, date, guests, maxPrice, duration]);
 
-  const mockNotes = [
-    "Cappo'nun Notu: Muhteşem fotoğraflar çekeceğinizin garantisini veriyorum! 🎈",
-    "Cappo'nun Notu: Bu turda harcayacağınız her kuruşa değecek, enerjiniz tavan yapacak! ⚡",
-    "Cappo'nun Notu: Romantik bir kaçamak için bundan daha iyisi olamaz. 🍷",
-    "Cappo'nun Notu: Bol yürüyüşlü ama sonunda 'İyi ki gelmişim' dedirtecek bir macera. 🥾"
-  ];
+  const getNoteForTour = (tour: any, index: number) => {
+    const loc = (tour.location || '').toLowerCase();
+    if (loc.includes('kapadokya') || loc.includes('nevşehir')) {
+      return "Cappo'nun Notu: Kapadokya'nın ayazına dikkat! Sabahları kalın giyinmek şart ama manzaraya kesinlikle değecek. 🎈";
+    }
+    if (loc.includes('istanbul') || loc.includes('boğaz')) {
+      return "Cappo'nun Notu: İstanbul Boğazı'nın eşsiz esintisine karşı çay içmeyi unutmayın, bu turun en keyifli anı! ☕";
+    }
+    if (loc.includes('antalya') || loc.includes('kaş')) {
+      return "Cappo'nun Notu: Antalya sıcağında güneş kreminizi eksik etmeyin, mükemmel koyların tadını çıkarın! 🏖️";
+    }
+    const fallbackNotes = [
+      "Cappo'nun Notu: Muhteşem fotoğraflar çekeceğinizin garantisini veriyorum! 📸",
+      "Cappo'nun Notu: Bu turda harcayacağınız her kuruşa değecek, enerjiniz tavan yapacak! ⚡",
+      "Cappo'nun Notu: Unutulmaz bir Türkiye deneyimi için mükemmel bir seçim. 🇹🇷",
+      "Cappo'nun Notu: Bol keşifli ama sonunda 'İyi ki gelmişim' dedirtecek bir macera. 🥾"
+    ];
+    return fallbackNotes[index % fallbackNotes.length];
+  };
 
   return (
     <div className="min-h-screen bg-[#FAF9F6] font-sans text-slate-900 pb-12">
@@ -171,7 +184,7 @@ function SearchResultsContent() {
               {/* Tour Cards */}
               {tours.map((tour, index) => {
                 const usdPrice = (tour.price / currencyRate).toFixed(0);
-                const randomNote = mockNotes[index % mockNotes.length];
+                const randomNote = getNoteForTour(tour, index);
                 
                 return (
                   <div key={tour.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col md:flex-row group">
