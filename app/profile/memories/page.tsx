@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import Navbar from '../../components/Navbar';
 
 interface MemoryFolder {
     id: string;
@@ -25,8 +26,9 @@ export default function MemoriesPage() {
     if (!isClient) return null;
 
     return (
-        <div className="min-h-screen bg-slate-50 py-12 font-sans overflow-x-hidden">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="min-h-screen bg-slate-50 font-sans overflow-x-hidden">
+            <Navbar />
+            <div className="py-12 max-w-5xl mx-auto px-4 sm:px-6">
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>
