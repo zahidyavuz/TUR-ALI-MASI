@@ -37,7 +37,6 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         }
 
         // Re-throw API errors (non-network)
-        console.error('API Error:', error);
         throw error;
     }
 }

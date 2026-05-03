@@ -13,18 +13,24 @@ export async function fetchTours(params: Record<string, string> = {}) {
         // Backend down / network error
         if (!response) {
             return {
-                tours: TOUR_DATA.map(t => ({
-                    ...t,
-                    fomoCount: Math.floor(Math.random() * 50) + 10,
-                    reviews: t.reviews_count.toString(),
-                    originalPrice: t.original_price.toString(),
-                    imageMain: t.image_main,
-                    imageSub1: t.image_main,
-                    imageSub2: t.image_main,
-                    included: t.included,
-                    excluded: t.excluded,
-                    translations: {}
-                })),
+                tours: TOUR_DATA
+                    .filter(t => {
+                        if (params.is_popular === 'true' && !t.is_popular) return false;
+                        if (params.location && !t.location.toLowerCase().includes(params.location.toLowerCase())) return false;
+                        return true;
+                    })
+                    .map(t => ({
+                        ...t,
+                        fomoCount: Math.floor(Math.random() * 50) + 10,
+                        reviews: t.reviews_count.toString(),
+                        originalPrice: t.original_price?.toString() || "",
+                        imageMain: t.image_main,
+                        imageSub1: t.image_main,
+                        imageSub2: t.image_main,
+                        included: t.included,
+                        excluded: t.excluded,
+                        translations: {}
+                    })),
                 count: TOUR_DATA.length,
                 next: null,
                 previous: null
@@ -59,7 +65,6 @@ export async function fetchTours(params: Record<string, string> = {}) {
         };
 
     } catch (error) {
-        console.error("Fetch tours error:", error);
         return { tours: [], count: 0, next: null, previous: null };
     }
 }
@@ -69,7 +74,10 @@ export async function fetchTour(slug: string) {
         const t = await fetchAPI(`/tours/${slug}/`, {
             next: { revalidate: 60 }
         });
-        if (!t || Object.keys(t).length === 0 || t.detail === "Bulunamadı." || t.detail === "Not found.") {
+        if (!t || Object.keys(t).length === 0 || 
+            t.detail === "Bulunamadı." || 
+            t.detail === "Not found." || 
+            (t.detail && t.detail.includes("matches the given query"))) {
             throw new Error("API not found, using fallback");
         }
         
@@ -107,7 +115,6 @@ export async function fetchTour(slug: string) {
                 availabilitySlots: []
             };
         }
-        console.error("Fetch singular tour error:", error);
         return null;
     }
 }
@@ -129,7 +136,8 @@ export const TOUR_DATA = [
         excluded: ['Kişisel Harcamalar', 'Fotoğraf ve Video'],
         rating: 4.9,
         reviews_count: 1250,
-        fomo_count: 34
+        fomo_count: 34,
+        is_popular: true
     },
     {
         id: 'kirmizi-tur-kuzey',
@@ -203,7 +211,8 @@ export const TOUR_DATA = [
         excluded: ['Otel Transferi'],
         rating: 4.7,
         reviews_count: 900,
-        fomo_count: 45
+        fomo_count: 45,
+        is_popular: true
     },
     {
         id: 'at-turu-safarisi',
@@ -312,5 +321,138 @@ export const TOUR_DATA = [
         rating: 4.9,
         reviews_count: 410,
         fomo_count: 16
+    },
+    {
+        id: 'istanbul-bogaz-turu',
+        title: 'Boğaz\'da Akşam Yemeği',
+        location: 'İstanbul, Türkiye',
+        price: 2200,
+        original_price: 2800,
+        discount: 21,
+        duration: '4 Saat',
+        guide: 'Tur Sorumlusu',
+        description: 'İki kıtanın ışıkları altında, Boğaz\'ın büyüleyici atmosferinde unutulmaz bir akşam yemeği ve Türk gecesi şovu.',
+        category: '🚢 Boğaz Deneyimi',
+        image_main: 'https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800',
+        included: ['Otel Transferi', 'Akşam Yemeği', 'Limitsiz Yerli İçecek', 'Dans Gösterileri'],
+        excluded: ['Ekstra İçecekler'],
+        rating: 4.8,
+        reviews_count: 2100,
+        fomo_count: 56,
+        is_popular: true
+    },
+    {
+        id: 'antalya-yat-turu',
+        title: 'Özel Yat Turu',
+        location: 'Antalya, Türkiye',
+        price: 4500,
+        original_price: 6000,
+        discount: 25,
+        duration: '6 Saat',
+        guide: 'Kaptan & Ekip',
+        description: 'Akdeniz\'in turkuaz koylarında size özel lüks yat ile rüya gibi bir gün. Güneş, deniz ve huzurun tadını çıkarın.',
+        category: '🌊 Deniz & Güneş',
+        image_main: 'https://images.unsplash.com/photo-1542397284385-6014176526d7?w=800',
+        included: ['Lüks Yat Kiralama', 'Öğle Yemeği', 'Meyve Tabağı', 'İçecekler'],
+        excluded: ['Su Sporları Ekstraları'],
+        rating: 4.9,
+        reviews_count: 420,
+        fomo_count: 24,
+        is_popular: true
+    },
+    {
+        id: 'istanbul-tarihi-yarimada',
+        title: 'Tarihi Yarımada Turu',
+        location: 'İstanbul, Türkiye',
+        price: 1800,
+        original_price: 2200,
+        discount: 18,
+        duration: '1 Gün',
+        guide: 'Milli Rehber',
+        description: 'Ayasofya, Sultanahmet ve Topkapı Sarayı... İstanbul\'un kalbinde tarihe yolculuk yapın.',
+        category: '🏛️ Tarih & Kültür',
+        image_main: 'https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800',
+        included: ['Uzman Rehber', 'Müze Giriş Biletleri', 'Öğle Yemeği'],
+        excluded: ['Kişisel Harcamalar'],
+        rating: 4.7,
+        reviews_count: 1560,
+        fomo_count: 32,
+        is_popular: true
+    },
+    {
+        id: 'antalya-antik-kent',
+        title: 'Perge & Aspendos',
+        location: 'Antalya, Türkiye',
+        price: 1400,
+        original_price: 1700,
+        discount: 17,
+        duration: '1 Gün',
+        guide: 'Milli Rehber',
+        description: 'Dünyanın en iyi korunmuş antik tiyatrosu Aspendos ve ihtişamlı Perge antik kenti sizi bekliyor.',
+        category: '🏛️ Arkeoloji',
+        image_main: 'https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800',
+        included: ['Klimalı Ulaşım', 'Rehberlik Hizmeti', 'Öğle Yemeği'],
+        excluded: ['Müze Girişleri'],
+        rating: 4.8,
+        reviews_count: 310,
+        fomo_count: 15,
+        is_popular: true
+    },
+    {
+        id: 'vip-1',
+        title: 'VIP Gün Batımı ATV Safari & Vadi Yemeği',
+        location: 'Kapadokya, Türkiye',
+        price: 5350,
+        original_price: 6920,
+        discount: 22,
+        duration: '5 Saat',
+        guide: 'Tur Lideri & Şef',
+        description: 'Batan güneşin altında peri bacaları arasında ATV safari ve ardından vadide özel bir akşam yemeği.',
+        category: '👑 VIP Combo',
+        image_main: 'https://images.unsplash.com/photo-1621259182978-f09e5e2ca845?w=1200&q=80',
+        included: ['VIP Transfer', 'ATV Ekipmanları', 'Gurme Vadi Yemeği', 'Özel Rehber'],
+        excluded: ['Kişisel Harcamalar'],
+        rating: 5.0,
+        reviews_count: 120,
+        fomo_count: 15,
+        is_popular: true
+    },
+    {
+        id: 'vip-2',
+        title: 'Özel Rehberli Tarihi Yarımada Turu',
+        location: 'İstanbul, Türkiye',
+        price: 4230,
+        original_price: 5770,
+        discount: 26,
+        duration: '8 Saat',
+        guide: 'Profesyonel Tarihçi',
+        description: 'Ayasofya ve Sultanahmet\'in büyüleyici gece atmosferinde, size özel rehber eşliğinde tarih yolculuğu.',
+        category: '⭐ Top Rated',
+        image_main: 'https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=1200&q=80',
+        included: ['VIP Araçla Transfer', 'Hızlı Geçiş Biletleri', 'Özel Rehberlik', 'Gece Turu Ayrıcalığı'],
+        excluded: ['Yemek'],
+        rating: 5.0,
+        reviews_count: 210,
+        fomo_count: 24,
+        is_popular: true
+    },
+    {
+        id: 'vip-3',
+        title: 'VIP Jeep Safari ve Rafting Macerası',
+        location: 'Antalya, Türkiye',
+        price: 2650,
+        original_price: 3460,
+        discount: 23,
+        duration: 'Full Gün',
+        guide: 'Macera Rehberi',
+        description: 'Antalya\'nın derin kanyonlarında ciplerle off-road ve serin sularda rafting heyecanı bir arada.',
+        category: '⚡ Fast Selling',
+        image_main: 'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?w=1200&q=80',
+        included: ['Otelden Jeep ile Alınış', 'Profesyonel Rafting Ekipmanları', 'Öğle Yemeği', 'Sigorta'],
+        excluded: ['Fotoğraf ve Video Paketi'],
+        rating: 4.9,
+        reviews_count: 42,
+        fomo_count: 18,
+        is_popular: true
     }
 ];
