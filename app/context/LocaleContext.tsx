@@ -111,8 +111,8 @@ const TRANSLATIONS: Translations = {
             }
         },
         hero: {
-            title: "Dünyayı Keşfetmenin En Ayrıcalıklı Yolu",
-            subtitle: "Unutulmaz anılar biriktirmeye hazır mısın? Özel rehberler, premium konaklama ve ruhunuza hitap edecek benzersiz rotalarla hayalinizdeki tatili şimdi keşfedin.",
+            title: "Türkiye'yi Keşfetmenin En Ayrıcalıklı Yolu",
+            subtitle: "Anadolu'nun kalbinden Akdeniz'in mavisine uzanan en seçkin deneyimler... Özel rehberler, premium konaklama ve benzersiz rotalarla hayalinizdeki tatili keşfedin.",
             searchLocationLabel: "Gidilecek Yer",
             searchLocationPlaceholder: "Nereye gitmek istersin?",
             searchDateLabel: "Tarih",
@@ -121,8 +121,8 @@ const TRANSLATIONS: Translations = {
             searchButton: "Turları Bul"
         },
         trustTexts: [
-            "⭐ 10 Yılı Aşkın Turizm Tecrübesiyle Güvenli Seyahat",
-            "🌍 500+ Farklı Rota, Binlerce Unutulmaz Anı",
+            "⭐ Türkiye'nin En Seçkin Rotalarında Güvenli Seyahat",
+            "🌍 İstanbul'dan Kapadokya'ya Binlerce Unutulmaz Anı",
             "🛡️ TURSAB Onaylı %100 Müşteri Memnuniyeti",
             "💸 En İyi Fiyat Garantisi ve Taksit İmkanları"
         ],
@@ -141,8 +141,8 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Haftanın En Çok Satan Turları",
         dealOfTheDay: {
             badge: "Sadece Bugüne Özel",
-            title: "Yarı Fiyatına Rüya Gibi Bir Bali Tatili",
-            desc: "Sınırlı sayıda kontenjan! Tropikal cennet Bali'deki 7 gecelik ultra lüks konaklama paketini %50 indirimle yakalayarak hayatınızın tatilini yapın.",
+            title: "Yarı Fiyatına Rüya Gibi Bir Antalya Tatili",
+            desc: "Sınırlı sayıda kontenjan! Akdeniz'in incisi Antalya'daki 7 gecelik ultra lüks konaklama paketini %50 indirimle yakalayarak hayatınızın tatilini yapın.",
             button: "Hemen Rezerve Et",
             savings: "KAZANÇ"
         },
@@ -191,8 +191,8 @@ const TRANSLATIONS: Translations = {
             }
         },
         hero: {
-            title: "Zero Boring Moments. Maximum Adventure.",
-            subtitle: "Fast-track your bucket list. We cut the planning stress so you can dive straight into high-energy experiences, epic parties, and ultimate relaxation.",
+            title: "The Most Exclusive Way to Discover Turkey",
+            subtitle: "From the heart of Anatolia to the blue of the Mediterranean... Dive straight into high-energy experiences and ultimate relaxation in Turkey.",
             searchLocationLabel: "Where to?",
             searchLocationPlaceholder: "Type a vibe or city...",
             searchDateLabel: "When?",
@@ -201,8 +201,8 @@ const TRANSLATIONS: Translations = {
             searchButton: "Let's Go!"
         },
         trustTexts: [
-            "🚀 Quick Bookings, Instant Confirmations",
-            "🎉 Handpicked Experiences for Maximum Fun",
+            "🚀 Quick Bookings for Turkey's Best Spots",
+            "🎉 Handpicked Experiences in Istanbul & Cappadocia",
             "😎 Used by 25,000+ Adventure Seekers",
             "💳 Pay Over Time - Book Now, Pay Later"
         ],
@@ -221,8 +221,8 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Most Hyped Tours This Week",
         dealOfTheDay: {
             badge: "Flash Sale Alert",
-            title: "Half-Off Bali VIP Getaway",
-            desc: "Don't get FOMO! Secure this insanely discounted 7-night luxury Bali getaway before spots sell out.",
+            title: "Half-Off Antalya VIP Getaway",
+            desc: "Don't get FOMO! Secure this insanely discounted 7-night luxury Antalya getaway before spots sell out.",
             button: "Snag The Deal",
             savings: "YOU SAVE"
         },
@@ -301,7 +301,7 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Meistgebuchte Premium-Touren",
         dealOfTheDay: {
             badge: "Exklusives Zeitangebot",
-            title: "50% Ersparnis: Bali Premium-Urlaub",
+            title: "50% Ersparnis: Antalya Premium-Urlaub",
             desc: "Sichern Sie sich ein exzellent bewertetes 7-Nächte-Paket mit geprüften 5-Sterne-Hotels und durchgeplanter Reiseroute.",
             button: "Jetzt Verbindlich Buchen",
             savings: "ERSPARNIS"
@@ -541,7 +541,7 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Los Tours Más Vendidos",
         dealOfTheDay: {
             badge: "Solo Por Hoy",
-            title: "Vacaciones de Ensueño en Bali a Mitad de Precio",
+            title: "Vacaciones de Ensueño en Antalya a Mitad de Precio",
             desc: "Cupos limitados. Consigue tu paquete premium de 7 noches con un 50% de descuento.",
             button: "Reservar Ahora",
             savings: "AHORRAS"
@@ -621,7 +621,7 @@ const TRANSLATIONS: Translations = {
         bestSellersTitle: "Nos Meilleures Ventes",
         dealOfTheDay: {
             badge: "Seulement Aujourd'hui",
-            title: "Des vacances de rêve à Bali à moitié prix",
+            title: "Des vacances de rêve à Antalya à moitié prix",
             desc: "Places limitées. Obtenez un forfait premium de 7 nuits avec une réduction de 50%.",
             button: "Réservez Maintenant",
             savings: "VOUS ÉCONOMISEZ"

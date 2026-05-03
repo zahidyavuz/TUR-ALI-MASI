@@ -95,7 +95,7 @@ export default function AgencyDashboard() {
                     metrics: { total_revenue: 145500, total_bookings: 34 },
                     recent_bookings: [
                         { id: 412, user_full_name: 'Ahmet Yılmaz', tour_detail: { title: 'Kapadokya Balon Turu' }, start_date: '2026-04-12', status: 'confirmed', total_price: 3400 },
-                        { id: 413, user_full_name: 'Ayşe Kaya', tour_detail: { title: 'Büyük İtalya Turu' }, start_date: '2026-04-15', status: 'completed', total_price: 18150 }
+                        { id: 413, user_full_name: 'Ayşe Kaya', tour_detail: { title: 'Tarihi Yarımada Yürüyüşü' }, start_date: '2026-04-15', status: 'completed', total_price: 18150 }
                     ],
                     tours: TOUR_DATA
                 };
@@ -517,7 +517,7 @@ export default function AgencyDashboard() {
 
                                         <div className="bg-white rounded-[24px] shadow-sm border border-gray-200 p-6 relative flex flex-col hover:shadow-md transition opacity-75">
                                             <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">SALT OKUNUR</div>
-                                            <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Büyük İtalya Turu</h3>
+                                            <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Tarihi Yarımada Yürüyüşü</h3>
                                             <p className="text-xs text-gray-500 font-bold mb-4">Tarih: 5 Nisan 2026 • 45 Misafir</p>
                                             
                                             <div className="bg-slate-50 p-3 rounded-xl mb-4 text-xs font-semibold text-gray-600 border border-gray-100">
@@ -728,7 +728,7 @@ export default function AgencyDashboard() {
                                                         )) : (
                                                             <>
                                                                 <option>Kapadokya Balon Turu</option>
-                                                                <option>Büyük İtalya Turu</option>
+                                                                <option>Tarihi Yarımada Yürüyüşü</option>
                                                                 <option>Mavi Yolculuk - Fethiye</option>
                                                                 <option>Kıbrıs Tatili</option>
                                                             </>
@@ -981,14 +981,14 @@ export default function AgencyDashboard() {
                                                 <div className="h-40 bg-slate-200 relative overflow-hidden">
                                                     <Image
                                                         src="https://images.unsplash.com/photo-1516483638261-f40af5bea098?fit=crop&w=600&q=80"
-                                                        alt="Roma"
+                                                        alt="İstanbul"
                                                         fill
                                                         className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
                                                         sizes="(max-width: 768px) 100vw, 33vw"
                                                     />
                                                 </div>
                                                 <div className="p-6 flex flex-col flex-1">
-                                                    <h4 className="font-extrabold text-lg text-slate-800 mb-2">Büyük İtalya Turu</h4>
+                                                    <h4 className="font-extrabold text-lg text-slate-800 mb-2">Tarihi Yarımada Yürüyüşü</h4>
                                                     <p className="text-sm font-medium text-gray-500 mb-4 line-clamp-2">Tek seferde yapılacak 3 kişilik rezervasyonlarda 1 kişi bedava!</p>
                                                     <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                                                         <div>

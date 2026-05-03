@@ -32,7 +32,7 @@ export default function ReviewsPage() {
     // Yorumlanmayı bekleyen turlar (Demo Verisi)
     const [toursToReview, setToursToReview] = useState<TourToReview[]>([
         { id: 't1', name: 'Kapadokya Balon Turu', date: '12 Ekim 2025', image: 'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&q=80&w=200' },
-        { id: 't2', name: 'Büyük İtalya Rotası', date: '3 Ağustos 2025', image: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=200' }
+        { id: 't2', name: 'Tarihi Yarımada Yürüyüşü', date: '3 Ağustos 2025', image: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=200' }
     ]);
 
     // Kullanıcının yaptığı yorumlar
@@ -100,7 +100,7 @@ export default function ReviewsPage() {
             if (tourId === 't1') {
                 setToursToReview(prev => [{ id: 't1', name: 'Kapadokya Balon Turu', date: '12 Ekim 2025', image: 'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&q=80&w=200' }, ...prev]);
             } else if (tourId === 't2') {
-                setToursToReview(prev => [{ id: 't2', name: 'Büyük İtalya Rotası', date: '3 Ağustos 2025', image: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=200' }, ...prev]);
+                setToursToReview(prev => [{ id: 't2', name: 'Tarihi Yarımada Yürüyüşü', date: '3 Ağustos 2025', image: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=200' }, ...prev]);
             }
         }
     };

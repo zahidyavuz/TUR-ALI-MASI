@@ -6,14 +6,14 @@ const LOCATION_COORDS: Record<string, { lat: number; lon: number }> = {
   'Nevşehir': { lat: 38.62, lon: 34.72 },
   'Nevsehir': { lat: 38.62, lon: 34.72 },
   'Kapadokya': { lat: 38.62, lon: 34.72 },
-  'Roma': { lat: 41.9, lon: 12.5 },
+  'İstanbul': { lat: 41.0082, lon: 28.9784 },
   'Malé': { lat: 4.17, lon: 73.51 },
   'Tokyo': { lat: 35.68, lon: 139.69 },
   'Tromso': { lat: 69.65, lon: 18.96 },
   'Napoli': { lat: 40.85, lon: 14.27 },
   'Gaziantep': { lat: 37.07, lon: 37.38 },
   'Fethiye': { lat: 36.62, lon: 29.12 },
-  'Bali': { lat: -8.41, lon: 115.19 },
+  'Antalya': { lat: 36.8969, lon: 30.7133 },
   'Kyoto': { lat: 35.01, lon: 135.77 },
 };
 

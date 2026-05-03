@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useLocale } from '../context/LocaleContext';
-import CurrencySelector from '../components/CurrencySelector';
+import Navbar from '../components/Navbar';
 
 const RESTAURANTS = [
     {
@@ -33,7 +33,7 @@ const RESTAURANTS = [
     {
         id: 'r3',
         name: 'Le Globe - World Cuisine',
-        location: 'Roma, İtalya',
+        location: 'Sultanahmet, İstanbul',
         cuisine: 'Dünya Mutfağı',
         priceLevel: '₺₺₺₺',
         rating: 4.7,
@@ -114,16 +114,7 @@ export default function TastePage() {
 
     return (
         <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
-            {/* Navbar */}
-            <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-                <Link href="/" className="text-4xl font-extrabold text-[#008cb3] tracking-tighter">
-                    tour<span className="text-[#005e85]">kia</span>
-                </Link>
-                <div className="flex gap-4 items-center">
-                    <CurrencySelector />
-                    <Link href="/" className="text-sm font-bold text-gray-500 hover:text-blue-500 transition-colors">Ana Sayfa</Link>
-                </div>
-            </nav>
+            <Navbar />
 
             {/* Header */}
             <div className="relative h-[250px] md:h-[350px] w-full flex items-center justify-center overflow-hidden bg-slate-900">
@@ -278,7 +269,7 @@ export default function TastePage() {
                 <div className="bg-white rounded-[40px] p-8 md:p-12 border-2 border-dashed border-orange-200 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-orange-500 transition-all duration-500">
                     <div className="flex-1 text-center md:text-left">
                         <span className="bg-orange-100 text-orange-600 text-[10px] uppercase font-black px-3 py-1 rounded-full mb-4 inline-block tracking-widest">İşletme Sahipleri İçin</span>
-                        <h2 className="text-2xl md:text-4xl font-black text-slate-800 mb-4 transition-colors group-hover:text-orange-600">Restoranınızı veya Kafanızı <br /> Sisteme Ekleyin!</h2>
+                        <h2 className="text-2xl md:text-4xl font-black text-slate-800 mb-4 transition-colors group-hover:text-orange-600">Restoranınızı veya Cafenizi <br /> Sisteme Ekleyin!</h2>
                         <p className="text-gray-500 font-bold max-w-xl">Maliyetleri düşürün, rezervasyonlarınızı tek panelden yönetin ve binlerce turiste anında ulaşın. Üstelik ilk 3 ay komisyon ödemeyin.</p>
                     </div>
                     <Link href="/?showAgencyModal=true" className="bg-slate-900 text-white px-10 py-5 rounded-[24px] font-black text-lg transition-all shadow-xl hover:bg-orange-500 hover:shadow-orange-500/20 active:scale-95 whitespace-nowrap">
