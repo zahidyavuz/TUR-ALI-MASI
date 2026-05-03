@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import Navbar from '../../components/Navbar';
 
 interface MemoryFolder {
     id: string;
@@ -14,7 +15,7 @@ interface MemoryFolder {
 export default function MemoriesPage() {
     const folders: MemoryFolder[] = [
         { id: '1', tourName: 'Kapadokya Balon & Vadi Turu', year: '2024', coverPhoto: 'https://images.unsplash.com/photo-1641128324972-af3212f0f6bd?auto=format&fit=crop&q=80&w=400', photosCount: 24 },
-        { id: '2', tourName: 'Büyük İtalya Rotası', year: '2023', coverPhoto: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=400', photosCount: 56 },
+        { id: '2', tourName: 'Tarihi Yarımada Yürüyüşü', year: '2023', coverPhoto: 'https://images.unsplash.com/photo-1525874684015-58379d421a52?auto=format&fit=crop&q=80&w=400', photosCount: 56 },
         { id: '3', tourName: 'Karadeniz Rüyası', year: '2023', coverPhoto: 'https://images.unsplash.com/photo-1589133177309-dd773addb838?auto=format&fit=crop&q=80&w=400', photosCount: 12 },
     ];
 
@@ -25,8 +26,9 @@ export default function MemoriesPage() {
     if (!isClient) return null;
 
     return (
-        <div className="min-h-screen bg-slate-50 py-12 font-sans overflow-x-hidden">
-            <div className="max-w-5xl mx-auto px-4 sm:px-6">
+        <div className="min-h-screen bg-slate-50 font-sans overflow-x-hidden">
+            <Navbar />
+            <div className="py-12 max-w-5xl mx-auto px-4 sm:px-6">
 
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
                     <div>

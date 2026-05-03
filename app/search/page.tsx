@@ -45,6 +45,15 @@ function SearchResultsContent() {
   const categories = getCityCategories();
   const languages = ['Türkçe', 'İngilizce', 'Rusça', 'Çince'];
 
+  const mockNotes = [
+    "Cappo'nun Notu: Kapadokya'nın ayazına dikkat! Sabahları kalın giyinmek şart ama manzaraya kesinlikle değecek. 🎈",
+    "Cappo'nun Notu: İstanbul Boğazı'nın eşsiz esintisine karşı çay içmeyi unutmayın, bu turun en keyifli anı! ☕",
+    "Cappo'nun Notu: Antalya sıcağında güneş kreminizi eksik etmeyin, mükemmel koyların tadını çıkarın! 🏖️",
+    "Cappo'nun Notu: Muhteşem fotoğraflar çekeceğinizin garantisini veriyorum! 📸",
+    "Cappo'nun Notu: Bu turda harcayacağınız her kuruşa değecek, enerjiniz tavan yapacak! ⚡",
+    "Cappo'nun Notu: Unutulmaz bir Türkiye deneyimi için mükemmel bir seçim. 🇹🇷",
+    "Cappo'nun Notu: Bol keşifli ama sonunda 'İyi ki gelmişim' dedirtecek bir macera. 🥾"
+  ];
 
   useEffect(() => {
     async function loadData() {
@@ -73,13 +82,6 @@ function SearchResultsContent() {
     loadData();
   }, [location, date, guests, maxPrice, duration, selectedCategories, selectedLanguages]);
 
-  const mockNotes = [
-    "Cappo'nun Notu: Muhteşem fotoğraflar çekeceğinizin garantisini veriyorum! 🎈",
-    "Cappo'nun Notu: Bu turda harcayacağınız her kuruşa değecek, enerjiniz tavan yapacak! ⚡",
-    "Cappo'nun Notu: Romantik bir kaçamak için bundan daha iyisi olamaz. 🍷",
-    "Cappo'nun Notu: Bol yürüyüşlü ama sonunda 'İyi ki gelmişim' dedirtecek bir macera. 🥾"
-  ];
-
   return (
     <div className="min-h-screen bg-[#FAF9F6] font-sans text-slate-900 pb-12">
       {/* Üst Bar: Puan ve Destek */}
@@ -106,7 +108,7 @@ function SearchResultsContent() {
           </div>
         </div>
 
-        {/* Navigasyon Linkleri (Yeni Eklendi) */}
+        {/* Navigasyon Linkleri */}
         <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[14px]">
           <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.destinations}</Link>
           <Link href="/taste" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.taste}</Link>
@@ -263,31 +265,6 @@ function SearchResultsContent() {
                 <button onClick={() => router.push('/')} className="bg-[#008cb3] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#005e85] transition-all hover:shadow-lg active:scale-95">
                   Tüm Turları Keşfet
                 </button>
-                
-                <div className="w-full h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-10"></div>
-                
-                <h3 className="text-xl font-black text-slate-800 mb-8">Bunun yerine {location || 'Bölge'}'nin En Popüler Deneyimlerine Göz Atın</h3>
-                
-                {/* Popular Carousel/Grid */}
-                <div className="w-full overflow-x-auto pb-4 scrollbar-hide">
-                  <div className="flex md:grid md:grid-cols-3 gap-6 min-w-max md:min-w-0">
-                    {(popularTours.length > 0 ? popularTours : tours.slice(0, 3)).map((tour) => (
-                      <Link href={`/tour/${tour.id}`} key={tour.id} className="group flex flex-col bg-[#FAF9F6] rounded-2xl overflow-hidden border border-gray-50 hover:shadow-md transition-all w-72 md:w-auto">
-                        <div className="relative h-44 w-full overflow-hidden">
-                          <Image src={tour.image_main || tour.imageMain} alt={tour.title} fill className="object-cover group-hover:scale-110 transition-transform duration-500" />
-                          <div className="absolute top-3 right-3 bg-white/95 backdrop-blur-md px-2.5 py-1.5 rounded-xl text-xs font-black text-[#008cb3] shadow-sm">
-                            {tour.rating} ⭐
-                          </div>
-                        </div>
-                        <div className="p-5 text-left">
-                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{tour.location.split(',')[0]}</p>
-                          <h4 className="text-sm font-black text-slate-800 mb-2 line-clamp-1 group-hover:text-[#008cb3] transition-colors">{tour.title}</h4>
-                          <p className="text-base font-black text-[#008cb3]">{formatPrice(tour.price)}</p>
-                        </div>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
               </div>
             </div>
           ) : (
@@ -325,32 +302,25 @@ function SearchResultsContent() {
                       {/* Dinamik Badge'ler */}
                       <div className="absolute top-4 left-4 flex flex-col gap-2">
                         {tour.discount && (
-                          <div className="bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-in fade-in slide-in-from-left-4 duration-500">
+                          <div className="bg-emerald-500/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5">
                             <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse"></span>
                             %{tour.discount} İNDİRİM
                           </div>
                         )}
                         {tour.reviews_count > 500 && (
-                          <div className="bg-orange-500/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-in fade-in slide-in-from-left-4 duration-700">
+                          <div className="bg-orange-500/90 backdrop-blur-md text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg">
                             🔥 EN ÇOK SATAN
-                          </div>
-                        )}
-                        {tour.price > 5000 && (
-                          <div className="bg-gradient-to-r from-amber-400 to-yellow-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1.5 animate-in fade-in slide-in-from-left-4 duration-1000">
-                            👑 VIP DENEYİM
                           </div>
                         )}
                       </div>
 
-                      {/* Şehir İmzası (Yeni Eklendi) */}
                       {citySign && (
-                        <div className="absolute top-4 right-16 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-lg flex items-center gap-2 border border-white/50 animate-in fade-in zoom-in duration-500">
+                        <div className="absolute top-4 right-16 bg-white/90 backdrop-blur-md px-3 py-1.5 rounded-2xl shadow-lg flex items-center gap-2 border border-white/50">
                           <span className="text-sm">{citySign.icon}</span>
                           <span className="text-[10px] font-black text-slate-800 uppercase tracking-tighter">{citySign.name}</span>
                         </div>
                       )}
 
-                      {/* Favori Butonu */}
                       <button className="absolute top-4 right-4 w-10 h-10 bg-white/90 backdrop-blur-md hover:bg-white rounded-full flex items-center justify-center transition-all group/fav active:scale-90 shadow-lg border border-white/50">
                         <span className="text-slate-400 group-hover/fav:text-red-500 transition-colors">❤</span>
                       </button>
@@ -359,17 +329,14 @@ function SearchResultsContent() {
                     {/* İçerik Bölümü */}
                     <div className="p-6 md:p-8 flex flex-col flex-1 bg-white relative">
                       <div className="flex flex-col mb-4">
-                        {/* Kategori */}
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">
                           {tour.category || '✨ Genel Deneyim'}
                         </span>
                         
-                        {/* Başlık */}
                         <h3 className="text-2xl font-black text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight mb-2 line-clamp-1">
                           {tour.title}
                         </h3>
 
-                        {/* Güven Unsuru (Yıldızlar ve Yorumlar) */}
                         <div className="flex items-center gap-2 mb-6">
                           <div className="flex text-yellow-400 text-sm">
                             {'★'.repeat(Math.floor(tour.rating))}{'☆'.repeat(5 - Math.floor(tour.rating))}
@@ -378,7 +345,6 @@ function SearchResultsContent() {
                           <span className="text-[10px] font-bold text-gray-400">— {tour.reviews_count} Yorum</span>
                         </div>
                         
-                        {/* Kısa Özet (İkonlar) */}
                         <div className="flex flex-wrap items-center gap-y-3 gap-x-6">
                           <div className="flex items-center gap-2 text-xs font-bold text-slate-600">
                             <span className="w-7 h-7 bg-slate-50 rounded-full flex items-center justify-center text-blue-500">⏱️</span>
@@ -399,8 +365,6 @@ function SearchResultsContent() {
                         {tour.description}
                       </p>
 
-
-                      {/* Cappo'nun Notu */}
                       <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-xl mb-4">
                         <p className="text-xs font-semibold text-[#005e85] italic">
                           {randomNote}
@@ -420,7 +384,7 @@ function SearchResultsContent() {
                           </div>
                         </div>
                         <Link href={`/tour/${tour.id}`} className="w-full md:w-auto">
-                          <button className="w-full md:w-auto bg-[#008cb3] text-white font-bold px-8 py-4 rounded-2xl hover:bg-slate-900 transition-all shadow-[0_10px_20px_rgba(0,140,179,0.2)] hover:shadow-[0_15px_30px_rgba(0,0,0,0.2)] active:scale-95 flex items-center justify-center gap-2">
+                          <button className="w-full md:w-auto bg-[#008cb3] text-white font-bold px-8 py-4 rounded-2xl hover:bg-slate-900 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
                             <span>Hemen İncele</span>
                             <span className="text-lg">→</span>
                           </button>
@@ -433,76 +397,6 @@ function SearchResultsContent() {
             </>
           )}
         </main>
-      </div>
-
-      {/* Lezzet Durakları (Taste Hub) - Konsistans İçin Buraya da Eklendi */}
-      <div className="w-full bg-white py-24 border-t border-gray-100">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
-            <div className="max-w-2xl">
-              <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-3 block">Gastronomi Keşfi</span>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-4">Lezzet Durakları</h2>
-              <p className="text-gray-500 font-medium leading-relaxed">
-                Aramanızı gurme bir akşam yemeği ile taçlandırın. Bölgenin en iyi restoranlarında sizin için yer ayırttık.
-              </p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {[
-              { ad: "Ziyade Ocakbaşı", kategori: "Geleneksel Türk Mutfağı", puan: "4.9", image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80", tag: "Michelin Önerisi" },
-              { ad: "Museum Terrace", kategori: "Fine Dining & Manzara", puan: "4.8", image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80", tag: "Eşsiz Manzara" },
-              { ad: "Seki Restaurant", kategori: "Kaya Oyma & Gurme", puan: "4.7", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&q=80", tag: "Tarihi Doku" }
-            ].map((rest, i) => (
-              <div key={i} className="group cursor-pointer">
-                <div className="relative h-64 rounded-[2rem] overflow-hidden mb-5 shadow-lg group-hover:shadow-2xl transition-all duration-500">
-                  <Image src={rest.image} alt={rest.ad} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-white/90 backdrop-blur-md text-[10px] font-black px-3 py-1.5 rounded-full text-slate-800 shadow-sm uppercase tracking-wider">{rest.tag}</span>
-                  </div>
-                  <div className="absolute bottom-6 left-6 text-white">
-                    <div className="flex items-center gap-1 text-yellow-400 text-xs mb-1">
-                      {'★'.repeat(5)} <span className="text-white ml-1 font-bold">{rest.puan}</span>
-                    </div>
-                    <h4 className="text-xl font-black">{rest.ad}</h4>
-                  </div>
-                </div>
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{rest.kategori}</p>
-                <p className="text-sm font-bold text-gray-500 group-hover:text-[#008cb3] transition-colors">Menüyü İncele ➔</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* Anılar (Memories / Social Wall) - Konsistans İçin Buraya da Eklendi */}
-      <div className="w-full bg-slate-900 py-24 relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-4 block">Gezginlerin Gözünden</span>
-            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">Ölümsüz Anılar</h2>
-            <p className="text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
-              Bu turları daha önce deneyimleyen gezginlerin karelerine göz atın.
-            </p>
-          </div>
-
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
-            {[
-              { img: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&q=80", user: "@sarah_travels", text: "Balonların şafağı karşıladığı o an... Anlatılmaz, yaşanır! 🎈" },
-              { img: "https://images.unsplash.com/photo-1544833342-a8109041ce04?w=800&q=80", user: "@mehmet.can", text: "Kapadokya vadilerinde ATV turu hayatımın en adrenalin dolu günüydü." },
-              { img: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800&q=80", user: "@elena_explorer", text: "İstanbul'un ışıkları altında Boğaz turu... Büyüleyici!" }
-            ].map((an, i) => (
-              <div key={i} className="relative group rounded-3xl overflow-hidden break-inside-avoid shadow-xl hover:shadow-2xl transition-all duration-500">
-                <Image src={an.img} alt={an.user} width={400} height={500} className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-6">
-                  <p className="text-white font-bold text-sm mb-2">{an.text}</p>
-                  <span className="text-[#008cb3] font-black text-xs">{an.user}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
     </div>
   );

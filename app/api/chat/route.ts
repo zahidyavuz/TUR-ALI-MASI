@@ -33,6 +33,20 @@ export async function POST(req: NextRequest) {
             });
         }
 
+        if (lowerMsg.includes('sultanahmet') && (lowerMsg.includes('kahve') || lowerMsg.includes('içilir'))) {
+            return NextResponse.json({
+                reply: "Sultanahmet'te kahve denince akla hemen tarihi medreselerin avlularındaki gizli kahveciler veya Ayasofya manzaralı teras kafeler gelir. Caferağa Medresesi'nin avlusunda Türk kahveni yudumlarken tarihin dokusunu hissedebilirsin!",
+                options: []
+            });
+        }
+
+        if (lowerMsg.includes('antalya') && (lowerMsg.includes('koy') || lowerMsg.includes('deniz'))) {
+            return NextResponse.json({
+                reply: "Antalya'da deniz deyince Kaş ve Kalkan civarındaki saklı koylar bir harika! Kaputaş Plajı turkuaz rengiyle ünlüdür ancak kalabalıktan uzaklaşmak istersen tekneyle ulaşabileceğin Korsan Koyu veya Kekova batık şehri etrafındaki koylarda denize girmek efsanevi bir deneyimdir.",
+                options: []
+            });
+        }
+
         // Site Rehberi Yetenekleri (Yeni Eklendi)
         if (lowerMsg.includes('bilet') || lowerMsg.includes('sipariş') || lowerMsg.includes('rezervasyonlar')) {
             return NextResponse.json({
@@ -80,50 +94,49 @@ export async function POST(req: NextRequest) {
         }
 
         // Basit NLU / Keyword mapping (Veritabanı Analizi Simülasyonu)
-        let recommendedKeys = ['kapadokya', 'buyuk-italya', 'maldivler-ruyasi'];
+        let recommendedKeys = ['kapadokya-klasik-balon', 'istanbul-bogaz-turu', 'antalya-mavi-tur'];
         let isLead = false;
         let leadData = null;
 
         if (lowerMsg.includes('vizesiz') || lowerMsg.includes('vize') || lowerMsg.includes('karadağ') || lowerMsg.includes('balkan')) {
             isLead = true;
             leadData = {
-                title: "Vizesiz Balkanlar & Karadağ",
-                desc: "Tur listemizi analiz ettim. Sistemimizde henüz vizesiz bir seçenek yok ancak Google Maps & TripAdvisor trendlerine göre en popüler vizesiz rotalar Karadağ (Kotor) ve Belgrad. Çok yakında efsane bir vizesiz Balkan rotası ekleyeceğiz!",
-                image: "https://images.unsplash.com/photo-1600100411132-84bc53de2b61?q=80&w=400&auto=format&fit=crop"
+                title: "Türkiye'nin Gizli Cennetleri",
+                desc: "Vize stresiyle hiç uğraşma! Vizesiz Balkanlar yerine sana İstanbul'un tarihi atmosferini veya Antalya'nın eşsiz koylarını sunabilirim. Türkiye'nin güzellikleri dünyalara bedel!",
+                image: "https://images.unsplash.com/photo-1545638290-7c26fa323f66?q=80&w=400&auto=format&fit=crop"
             };
-        } else if (lowerMsg.includes('bali') || lowerMsg.includes('tayland') || lowerMsg.includes('phuket')) {
+        } else if (lowerMsg.includes('bali') || lowerMsg.includes('tayland') || lowerMsg.includes('phuket') || lowerMsg.includes('maldivler')) {
             isLead = true;
             leadData = {
-                title: "Egzotik Uzak Doğu (Bali, Phuket)",
-                desc: "Listemizde Maldivler ve Japonya mevcut ancak TripAdvisor verilerine göre aradığınız vibe kesinlikle Bali veya Phuket! Uzak Doğu macera rotamız çok yakında açılacak.",
-                image: "https://images.unsplash.com/photo-1537996194471-e657df975ab4?q=80&w=400&auto=format&fit=crop"
+                title: "Uzakdoğu'yu Unut, Antalya'ya Gel!",
+                desc: "Bali veya Maldivler'i aramaya gerek yok. Antalya Kaş'ın turkuaz suları ve Kapadokya'nın masalsı manzaraları dururken uzaklara gitmeye gerek yok! İşte sana efsane alternatifler:",
+                image: "https://images.unsplash.com/photo-1615714088231-318e805d76ea?q=80&w=400&auto=format&fit=crop"
             };
         } else if (lowerMsg.includes('yemek') || lowerMsg.includes('gurme') || lowerMsg.includes('gastronomi') || lowerMsg.includes('pizza') || lowerMsg.includes('food') || lowerMsg.includes('essen') || lowerMsg.includes('美食')) {
-            recommendedKeys = ['napoli-pizza-atolyesi', 'gaziantep-gurme', 'buyuk-italya'];
+            recommendedKeys = ['istanbul-bogaz-turu', 'gurme-sarap-tadimi', 'istanbul-tarihi-yarimada'];
         } else if (lowerMsg.includes('adrenalin') || lowerMsg.includes('heyecan') || lowerMsg.includes('ekstrem') || lowerMsg.includes('safari') || lowerMsg.includes('action') || lowerMsg.includes('adventure') || lowerMsg.includes('abenteuer') || lowerMsg.includes('冒险')) {
-            recommendedKeys = ['fethiye-yama-parasutu', 'kapadokya-atv-safari', 'iskandinav-fiyort'];
+            recommendedKeys = ['antalya-kanyon-rafting', 'gun-batimi-atv', 'yesil-tur-guney'];
         } else if (lowerMsg.includes('günübirlik') || lowerMsg.includes('deneyim') || lowerMsg.includes('kısa') || lowerMsg.includes('short') || lowerMsg.includes('kurz') || lowerMsg.includes('一日')) {
-            recommendedKeys = ['napoli-pizza-atolyesi', 'fethiye-yama-parasutu', 'kapadokya-atv-safari'];
+            recommendedKeys = ['istanbul-tarihi-yarimada', 'kirmizi-tur-kuzey', 'antalya-kanyon-rafting'];
         } else if (lowerMsg.includes('doğa') || lowerMsg.includes('macera') || lowerMsg.includes('kuzey') || lowerMsg.includes('nature') || lowerMsg.includes('natur') || lowerMsg.includes('自然')) {
-            recommendedKeys = ['iskandinav-fiyort', 'kapadokya', 'japonya-bahar'];
+            recommendedKeys = ['antalya-mavi-tur', 'yesil-tur-guney', 'at-turu-safarisi'];
         } else if (lowerMsg.includes('romantik') || lowerMsg.includes('deniz') || lowerMsg.includes('balayı') || lowerMsg.includes('romantic') || lowerMsg.includes('sea') || lowerMsg.includes('浪漫')) {
 
             if (lowerMsg.includes('balayı')) {
-                // For honeymoon, occasionally offer lead for Bora Bora or just standard Maldivler + Kapadokya
                 if (Math.random() > 0.5) {
                     isLead = true;
                     leadData = {
-                        title: "Bora Bora & Los Roques",
-                        desc: "Portföyümüzdeki Maldivler harika bir seçenek. Ancak Google Travel analizlerine göre tam sana göre yepyeni bir VIP Balayı konsepti (Bora Bora) hazırlıyoruz!",
-                        image: "https://images.unsplash.com/photo-1549488344-9b2f63f53198?q=80&w=400&auto=format&fit=crop"
+                        title: "Kapadokya & Antalya VIP Balayı",
+                        desc: "Balayı için Kapadokya'nın masalsı balon turları ve Antalya'nın lüks mavi turlarından daha romantik ne olabilir? VIP Balayı paketlerimize göz at!",
+                        image: "https://images.unsplash.com/photo-1502485019198-a625bd53ceb7?q=80&w=400&auto=format&fit=crop"
                     };
                 }
             }
             if (!isLead) {
-                recommendedKeys = ['maldivler-ruyasi', 'kapadokya', 'buyuk-italya'];
+                recommendedKeys = ['antalya-mavi-tur', 'istanbul-bogaz-turu', 'at-turu-safarisi'];
             }
         } else if (lowerMsg.includes('kültür') || lowerMsg.includes('tarih') || lowerMsg.includes('şehir') || lowerMsg.includes('culture') || lowerMsg.includes('history') || lowerMsg.includes('kultur') || lowerMsg.includes('历史')) {
-            recommendedKeys = ['gaziantep-gurme', 'buyuk-italya', 'japonya-bahar'];
+            recommendedKeys = ['istanbul-tarihi-yarimada', 'kirmizi-tur-kuzey', 'sakli-koyler-soganli'];
         } else {
             // Global Search Integration: Serbest aramada eşleşme durumlarını bul
             let searchResults: string[] = [];
