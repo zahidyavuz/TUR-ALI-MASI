@@ -18,6 +18,8 @@ function CheckoutLogic() {
     const [tour, setTour] = useState<any>(null);
     const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Info, 2: Payment Gateway, 3: Success
     const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
+    const [showUpsellModal, setShowUpsellModal] = useState(false);
+    const [upsellShown, setUpsellShown] = useState(false);
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -43,6 +45,13 @@ function CheckoutLogic() {
     };
 
     const handleSimulatePaymentProcess = () => {
+        // Upsell Logic: Eğer sadece tur varsa ve henüz teklif gösterilmediyse
+        if (!menuId && tour?.linked_restaurant && !upsellShown) {
+            setShowUpsellModal(true);
+            setUpsellShown(true);
+            return;
+        }
+
         setIsSimulatingPayment(true);
         setTimeout(() => {
             setIsSimulatingPayment(false);
@@ -82,8 +91,8 @@ function CheckoutLogic() {
         }, 3000);
     };
 
-    if (!tourId) return <div className="p-10 text-center">Eksik Rezervasyon Parametreleri</div>;
-    if (!tour && step === 1) return <div className="p-10 text-center">Tur detayları yükleniyor...</div>;
+    if (!tourId && !menuId) return <div className="p-10 text-center">Eksik Rezervasyon Parametreleri</div>;
+    if (tourId && !tour && step === 1) return <div className="p-10 text-center">Detaylar yükleniyor...</div>;
 
     const tourPrice = tour ? tour.price * guests : 0;
     const mealPrice = (menuId && tour?.linked_restaurant && tour.linked_restaurant.id === menuId) ? tour.linked_restaurant.price * guests : 0;
@@ -298,6 +307,125 @@ function CheckoutLogic() {
                     )}
                 </div>
             </div>
+
+            {/* UPSELL MODAL: Glassmorphism Akıllı Kombo Teklifi */}
+            {showUpsellModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-500">
+                    <div className="bg-white/70 backdrop-blur-2xl rounded-[48px] max-w-3xl w-full overflow-hidden shadow-[0_0_80px_rgba(249,115,22,0.25)] relative animate-in zoom-in-95 duration-700 border border-white/40">
+                        {/* Parlama Efekti (Glow Decor) */}
+                        <div className="absolute -top-24 -left-24 w-64 h-64 bg-orange-500/20 rounded-full blur-[100px] animate-pulse"></div>
+                        <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-700"></div>
+
+                        <div className="flex flex-col md:flex-row relative z-10">
+                            {/* Sol: Görsel (Geniş ve Estetik) */}
+                            <div className="w-full md:w-5/12 h-64 md:h-auto relative">
+                                <img 
+                                    src={!menuId ? (tour?.linked_restaurant?.image || tour?.imageMain) : 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Hot_air_balloon_at_sunrise_over_Cappadocia%2C_Turkey.JPG'} 
+                                    className="w-full h-full object-cover" 
+                                    alt="Upsell" 
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-transparent to-orange-500/20"></div>
+                                
+                                {/* Discount Badge */}
+                                <div className="absolute top-8 left-8">
+                                    <div className="bg-orange-600 text-white text-[11px] font-black px-5 py-2.5 rounded-2xl uppercase tracking-widest shadow-2xl border border-orange-400/30 animate-bounce">
+                                        -%15 PAKET İNDİRİMİ
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Sağ: İçerik */}
+                            <div className="w-full md:w-7/12 p-10 md:p-14 flex flex-col justify-center">
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="w-10 h-10 bg-orange-100 rounded-2xl flex items-center justify-center text-xl shadow-inner">💎</div>
+                                    <h4 className="text-[11px] font-black text-orange-600 uppercase tracking-[0.4em]">Özel Paket Teklifi</h4>
+                                </div>
+
+                                <h2 className="text-3xl md:text-4xl font-black text-orange-500 leading-[1.1] mb-6 tracking-tight">
+                                    WAIT! WANT TO MAKE <br/> IT A <span className="text-slate-900 underline decoration-orange-500/30 underline-offset-8">VIP COMBO</span>?
+                                </h2>
+
+                                <div className="space-y-4 mb-10">
+                                    <div className="flex items-start gap-3 bg-white/40 p-4 rounded-3xl border border-white/60">
+                                        <span className="text-emerald-500 mt-1">✓</span>
+                                        <p className="text-sm font-bold text-slate-700">
+                                            {!menuId ? (
+                                                <>Seçtiğiniz tura <b>{tour?.linked_restaurant?.special_menu_name || 'Özel Akşam Yemeği'}</b> paketi ekleyin.</>
+                                            ) : (
+                                                <>Seçtiğiniz yemeğe <b>Kapadokya Balon Turu</b> ekleyerek günü taçlandırın.</>
+                                            )}
+                                        </p>
+                                    </div>
+                                    <p className="text-sm font-medium text-slate-500 leading-relaxed px-2">
+                                        Bu teklif sadece şu anki rezervasyonunuza özeldir. Ayrı ayrı alımlarda geçerli olmayan <b>VIP Paket Fiyatı</b> avantajını kaçırmayın.
+                                    </p>
+
+                                    {/* Fiyat Karşılaştırma Görseli (New) */}
+                                    <div className="flex items-center gap-4 py-4 px-2">
+                                        <div className="flex-1 bg-white/30 border border-white/50 p-4 rounded-3xl text-center">
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Standard</p>
+                                            <p className="text-xl font-bold text-slate-500 line-through">€150</p>
+                                        </div>
+                                        <div className="text-2xl font-black text-orange-500">➔</div>
+                                        <div className="flex-1 bg-orange-50 border border-orange-100 p-4 rounded-3xl text-center relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded-bl-xl shadow-sm">
+                                                SAVE €25 EXTRA!
+                                            </div>
+                                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">VIP Combo</p>
+                                            <p className="text-2xl font-black text-slate-900">€175</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-emerald-50/50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-3">
+                                        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
+                                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                        </div>
+                                        <p className="text-[11px] font-black text-emerald-800 leading-tight">
+                                            Upgrade now and get a VIP reserved table <br/> + Dual QR ticket instantly!
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-col gap-4">
+                                    <button 
+                                        onClick={() => {
+                                            const params = new URLSearchParams(window.location.search);
+                                            if (!menuId) {
+                                                params.set('menuId', tour?.linked_restaurant?.id || 'demo-menu');
+                                            } else {
+                                                params.set('tourId', 'kapadokya-klasik-balon');
+                                            }
+                                            router.replace(`/checkout?${params.toString()}`, { scroll: false });
+                                            setShowUpsellModal(false);
+                                            setIsSimulatingPayment(true);
+                                            setTimeout(() => {
+                                                setIsSimulatingPayment(false);
+                                                setStep(3);
+                                            }, 2500);
+                                        }}
+                                        className="w-full bg-orange-600 hover:bg-slate-900 text-white font-black py-5 rounded-[24px] shadow-[0_15px_40px_rgba(249,115,22,0.4)] transition-all transform active:scale-95 text-lg"
+                                    >
+                                        YES, UPGRADE TO VIP COMBO! ➔
+                                    </button>
+                                    <button 
+                                        onClick={() => {
+                                            setShowUpsellModal(false);
+                                            setIsSimulatingPayment(true);
+                                            setTimeout(() => {
+                                                setIsSimulatingPayment(false);
+                                                setStep(3);
+                                            }, 2000);
+                                        }}
+                                        className="w-full text-slate-400 font-bold py-2 text-[11px] hover:text-orange-600 transition-colors uppercase tracking-[0.2em]"
+                                    >
+                                        No thanks, just the tour
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

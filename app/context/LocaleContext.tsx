@@ -69,6 +69,11 @@ type Translations = {
             destinations: string;
             support: string;
         };
+        nationalShowcase: {
+            badge: string;
+            title: string;
+            subtitle: string;
+        };
     }
 };
 
@@ -131,7 +136,7 @@ const TRANSLATIONS: Translations = {
                 { title: "7/24 Rehberlik", desc: "Dünyanın neresinde olursanız olun deneyimli ekibimiz bir telefon uzağınızda." }
             ]
         },
-        popularDestinations: "Kapadokya'yı Keşfet",
+        popularDestinations: "Türkiye'deki Popüler Turlar",
         adventureStylesTitle: "Sana Uygun Macera Stilini Seç",
         bestSellersTitle: "Haftanın En Çok Satan Turları",
         dealOfTheDay: {
@@ -146,6 +151,11 @@ const TRANSLATIONS: Translations = {
             guides: "Uzman Rehber",
             destinations: "Farklı Ülke",
             support: "Müşteri Desteği"
+        },
+        nationalShowcase: {
+            badge: "Ulusal Vitrin",
+            title: "Türkiye'nin En Seçkin Deneyimleri",
+            subtitle: "Kapadokya'dan İstanbul'a, Antalya'dan Ege'ye uzanan en prestijli tur ve aktiviteler."
         }
     },
     'en-US': {
@@ -221,6 +231,11 @@ const TRANSLATIONS: Translations = {
             guides: "Local Legends",
             destinations: "Countries",
             support: "Live Support"
+        },
+        nationalShowcase: {
+            badge: "National Showcase",
+            title: "Turkey's Most Exclusive Experiences",
+            subtitle: "From Cappadocia to Istanbul, the most prestigious tours and activities curated for you."
         }
     },
     'de-DE': {
@@ -296,6 +311,11 @@ const TRANSLATIONS: Translations = {
             guides: "Zertifizierte Führer",
             destinations: "Streng Geprüfte Länder",
             support: "Zuverlässiger Support"
+        },
+        nationalShowcase: {
+            badge: "Nationales Schaufenster",
+            title: "Türkei's Exklusivste Erlebnisse",
+            subtitle: "Von Kappadokien bis Istanbul, die prestigeträchtigsten Touren und Aktivitäten für Sie kuratiert."
         }
     },
     'zh-CN': {
@@ -371,6 +391,11 @@ const TRANSLATIONS: Translations = {
             guides: "名金牌导游",
             destinations: "个精选国家",
             support: "小时私人管家"
+        },
+        nationalShowcase: {
+            badge: "国家展厅",
+            title: "土耳其最独特的体验",
+            subtitle: "从卡帕多奇亚到伊斯坦布尔，为您精心策划的最负盛名的旅游和活动。"
         }
     },
     'ar-SA': {
@@ -446,6 +471,11 @@ const TRANSLATIONS: Translations = {
             guides: "مرشد خبير",
             destinations: "دولة مختلفة",
             support: "دعم العملاء"
+        },
+        nationalShowcase: {
+            badge: "المعرض الوطني",
+            title: "تجارب تركيا الأكثر تميزاً",
+            subtitle: "من كابادوكيا إلى إسطنبول، أرقى الجولات والأنشطة المختارة لك."
         }
     },
     'es-ES': {
@@ -521,6 +551,11 @@ const TRANSLATIONS: Translations = {
             guides: "Guías Expertos",
             destinations: "Países",
             support: "Atención al Cliente"
+        },
+        nationalShowcase: {
+            badge: "Escaparate Nacional",
+            title: "Las Experiencias Más Exclusivas de Turquía",
+            subtitle: "Desde Capadocia hasta Estambul, los tours y actividades más prestigiosos seleccionados para ti."
         }
     },
     'fr-FR': {
@@ -596,6 +631,11 @@ const TRANSLATIONS: Translations = {
             guides: "Guides Experts",
             destinations: "Pays Différents",
             support: "Service Client"
+        },
+        nationalShowcase: {
+            badge: "Vitrine Nationale",
+            title: "Les Expériences les Plus Exclusives de Turquie",
+            subtitle: "De la Cappadoce à Istanbul, les visites et activités les plus prestigieuses sélectionnées pour vous."
         }
     }
 }

@@ -30,6 +30,13 @@ export default function Chatbot() {
     const pathname = usePathname();
     const { locale, formatPrice } = useLocale();
     const [isOpen, setIsOpen] = useState(false);
+    const [autoOpenDisabled, setAutoOpenDisabled] = useState(false);
+
+    // Load auto-open preference from session
+    useEffect(() => {
+        const disabled = sessionStorage.getItem('cappo_auto_open_disabled');
+        if (disabled === 'true') setAutoOpenDisabled(true);
+    }, []);
 
     // Dynamic welcome message
     const initialMsgs: Record<string, string> = {
@@ -64,6 +71,9 @@ export default function Chatbot() {
         const resetTimer = () => {
             clearTimeout(timeout);
             timeout = setTimeout(() => {
+                // If auto-open is disabled or already open, don't trigger
+                if (autoOpenDisabled || isOpen) return;
+
                 // If inactive for 30 seconds, pro-actively jump in
                 let message = "Nasıl yardımcı olabilirim? Sana Türkiye'nin en güzel köşelerinden efsanevi bir rota çizebilirim.";
 
@@ -102,7 +112,7 @@ export default function Chatbot() {
             window.removeEventListener('click', resetTimer);
             window.removeEventListener('scroll', resetTimer);
         };
-    }, [pathname]);
+    }, [pathname, autoOpenDisabled, isOpen]);
 
     // Listener for external actions (like error handling from forms, or site tour trigger)
     useEffect(() => {
@@ -214,7 +224,11 @@ export default function Chatbot() {
                             </p>
                         </div>
                     </div>
-                    <button aria-label="Chatbot Kapat" onClick={() => setIsOpen(false)} className="text-white hover:bg-white/20 p-2 rounded-full transition-colors cursor-pointer">
+                    <button aria-label="Chatbot Kapat" onClick={() => {
+                        setIsOpen(false);
+                        setAutoOpenDisabled(true);
+                        sessionStorage.setItem('cappo_auto_open_disabled', 'true');
+                    }} className="text-white hover:bg-white/20 p-2 rounded-full transition-colors cursor-pointer">
                         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12" /></svg>
                     </button>
                 </div>
