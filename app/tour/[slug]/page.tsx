@@ -12,8 +12,8 @@ import { useLocale } from '../../context/LocaleContext';
 import { DownloadOfflineButton } from '../../components/DownloadOfflineButton';
 import GeofenceTrigger from '../../components/GeofenceTrigger';
 import CurrencySelector from '../../components/CurrencySelector';
-import FavoriteButton from '../../components/FavoriteButton';
 import TourReviews from '../../components/TourReviews';
+import Navbar from '../../components/Navbar';
 
 export default function DynamicTourPage() {
     const { t, locale, formatPrice } = useLocale();
@@ -264,17 +264,8 @@ export default function DynamicTourPage() {
 
     return (
         <main className={`min-h-screen font-sans text-slate-900 pb-20 bg-gradient-to-br ${theme.bgGradient} transition-colors duration-1000`}>
-            {/* Navbar (Basitleştirilmiş) */}
-            <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-                <Link href="/" className="text-4xl font-extrabold text-[#008cb3] tracking-tighter">
-                    tour<span className="text-[#005e85]">kia</span>
-                </Link>
-                <div className="flex gap-4 items-center">
-                    <CurrencySelector />
-                    <GeofenceTrigger compact />
-                    <Link href="/" className="text-sm font-bold text-gray-500 hover:text-blue-500 transition-colors">Ana Sayfa</Link>
-                </div>
-            </nav>
+            {/* Navbar */}
+            <Navbar />
 
             {/* Top Section: Gallery & Booking Area */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6 flex flex-col lg:flex-row gap-8 relative items-start">

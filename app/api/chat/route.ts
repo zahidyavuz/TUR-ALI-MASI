@@ -161,7 +161,6 @@ export async function POST(req: NextRequest) {
         const options = recommendedKeys.map(key => {
             const baseTour = tourList.find((t: any) => t.slug === key || t.id === key);
             if (!baseTour) return null; // In case the fallback hardcoded keys (fethiye-yama-parasutu) don't exist anymore
-            // @ts-expect-error: dynamic typing for legacy translation access
             const translation = baseTour.translations?.[locale] || {};
             const t = { ...baseTour, ...translation };
 

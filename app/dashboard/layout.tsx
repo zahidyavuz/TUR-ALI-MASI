@@ -1,8 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { useAuth } from '../context/AuthContext';
 import './dashboard.css';
 
 const NAV_ITEMS = [
@@ -15,70 +16,62 @@ const NAV_ITEMS = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
-  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
+  const { user, isLoading } = useAuth();
+  const [authStatus, setAuthStatus] = useState<'checking' | 'authorized' | 'unauthorized'>('checking');
 
-  // Check admin access
   useEffect(() => {
-    async function checkAdmin() {
-      try {
-        const token =
-          localStorage.getItem('access_token') ||
-          document.cookie.match(/auth-token=([^;]+)/)?.[1];
+    if (isLoading) return;
 
-        if (!token) {
-          setIsAdmin(false);
-          return;
-        }
-
-        // Dummy token check for custom yavuz50 admin login
-        if (token === 'admin_demo_token') {
-          setIsAdmin(true);
-          return;
-        }
-
-        const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-        const res = await fetch(`${API_BASE}/admin/dashboard/`, {
-          headers: { Authorization: `Bearer ${token}` },
-          credentials: 'include',
-        });
-
-        if (res.ok) {
-          setIsAdmin(true);
-        } else if (res.status === 403 || res.status === 401) {
-          setIsAdmin(false);
-        } else {
-          // API not reachable — allow access in dev mode for demo
-          setIsAdmin(true);
-        }
-      } catch {
-        // Backend not running — allow access for demo/dev
-        setIsAdmin(true);
-      }
+    if (!user) {
+      setAuthStatus('unauthorized');
+      setTimeout(() => router.push('/login'), 2000);
+      return;
     }
-    checkAdmin();
-  }, []);
+
+    const role = user.role?.toLowerCase() || '';
+    const isAdmin = user.username === 'yavuz50' || user.is_staff || role === 'superadmin' || role === 'admin';
+
+    if (isAdmin) {
+      setAuthStatus('authorized');
+    } else {
+      setAuthStatus('unauthorized');
+      
+      // Redirect to their respective panels
+      const isAgency = user.is_agency || role === 'merchant' || role === 'agency' || role === 'merchant/agency';
+      setTimeout(() => {
+        if (isAgency) {
+          router.push('/agency/dashboard');
+        } else {
+          router.push('/profile');
+        }
+      }, 3000); // Wait 3 seconds to show the warning
+    }
+  }, [user, isLoading, router]);
 
   // Loading state
-  if (isAdmin === null) {
+  if (isLoading || authStatus === 'checking') {
     return (
       <div className="dashboard-root">
         <div className="dash-loading" style={{ width: '100%' }}>
           <div className="dash-spinner" />
-          Yetki kontrol ediliyor...
+          Yönetici Yetkisi Kontrol Ediliyor...
         </div>
       </div>
     );
   }
 
   // Access denied
-  if (!isAdmin) {
+  if (authStatus === 'unauthorized') {
     return (
-      <div className="dash-access-denied">
-        <div style={{ fontSize: '48px', marginBottom: '16px' }}>🔒</div>
-        <h1>Erişim Engellendi</h1>
-        <p>Bu sayfayı görüntülemek için yönetici yetkisi gereklidir.</p>
-        <Link href="/">← Ana Sayfaya Dön</Link>
+      <div className="dash-access-denied" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: '#f8fafc' }}>
+        <div style={{ fontSize: '64px', marginBottom: '24px' }}>🛡️</div>
+        <h1 style={{ fontSize: '32px', color: '#ef4444', fontWeight: '900', marginBottom: '16px' }}>Yetkisiz Giriş</h1>
+        <p style={{ fontSize: '16px', color: '#64748b', marginBottom: '24px', textAlign: 'center', maxWidth: '400px' }}>
+          Bu alana girmeye yetkiniz bulunmuyor. Güvenlik protokolleri gereği kendi panelinize yönlendiriliyorsunuz...
+        </p>
+        <div className="dash-spinner" style={{ borderColor: '#ef4444', borderTopColor: 'transparent' }} />
       </div>
     );
   }

@@ -6,6 +6,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { fetchTours } from '../lib/tours';
 import CurrencySelector from '../components/CurrencySelector';
+import Navbar from '../components/Navbar';
 import { useLocale } from '../context/LocaleContext';
 import { useCurrency } from '../context/CurrencyContext';
 
@@ -97,47 +98,7 @@ function SearchResultsContent() {
       </div>
 
       {/* Ana Header */}
-      <nav className="w-full bg-white py-3 px-4 md:py-5 md:px-8 flex justify-between items-center shadow-sm sticky top-0 z-50">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-3xl font-extrabold text-[#008cb3] tracking-tighter hover:opacity-90 transition-opacity">
-            Tour<span className="text-[#005e85]">kia</span>
-          </Link>
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 bg-slate-50 rounded-full border border-slate-200 shadow-sm">
-            <span className="flex items-center justify-center w-4 h-4 bg-white rounded-full shadow-sm text-[10px]">🌍</span>
-            <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.15em]">Global Platform</span>
-          </div>
-        </div>
-
-        {/* Navigasyon Linkleri */}
-        <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[14px]">
-          <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.destinations}</Link>
-          <Link href="/taste" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.taste}</Link>
-          <Link href="/profile/styles" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.styles}</Link>
-          <Link href="/profile/memories" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-blue-500 cursor-pointer transition-colors">{t.nav.memories}</Link>
-        </div>
-
-        <div className="flex gap-4 items-center">
-          <CurrencySelector />
-          <select 
-            value={locale}
-            onChange={(e) => setLocale(e.target.value as any)}
-            className="hidden md:block bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-[12px] font-bold text-slate-700 outline-none hover:border-slate-300 transition-colors"
-          >
-            <option value="tr-TR">TR TR</option>
-            <option value="en-US">EN US</option>
-            <option value="de-DE">DE DE</option>
-            <option value="zh-CN">ZH CN</option>
-          </select>
-          <div className="hidden md:flex items-center gap-4 text-gray-500 ml-2">
-             <span className="cursor-pointer hover:text-[#008cb3] transition-colors"><svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg></span>
-             <span className="cursor-pointer hover:text-[#008cb3] transition-colors relative">
-               <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-               <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">9+</span>
-             </span>
-             <span className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center cursor-pointer hover:bg-slate-200 transition-colors"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></span>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Arama Özeti Çubuğu */}
       <div className="bg-white border-b border-gray-200 py-4 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm mb-8">

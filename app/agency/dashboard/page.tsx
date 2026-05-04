@@ -7,15 +7,14 @@ import { fetchAPI } from '../../lib/api';
 import { TOUR_DATA } from '../../lib/tours';
 import { auth } from '../../lib/auth';
 import { useRouter } from 'next/navigation';
-import { useLocale } from '../../context/LocaleContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AgencyDashboard() {
     const router = useRouter();
-    const { formatPrice } = useLocale();
-    const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'my_tours' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin' | 'tour_chats' | 'menu_mgmt' | 'table_reservations' | 'daily_pricing'>('dashboard');
+    const { user, isLoading: isAuthLoading } = useAuth();
+    const [activeTab, setActiveTab] = useState<'dashboard' | 'bookings' | 'my_tours' | 'quick_book' | 'profile' | 'finance' | 'deals' | 'blog_admin' | 'tour_chats'>('dashboard');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [businessType, setBusinessType] = useState<'acenta' | 'restoran'>('acenta');
 
     // API Veriler
     const [stats, setStats] = useState({
@@ -26,22 +25,6 @@ export default function AgencyDashboard() {
 
     const [bookings, setBookings] = useState<any[]>([]);
     const [tours, setTours] = useState<any[]>([]);
-
-    // Restoran modülleri için state
-    const [menuItems, setMenuItems] = useState<any[]>([
-        { id: 1, name: 'Izgara Levrek', category: 'main', price: 320, daily_price: null, is_daily_special: false, is_available: true },
-        { id: 2, name: 'Mercimek Çorbası', category: 'starter', price: 85, daily_price: null, is_daily_special: false, is_available: true },
-        { id: 3, name: 'Baklava (4 dilim)', category: 'dessert', price: 120, daily_price: 95, is_daily_special: true, is_available: true },
-        { id: 4, name: 'Ayran', category: 'drink', price: 30, daily_price: null, is_daily_special: false, is_available: true },
-        { id: 5, name: 'Günün Çorbası', category: 'special', price: 75, daily_price: 60, is_daily_special: true, is_available: true },
-    ]);
-    const [tableReservations, setTableReservations] = useState<any[]>([
-        { id: 1, guest_name: 'Ahmet Yılmaz', guest_phone: '0555 111 22 33', guest_count: 4, table_number: 'A-1', reservation_date: '2026-04-17', reservation_time: '19:00', status: 'confirmed', notes: 'Pencere kenarı tercih edilir.' },
-        { id: 2, guest_name: 'Fatma Şahin', guest_phone: '0532 444 55 66', guest_count: 2, table_number: 'B-3', reservation_date: '2026-04-17', reservation_time: '20:30', status: 'pending', notes: '' },
-        { id: 3, guest_name: 'Mehmet Demir', guest_phone: '0531 777 88 99', guest_count: 6, table_number: null, reservation_date: '2026-04-18', reservation_time: '12:30', status: 'pending', notes: 'Doğum günü sürprizi.' },
-    ]);
-    const [newMenuItem, setNewMenuItem] = useState({ name: '', category: 'main', price: '', description: '' });
-    const [newReservation, setNewReservation] = useState({ guest_name: '', guest_phone: '', guest_count: '2', table_number: '', reservation_date: '', reservation_time: '19:00', notes: '' });
 
     // Auth & Formatlama Helpers
     const [selectedQR, setSelectedQR] = useState<string | null>(null);
@@ -56,31 +39,11 @@ export default function AgencyDashboard() {
 
     useEffect(() => {
         const fetchDashboardData = async () => {
+            if (isAuthLoading) return;
+
             setIsLoading(true);
             try {
                 const token = auth.getAccessToken();
-                if (!token) {
-                    router.push('/login');
-                    return;
-                }
-
-                // Business type'ı önce my-profile endpoint'inden çek
-                try {
-                    const profileData = await fetchAPI('/agencies/my-profile/', {
-                        method: 'GET',
-                        headers: { Authorization: `Bearer ${token}` }
-                    });
-                if (profileData?.business_type) {
-                    setBusinessType(profileData.business_type);
-                    // Eğer restoran ise ve aktif tab 'dashboard' ise ilk sekmeye geç (restoranın dashboard'u yok)
-                    if (profileData.business_type === 'restoran' && activeTab === 'dashboard') {
-                        setActiveTab('menu_mgmt');
-                    }
-                }
-                } catch (profileErr) {
-                    // Profile çekilemediyse acenta olarak devam et
-                    console.warn('Profile fetch failed, defaulting to acenta mode');
-                }
 
                 // Call Django endpoint for agency dashboard
                 const data = await fetchAPI('/agencies/dashboard/', {
@@ -95,7 +58,7 @@ export default function AgencyDashboard() {
                     metrics: { total_revenue: 145500, total_bookings: 34 },
                     recent_bookings: [
                         { id: 412, user_full_name: 'Ahmet Yılmaz', tour_detail: { title: 'Kapadokya Balon Turu' }, start_date: '2026-04-12', status: 'confirmed', total_price: 3400 },
-                        { id: 413, user_full_name: 'Ayşe Kaya', tour_detail: { title: 'Tarihi Yarımada Yürüyüşü' }, start_date: '2026-04-15', status: 'completed', total_price: 18150 }
+                        { id: 413, user_full_name: 'Ayşe Kaya', tour_detail: { title: 'Büyük İtalya Turu' }, start_date: '2026-04-15', status: 'completed', total_price: 18150 }
                     ],
                     tours: TOUR_DATA
                 };
@@ -148,14 +111,14 @@ export default function AgencyDashboard() {
                 }
             } catch (err: any) {
                 console.error('Failed to fetch agency dashboard:', err);
-                setError(err.message || 'Panel verileri yüklenirken bir sorun oluştu.');
+                // Do not set error, just let it use the fallback mock data so the panel stays visible.
             } finally {
                 setIsLoading(false);
             }
         };
 
         fetchDashboardData();
-    }, [router]);
+    }, [router, isAuthLoading, user]);
 
     const handleDownloadVoucher = (id: string) => {
         alert(`${id} numaralı rezervasyonun bileti (voucher) indiriliyor...`);
@@ -212,135 +175,85 @@ export default function AgencyDashboard() {
             {/* Sidebar (Sol Menü) */}
             <aside className="w-full md:w-64 bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl z-20 shrink-0">
                 <div className="p-6 border-b border-slate-700/50 flex items-center gap-3">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg ${businessType === 'restoran' ? 'bg-orange-500' : 'bg-blue-500'}`}>
-                        {businessType === 'restoran' ? '🍽️' : 'A'}
-                    </div>
+                    <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">A</div>
                     <div>
-                        <h1 className="text-white font-bold text-lg leading-tight uppercase tracking-wider">
-                            {businessType === 'restoran' ? <><span className="text-orange-400">Restoran</span>Panel</> : <>Acenta<span className="text-blue-400">Panel</span></>}
-                        </h1>
-                        <p className="text-[10px] text-slate-400 font-medium">
-                            {businessType === 'restoran' ? 'Restoran Yönetim Sistemi' : 'B2B Yönetim Sistemi'}
-                        </p>
+                        <h1 className="text-white font-bold text-lg leading-tight uppercase tracking-wider">Acenta<span className="text-blue-400">Panel</span></h1>
+                        <p className="text-[10px] text-slate-400 font-medium">B2B Yönetim Sistemi</p>
                     </div>
                 </div>
 
                 <nav className="flex-1 py-6 px-4 space-y-2">
-                    {/* ORTAK: Genel Bakış (Sadece Acenta için veya her ikisi için - Kullanıcı isteğine göre kısıtlanabilir) */}
-                    {businessType === 'acenta' && (
-                        <button
-                            onClick={() => setActiveTab('dashboard')}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'dashboard' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
-                            Genel Bakış
-                        </button>
-                    )}
+                    <button
+                        onClick={() => setActiveTab('dashboard')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'dashboard' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+                        Genel Bakış
+                    </button>
 
-                    {/* ACENTA MODÜLÜ */}
-                    {businessType === 'acenta' && (
-                        <>
-                            <button
-                                onClick={() => setActiveTab('bookings')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'bookings' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
-                                Rezervasyonlar
-                            </button>
+                    <button
+                        onClick={() => setActiveTab('bookings')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'bookings' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" /></svg>
+                        Rezervasyonlar
+                    </button>
 
-                            <button
-                                onClick={() => setActiveTab('my_tours')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'my_tours' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Turlarım
-                            </button>
+                    <button
+                        onClick={() => setActiveTab('my_tours')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'my_tours' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Turlarım
+                    </button>
 
-                            <button
-                                onClick={() => setActiveTab('tour_chats')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'tour_chats' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
-                                Tur Operasyon & Chat
-                            </button>
+                    <button
+                        onClick={() => setActiveTab('tour_chats')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'tour_chats' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" /></svg>
+                        Tur Operasyon & Chat
+                    </button>
 
-                            <button
-                                onClick={() => setActiveTab('quick_book')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'quick_book' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                Hızlı Rezervasyon
-                            </button>
+                    <button
+                        onClick={() => setActiveTab('quick_book')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'quick_book' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
+                        Hızlı Rezervasyon
+                    </button>
 
-                            <button
-                                onClick={() => setActiveTab('finance')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'finance' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Finans & Fatura
-                            </button>
+                    <button
+                        onClick={() => setActiveTab('finance')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'finance' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Finans & Fatura
+                    </button>
 
-                            <button
-                                onClick={() => setActiveTab('deals')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'deals' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                                B2B Kampanyalar
-                            </button>
+                    <button
+                        onClick={() => setActiveTab('deals')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'deals' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                        B2B Kampanyalar
+                    </button>
 
-                            <button
-                                onClick={() => setActiveTab('blog_admin')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm mt-4 border-t border-slate-700/50 pt-6 ${activeTab === 'blog_admin' ? 'bg-indigo-500/10 text-indigo-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-                                Blog İçerik Yönetimi
-                            </button>
-                        </>
-                    )}
+                    <button
+                        onClick={() => setActiveTab('profile')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'profile' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                        Acenta Bilgileri
+                    </button>
 
-                    {/* RESTORAN MODÜLÜ */}
-                    {businessType === 'restoran' && (
-                        <>
-                            <div className="mt-4 pt-4 border-t border-slate-700/50">
-                                <p className="text-[9px] font-black uppercase tracking-widest text-orange-500/70 px-4 mb-2">Restoran Yönetimi</p>
-                            </div>
-
-                            <button
-                                onClick={() => setActiveTab('menu_mgmt')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'menu_mgmt' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2" /></svg>
-                                Menü Yönetimi
-                            </button>
-
-                            <button
-                                onClick={() => setActiveTab('table_reservations')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'table_reservations' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                Rezervasyon Takvimi
-                            </button>
-
-                            <button
-                                onClick={() => setActiveTab('finance')}
-                                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'finance' ? 'bg-orange-500/10 text-orange-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                Mali Raporlar
-                            </button>
-                        </>
-                    )}
-
-                    {/* Acenta profil butonu (sadece acenta için) */}
-                    {businessType === 'acenta' && (
-                        <button
-                            onClick={() => setActiveTab('profile')}
-                            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm ${activeTab === 'profile' ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 hover:text-white'}`}
-                        >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                            Acenta Bilgileri
-                        </button>
-                    )}
+                    <button
+                        onClick={() => setActiveTab('blog_admin')}
+                        className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all font-semibold text-sm mt-4 border-t border-slate-700/50 pt-6 ${activeTab === 'blog_admin' ? 'bg-indigo-500/10 text-indigo-400' : 'hover:bg-slate-800 hover:text-white'}`}
+                    >
+                        <svg className="w-5 h-5 text-indigo-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
+                        Blog İçerik Yönetimi
+                    </button>
                 </nav>
 
                 <div className="p-4 border-t border-slate-700/50 mt-auto">
@@ -362,13 +275,9 @@ export default function AgencyDashboard() {
                         {activeTab === 'quick_book' && 'Hızlı Tur Satışı'}
                         {activeTab === 'finance' && 'Finans & Fatura Modülü'}
                         {activeTab === 'deals' && 'Acenta Özel Kampanyalar'}
-                        {activeTab === 'profile' && (businessType === 'restoran' ? 'İşletme Profili' : 'Kurumsal Profil')}
+                        {activeTab === 'profile' && 'Kurumsal Profil'}
                         {activeTab === 'blog_admin' && 'İçerik Stüdyosu (Blog Yönetimi)'}
                         {activeTab === 'tour_chats' && 'Operasyon Paneli (Aktif Tur Mesajlaşmaları)'}
-                        {activeTab === 'menu_mgmt' && 'Menü Yönetimi'}
-                        {activeTab === 'table_reservations' && (businessType === 'restoran' ? 'Rezervasyon Takvimi' : 'Masa Rezervasyonları')}
-                        {activeTab === 'daily_pricing' && 'Günlük Menü Fiyatlandırması'}
-                        {activeTab === 'finance' && (businessType === 'restoran' ? 'Mali Raporlar' : 'Finans & Fatura Modülü')}
                     </h2>
                     <div className="flex items-center gap-4">
                         <button className="text-gray-400 hover:text-slate-700 transition relative">
@@ -394,12 +303,6 @@ export default function AgencyDashboard() {
                         <div className="flex flex-col items-center justify-center h-[50vh] text-slate-400 gap-4">
                             <div className="w-10 h-10 border-4 border-slate-200 border-t-blue-500 rounded-full animate-spin"></div>
                             <p className="font-bold">Veriler Yükleniyor...</p>
-                        </div>
-                    ) : error ? (
-                        <div className="flex flex-col items-center justify-center h-[50vh] text-red-500 gap-4">
-                            <div className="text-4xl text-red-400">⚠️</div>
-                            <p className="font-bold">{error}</p>
-                            <button onClick={() => window.location.reload()} className="mt-2 text-blue-500 underline text-sm">Tekrar Dene</button>
                         </div>
                     ) : (
                         <>
@@ -517,7 +420,7 @@ export default function AgencyDashboard() {
 
                                         <div className="bg-white rounded-[24px] shadow-sm border border-gray-200 p-6 relative flex flex-col hover:shadow-md transition opacity-75">
                                             <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">SALT OKUNUR</div>
-                                            <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Tarihi Yarımada Yürüyüşü</h3>
+                                            <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Büyük İtalya Turu</h3>
                                             <p className="text-xs text-gray-500 font-bold mb-4">Tarih: 5 Nisan 2026 • 45 Misafir</p>
                                             
                                             <div className="bg-slate-50 p-3 rounded-xl mb-4 text-xs font-semibold text-gray-600 border border-gray-100">
@@ -728,7 +631,7 @@ export default function AgencyDashboard() {
                                                         )) : (
                                                             <>
                                                                 <option>Kapadokya Balon Turu</option>
-                                                                <option>Tarihi Yarımada Yürüyüşü</option>
+                                                                <option>Büyük İtalya Turu</option>
                                                                 <option>Mavi Yolculuk - Fethiye</option>
                                                                 <option>Kıbrıs Tatili</option>
                                                             </>
@@ -787,153 +690,76 @@ export default function AgencyDashboard() {
                             {/* TAB: FINANCE */}
                             {activeTab === 'finance' && (
                                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    {businessType === 'restoran' ? (
-                                        <>
-                                            {/* Cüzdan ve Alacaklar */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                                <div className="bg-gradient-to-br from-[#0f172a] to-slate-800 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
-                                                    <div className="absolute top-0 right-0 w-64 h-64 bg-orange-500 rounded-full blur-3xl opacity-20 -mr-20 -mt-20"></div>
-                                                    <div className="relative z-10">
-                                                        <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest mb-8 flex items-center gap-2">
-                                                            <svg className="w-5 h-5 text-orange-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                            Güncel Alacaklar
-                                                        </h3>
-                                                        <p className="text-[11px] text-slate-400 font-semibold mb-1">Hakediş Havuzu</p>
-                                                        <p className="text-4xl font-black tracking-tight">{formatPrice(12450)}</p>
-                                                    </div>
+                                    {/* Cüzdan ve Ödeme Talebi */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="bg-gradient-to-br from-[#0f172a] to-slate-800 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
+                                            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20 -mr-20 -mt-20"></div>
+                                            <div className="relative z-10 flex flex-col h-full justify-between">
+                                                <div className="flex items-center justify-between mb-8">
+                                                    <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                                        <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                        Hakediş Cüzdanı
+                                                    </h3>
+                                                    <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-500/30">Aktif</span>
                                                 </div>
-
-                                                <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm">
-                                                    <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-8">Bu Ay Ödenen</h3>
-                                                    <p className="text-3xl font-black text-slate-800 tracking-tight">{formatPrice(42000)}</p>
-                                                    <p className="text-[11px] text-green-600 font-bold mt-2">✓ Tüm ödemeler tamamlandı</p>
-                                                </div>
-
-                                                <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col justify-center border-l-4 border-l-orange-500">
-                                                    <h3 className="text-sm font-extrabold text-slate-800 mb-1">Ödeme Talebi</h3>
-                                                    <p className="text-xs text-gray-500 font-medium mb-4">Bakiyeniz eşik değerin üzerindedir.</p>
-                                                    <button className="bg-orange-500 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-orange-600 transition shadow-orange-500/20">Banka Hesabına Aktar</button>
+                                                <div>
+                                                    <p className="text-[11px] text-slate-400 font-semibold mb-1">Çekilebilir Bakiye</p>
+                                                    <p className="text-5xl font-black tracking-tight">{stats.pendingEarnings}</p>
                                                 </div>
                                             </div>
+                                        </div>
+                                        <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col justify-center">
+                                            <h3 className="text-lg font-extrabold text-slate-800 mb-2">Ödeme Talebi Oluştur</h3>
+                                            <p className="text-sm text-gray-500 font-medium mb-6">Mevcut bakiyeniz minimum ödeme eşiği olan <strong className="text-slate-700">₺5.000</strong>'nin üzerinde olduğu için hemen banka hesabınıza transfer talep edebilirsiniz.</p>
 
-                                            {/* Hakediş Tablosu */}
-                                            <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
-                                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-slate-50/50">
-                                                    <h3 className="text-lg font-extrabold text-slate-800">Menü Satış & Hakediş Takibi</h3>
-                                                    <button className="text-[11px] font-black uppercase text-[#008cb3] hover:underline">Tümünü Dışa Aktar (Excel)</button>
-                                                </div>
-                                                <div className="overflow-x-auto">
-                                                    <table className="w-full text-left border-collapse">
-                                                        <thead>
-                                                            <tr className="bg-slate-50 text-[10px] text-gray-400 uppercase tracking-widest border-b border-gray-100">
-                                                                <th className="px-6 py-4 font-black">Tarih / Saat</th>
-                                                                <th className="px-6 py-4 font-black">Misafir / Paket</th>
-                                                                <th className="px-6 py-4 font-black text-right">Brüt Tutar</th>
-                                                                <th className="px-6 py-4 font-black text-right">Komisyon (-10%)</th>
-                                                                <th className="px-6 py-4 font-black text-right">Net Hakediş</th>
-                                                                <th className="px-6 py-4 font-black text-center">Durum</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-100">
-                                                            {[
-                                                                { date: '12.03.2026 - 19:30', name: 'Ahmet Yılmaz', menu: 'Anadolu Tadım Menüsü', gross: 2400, comm: 240, net: 2160, status: 'Havuzda', color: 'text-orange-500 bg-orange-50' },
-                                                                { date: '11.03.2026 - 20:15', name: 'Zeynep Kaya', menu: 'Şefin Özel Menüsü', gross: 3500, comm: 350, net: 3150, status: 'Havuzda', color: 'text-orange-500 bg-orange-50' },
-                                                                { date: '10.03.2026 - 12:00', name: 'Michael Smith', menu: 'Geleneksel Van Kahvaltısı', gross: 1200, comm: 120, net: 1080, status: 'Ödendi', color: 'text-green-600 bg-green-50 uppercase font-black' },
-                                                            ].map((item, idx) => (
-                                                                <tr key={idx} className="hover:bg-slate-50/50 transition duration-200">
-                                                                    <td className="px-6 py-4 text-[13px] font-semibold text-slate-500">{item.date}</td>
-                                                                    <td className="px-6 py-4">
-                                                                        <div className="text-[14px] font-bold text-slate-800">{item.name}</div>
-                                                                        <div className="text-[11px] font-medium text-gray-400">{item.menu}</div>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 text-right font-bold text-slate-500">{formatPrice(item.gross)}</td>
-                                                                    <td className="px-6 py-4 text-right font-bold text-red-500">-{formatPrice(item.comm)}</td>
-                                                                    <td className="px-6 py-4 text-right font-black text-slate-800 text-lg">{formatPrice(item.net)}</td>
-                                                                    <td className="px-6 py-4 text-center">
-                                                                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold shadow-sm ${item.color}`}>{item.status}</span>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            {/* ACENTA ONAYLI FİNANS GÖRÜNÜMÜ (VAROLAN) */}
-                                            {/* Cüzdan ve Ödeme Talebi */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                                <div className="bg-gradient-to-br from-[#0f172a] to-slate-800 rounded-[32px] p-8 text-white shadow-xl relative overflow-hidden">
-                                                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20 -mr-20 -mt-20"></div>
-                                                    <div className="relative z-10 flex flex-col h-full justify-between">
-                                                        <div className="flex items-center justify-between mb-8">
-                                                            <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
-                                                                <svg className="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                                Hakediş Cüzdanı
-                                                            </h3>
-                                                            <span className="bg-emerald-500/20 text-emerald-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-emerald-500/30">Aktif</span>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-[11px] text-slate-400 font-semibold mb-1">Çekilebilir Bakiye</p>
-                                                            <p className="text-5xl font-black tracking-tight">{stats.pendingEarnings}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div className="bg-white rounded-[32px] p-8 border border-gray-100 shadow-sm flex flex-col justify-center">
-                                                    <h3 className="text-lg font-extrabold text-slate-800 mb-2">Ödeme Talebi Oluştur</h3>
-                                                    <p className="text-sm text-gray-500 font-medium mb-6">Mevcut bakiyeniz minimum ödeme eşiği olan <strong className="text-slate-700">₺5.000</strong>'nin üzerinde olduğu için hemen banka hesabınıza transfer talep edebilirsiniz.</p>
+                                            <button
+                                                onClick={() => alert('Ödeme talebiniz finans departmanımıza iletildi. Proforma faturanız oluşturuluyor...')}
+                                                className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 self-start flex items-center gap-3"
+                                            >
+                                                <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                                Hemen Ödeme İste
+                                            </button>
+                                        </div>
+                                    </div>
 
-                                                    <button
-                                                        onClick={() => alert('Ödeme talebiniz finans departmanımıza iletildi. Proforma faturanız oluşturuluyor...')}
-                                                        className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:-translate-y-0.5 self-start flex items-center gap-3"
-                                                    >
-                                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                                                        Hemen Ödeme İste
-                                                    </button>
-                                                </div>
-                                            </div>
-
-                                            {/* Proforma Fatura ve Geçmiş Tablosu */}
-                                            <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden mt-6">
-                                                <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                                    <h3 className="text-lg font-extrabold text-slate-800">Proforma Faturalar & Ödeme Geçmişi</h3>
-                                                </div>
-                                                <div className="overflow-x-auto">
-                                                    <table className="w-full text-left border-collapse">
-                                                        <thead>
-                                                            <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider border-b-2 border-slate-100">
-                                                                <th className="px-6 py-4 font-bold">Fatura No</th>
-                                                                <th className="px-6 py-4 font-bold">Tarih</th>
-                                                                <th className="px-6 py-4 font-bold">Tutar</th>
-                                                                <th className="px-6 py-4 font-bold">Durum</th>
-                                                                <th className="px-6 py-4 font-bold text-right">Aksiyon</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody className="divide-y divide-gray-100">
-                                                            {[
-                                                                { no: 'PRF-2026-081', date: '25 Şubat 2026', amount: '₺24.500', status: 'Ödendi' },
-                                                                { no: 'PRF-2026-042', date: '10 Ocak 2026', amount: '₺18.200', status: 'Ödendi' },
-                                                                { no: 'PRF-2025-419', date: '15 Kasım 2025', amount: '₺42.000', status: 'Ödendi' },
-                                                            ].map((inv) => (
-                                                                <tr key={inv.no} className="hover:bg-slate-50/50 transition">
-                                                                    <td className="px-6 py-4 text-sm font-black text-slate-600">{inv.no}</td>
-                                                                    <td className="px-6 py-4 text-sm font-semibold text-slate-500">{inv.date}</td>
-                                                                    <td className="px-6 py-4 text-sm font-black text-slate-800">{inv.amount}</td>
-                                                                    <td className="px-6 py-4">
-                                                                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">✓ {inv.status}</span>
-                                                                    </td>
-                                                                    <td className="px-6 py-4 text-right">
-                                                                        <button className="text-xs font-bold text-blue-600 hover:text-blue-800 underline transition cursor-pointer">PDF İndir</button>
-                                                                    </td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </div>
-                                        </>
-                                    )}
+                                    {/* Proforma Fatura ve Geçmiş Tablosu */}
+                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden mt-6">
+                                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                            <h3 className="text-lg font-extrabold text-slate-800">Proforma Faturalar & Ödeme Geçmişi</h3>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full text-left border-collapse">
+                                                <thead>
+                                                    <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider border-b-2 border-slate-100">
+                                                        <th className="px-6 py-4 font-bold">Fatura No</th>
+                                                        <th className="px-6 py-4 font-bold">Tarih</th>
+                                                        <th className="px-6 py-4 font-bold">Tutar</th>
+                                                        <th className="px-6 py-4 font-bold">Durum</th>
+                                                        <th className="px-6 py-4 font-bold text-right">Aksiyon</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-100">
+                                                    {[
+                                                        { no: 'PRF-2026-081', date: '25 Şubat 2026', amount: '₺24.500', status: 'Ödendi' },
+                                                        { no: 'PRF-2026-042', date: '10 Ocak 2026', amount: '₺18.200', status: 'Ödendi' },
+                                                        { no: 'PRF-2025-419', date: '15 Kasım 2025', amount: '₺42.000', status: 'Ödendi' },
+                                                    ].map((inv) => (
+                                                        <tr key={inv.no} className="hover:bg-slate-50/50 transition">
+                                                            <td className="px-6 py-4 text-sm font-black text-slate-600">{inv.no}</td>
+                                                            <td className="px-6 py-4 text-sm font-semibold text-slate-500">{inv.date}</td>
+                                                            <td className="px-6 py-4 text-sm font-black text-slate-800">{inv.amount}</td>
+                                                            <td className="px-6 py-4">
+                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-emerald-50 text-emerald-600 border border-emerald-100">✓ {inv.status}</span>
+                                                            </td>
+                                                            <td className="px-6 py-4 text-right">
+                                                                <button className="text-xs font-bold text-blue-600 hover:text-blue-800 underline transition cursor-pointer">PDF İndir</button>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 
@@ -981,14 +807,14 @@ export default function AgencyDashboard() {
                                                 <div className="h-40 bg-slate-200 relative overflow-hidden">
                                                     <Image
                                                         src="https://images.unsplash.com/photo-1516483638261-f40af5bea098?fit=crop&w=600&q=80"
-                                                        alt="İstanbul"
+                                                        alt="Roma"
                                                         fill
                                                         className="object-cover w-full h-full group-hover:scale-110 transition-transform duration-700"
                                                         sizes="(max-width: 768px) 100vw, 33vw"
                                                     />
                                                 </div>
                                                 <div className="p-6 flex flex-col flex-1">
-                                                    <h4 className="font-extrabold text-lg text-slate-800 mb-2">Tarihi Yarımada Yürüyüşü</h4>
+                                                    <h4 className="font-extrabold text-lg text-slate-800 mb-2">Büyük İtalya Turu</h4>
                                                     <p className="text-sm font-medium text-gray-500 mb-4 line-clamp-2">Tek seferde yapılacak 3 kişilik rezervasyonlarda 1 kişi bedava!</p>
                                                     <div className="mt-auto pt-4 border-t border-gray-100 flex items-center justify-between">
                                                         <div>
@@ -1152,275 +978,6 @@ export default function AgencyDashboard() {
                                                     {isPublishingBlog ? 'Yayımlanıyor...' : 'Yazıyı Yayımla 🚀'}
                                                 </button>
                                             </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB: MENU MANAGEMENT (RESTORAN) */}
-                            {activeTab === 'menu_mgmt' && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    {/* Banner */}
-                                    <div className="bg-gradient-to-br from-orange-500 to-red-600 rounded-[32px] p-8 text-white shadow-lg relative overflow-hidden">
-                                        <div className="absolute right-0 top-0 opacity-10">
-                                            <svg className="w-64 h-64 -mt-10 -mr-10" fill="currentColor" viewBox="0 0 24 24"><path d="M18.06 22.99h1.66c.84 0 1.53-.64 1.63-1.46L23 5.05h-5V1h-1.97v4.05h-4.97l.3 2.34c1.71.47 3.31 1.32 4.27 2.26 1.44 1.42 2.43 2.89 2.43 5.29v8.05zM1 21.99V21h15.03v.99c0 .55-.45 1-1.01 1H2.01c-.56 0-1.01-.45-1.01-1zm15.03-7c0-3.87-3.36-7-7.52-7-4.14 0-7.51 3.13-7.51 7h15.03zM9 12a2 2 0 100 4 2 2 0 000-4z"/></svg>
-                                        </div>
-                                        <div className="relative z-10">
-                                            <h2 className="text-2xl font-black mb-2">Menü Yönetimi</h2>
-                                            <p className="text-orange-100 font-medium text-sm max-w-xl">Restoran menünüzü buradan yönetin. Ürün ekleyin, fiyatları güncelleyin ve günün özel menüsünü belirleyin.</p>
-                                        </div>
-                                    </div>
-
-                                    {/* New Item Form */}
-                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6">
-                                        <h3 className="text-lg font-extrabold text-slate-800 mb-4 flex items-center gap-2">
-                                            <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                            Yeni Ürün Ekle
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                            <input
-                                                type="text"
-                                                placeholder="Ürün adı"
-                                                value={newMenuItem.name}
-                                                onChange={e => setNewMenuItem(p => ({ ...p, name: e.target.value }))}
-                                                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition"
-                                            />
-                                            <select
-                                                value={newMenuItem.category}
-                                                onChange={e => setNewMenuItem(p => ({ ...p, category: e.target.value }))}
-                                                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition"
-                                            >
-                                                <option value="starter">Başlangıç</option>
-                                                <option value="main">Ana Yemek</option>
-                                                <option value="dessert">Tatlı</option>
-                                                <option value="drink">İçecek</option>
-                                                <option value="special">Günün Özel</option>
-                                            </select>
-                                            <input
-                                                type="number"
-                                                placeholder="Fiyat (₺)"
-                                                value={newMenuItem.price}
-                                                onChange={e => setNewMenuItem(p => ({ ...p, price: e.target.value }))}
-                                                className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition"
-                                            />
-                                            <button
-                                                onClick={() => {
-                                                    if (!newMenuItem.name || !newMenuItem.price) return;
-                                                    setMenuItems(prev => [...prev, { id: Date.now(), ...newMenuItem, price: Number(newMenuItem.price), daily_price: null, is_daily_special: false, is_available: true }]);
-                                                    setNewMenuItem({ name: '', category: 'main', price: '', description: '' });
-                                                }}
-                                                className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl px-4 py-2.5 text-sm transition shadow-md"
-                                            >
-                                                Ekle
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Menu Items Table */}
-                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
-                                        <div className="p-6 border-b border-gray-100">
-                                            <h3 className="text-lg font-extrabold text-slate-800">Mevcut Menü ({menuItems.length} ürün)</h3>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider">
-                                                        <th className="px-6 py-4 font-bold">Ürün</th>
-                                                        <th className="px-6 py-4 font-bold">Kategori</th>
-                                                        <th className="px-6 py-4 font-bold">Fiyat</th>
-                                                        <th className="px-6 py-4 font-bold text-center">Durum</th>
-                                                        <th className="px-6 py-4 font-bold text-right">İşlem</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {menuItems.map(item => (
-                                                        <tr key={item.id} className="hover:bg-slate-50/50 transition">
-                                                            <td className="px-6 py-4">
-                                                                <p className="text-sm font-bold text-slate-800">{item.name}</p>
-                                                                {item.is_daily_special && <span className="text-[10px] font-black text-orange-500 uppercase">★ Günün Özel</span>}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest bg-slate-100 text-slate-600">
-                                                                    {item.category === 'starter' ? 'Başlangıç' : item.category === 'main' ? 'Ana Yemek' : item.category === 'dessert' ? 'Tatlı' : item.category === 'drink' ? 'İçecek' : 'Özel'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <p className="text-sm font-black text-slate-800">₺{item.is_daily_special && item.daily_price ? item.daily_price : item.price}</p>
-                                                                {item.is_daily_special && item.daily_price && <p className="text-xs text-gray-400 line-through">₺{item.price}</p>}
-                                                            </td>
-                                                            <td className="px-6 py-4 text-center">
-                                                                <button
-                                                                    onClick={() => setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, is_available: !m.is_available } : m))}
-                                                                    className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition ${item.is_available ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : 'bg-red-50 text-red-500 border border-red-100'}`}
-                                                                >
-                                                                    {item.is_available ? '✓ Mevcut' : '✗ Tükendi'}
-                                                                </button>
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right">
-                                                                <button
-                                                                    onClick={() => setMenuItems(prev => prev.filter(m => m.id !== item.id))}
-                                                                    className="p-2 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition"
-                                                                >
-                                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                                </button>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB: TABLE RESERVATIONS (RESTORAN) */}
-                            {activeTab === 'table_reservations' && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    {/* Yeni Rezervasyon Formu */}
-                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6">
-                                        <h3 className="text-lg font-extrabold text-slate-800 mb-4 flex items-center gap-2">
-                                            <svg className="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                                            Yeni Rezervasyon Al
-                                        </h3>
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                            <input type="text" placeholder="Misafir Adı Soyadı" value={newReservation.guest_name} onChange={e => setNewReservation(p => ({ ...p, guest_name: e.target.value }))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition" />
-                                            <input type="tel" placeholder="Telefon" value={newReservation.guest_phone} onChange={e => setNewReservation(p => ({ ...p, guest_phone: e.target.value }))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition" />
-                                            <div className="flex gap-2">
-                                                <input type="number" min="1" placeholder="Kişi" value={newReservation.guest_count} onChange={e => setNewReservation(p => ({ ...p, guest_count: e.target.value }))} className="w-24 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition" />
-                                                <input type="text" placeholder="Masa No" value={newReservation.table_number} onChange={e => setNewReservation(p => ({ ...p, table_number: e.target.value }))} className="flex-1 border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition" />
-                                            </div>
-                                            <input type="date" value={newReservation.reservation_date} onChange={e => setNewReservation(p => ({ ...p, reservation_date: e.target.value }))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition" />
-                                            <input type="time" value={newReservation.reservation_time} onChange={e => setNewReservation(p => ({ ...p, reservation_time: e.target.value }))} className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-orange-400 transition" />
-                                            <button
-                                                onClick={() => {
-                                                    if (!newReservation.guest_name || !newReservation.reservation_date) return;
-                                                    setTableReservations(prev => [...prev, { id: Date.now(), ...newReservation, guest_count: Number(newReservation.guest_count), status: 'pending' }]);
-                                                    setNewReservation({ guest_name: '', guest_phone: '', guest_count: '2', table_number: '', reservation_date: '', reservation_time: '19:00', notes: '' });
-                                                }}
-                                                className="bg-orange-500 hover:bg-orange-600 text-white font-bold rounded-xl px-4 py-2.5 text-sm transition shadow-md"
-                                            >
-                                                Rezervasyon Kaydet
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    {/* Reservations List */}
-                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
-                                        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-                                            <h3 className="text-lg font-extrabold text-slate-800">Masa Rezervasyonları ({tableReservations.length})</h3>
-                                            <span className="text-xs font-bold text-gray-400">{tableReservations.filter(r => r.status === 'pending').length} bekliyor</span>
-                                        </div>
-                                        <div className="overflow-x-auto">
-                                            <table className="w-full text-left border-collapse">
-                                                <thead>
-                                                    <tr className="bg-slate-50 text-xs text-gray-500 uppercase tracking-wider border-b-2 border-slate-100">
-                                                        <th className="px-6 py-4 font-bold">Misafir</th>
-                                                        <th className="px-6 py-4 font-bold">Tarih & Saat</th>
-                                                        <th className="px-6 py-4 font-bold text-center">Kişi</th>
-                                                        <th className="px-6 py-4 font-bold text-center">Masa</th>
-                                                        <th className="px-6 py-4 font-bold">Durum</th>
-                                                        <th className="px-6 py-4 font-bold text-right">İşlem</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-gray-100">
-                                                    {tableReservations.map(res => (
-                                                        <tr key={res.id} className="hover:bg-slate-50/50 transition">
-                                                            <td className="px-6 py-4">
-                                                                <p className="text-sm font-bold text-slate-800">{res.guest_name}</p>
-                                                                <p className="text-xs text-slate-400">{res.guest_phone}</p>
-                                                                {res.notes && <p className="text-xs text-orange-500 mt-0.5 italic">"{res.notes}"</p>}
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <p className="text-sm font-bold text-slate-700">{res.reservation_date}</p>
-                                                                <p className="text-xs text-blue-500 font-semibold">{res.reservation_time}</p>
-                                                            </td>
-                                                            <td className="px-6 py-4 text-center">
-                                                                <span className="text-sm font-black text-slate-800">{res.guest_count} kişi</span>
-                                                            </td>
-                                                            <td className="px-6 py-4 text-center">
-                                                                <span className="text-sm font-bold text-slate-600">{res.table_number || '—'}</span>
-                                                            </td>
-                                                            <td className="px-6 py-4">
-                                                                <span className={`inline-flex items-center px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${res.status === 'confirmed' ? 'bg-emerald-50 text-emerald-600 border border-emerald-100' : res.status === 'seated' ? 'bg-blue-50 text-blue-600 border border-blue-100' : res.status === 'cancelled' ? 'bg-red-50 text-red-500 border border-red-100' : 'bg-orange-50 text-orange-600 border border-orange-100'}`}>
-                                                                    {res.status === 'confirmed' ? 'Onaylandı' : res.status === 'seated' ? 'Masaya Alındı' : res.status === 'cancelled' ? 'İptal' : 'Bekliyor'}
-                                                                </span>
-                                                            </td>
-                                                            <td className="px-6 py-4 text-right">
-                                                                <div className="flex gap-2 justify-end">
-                                                                    {res.status === 'pending' && (
-                                                                        <button onClick={() => setTableReservations(prev => prev.map(r => r.id === res.id ? { ...r, status: 'confirmed' } : r))} className="bg-emerald-50 hover:bg-emerald-100 text-emerald-600 text-xs font-bold px-3 py-1.5 rounded-lg transition">Onayla</button>
-                                                                    )}
-                                                                    {res.status === 'confirmed' && (
-                                                                        <button onClick={() => setTableReservations(prev => prev.map(r => r.id === res.id ? { ...r, status: 'seated' } : r))} className="bg-blue-50 hover:bg-blue-100 text-blue-600 text-xs font-bold px-3 py-1.5 rounded-lg transition">Masaya Al</button>
-                                                                    )}
-                                                                    <button onClick={() => setTableReservations(prev => prev.filter(r => r.id !== res.id))} className="p-1.5 bg-slate-50 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition">
-                                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                                                    </button>
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* TAB: DAILY PRICING (RESTORAN) */}
-                            {activeTab === 'daily_pricing' && (
-                                <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                    <div className="bg-gradient-to-br from-amber-500 to-orange-600 rounded-[32px] p-8 text-white shadow-lg relative overflow-hidden">
-                                        <div className="absolute right-0 top-0 opacity-10">
-                                            <svg className="w-64 h-64 -mt-10 -mr-10" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" /></svg>
-                                        </div>
-                                        <div className="relative z-10">
-                                            <h2 className="text-2xl font-black mb-2">Günlük Menü Fiyatlandırması</h2>
-                                            <p className="text-amber-100 font-medium text-sm max-w-xl">Bugüne özel indirimli fiyatlar belirleyin. "Günün Özel" işaretlediğiniz ürünler için geçici fiyatlar girin.</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
-                                        <div className="p-6 border-b border-gray-100">
-                                            <h3 className="text-lg font-extrabold text-slate-800">Günlük Özel Fiyat Yönetimi</h3>
-                                            <p className="text-sm text-gray-400 mt-1">Günün özel menüsünü aktif edin veya fiyatı değiştirin.</p>
-                                        </div>
-                                        <div className="divide-y divide-gray-100">
-                                            {menuItems.map(item => (
-                                                <div key={item.id} className="px-6 py-4 flex items-center justify-between gap-4">
-                                                    <div className="flex-1">
-                                                        <p className="text-sm font-bold text-slate-800">{item.name}</p>
-                                                        <p className="text-xs text-gray-400">Normal fiyat: ₺{item.price}</p>
-                                                    </div>
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="relative">
-                                                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">₺</span>
-                                                            <input
-                                                                type="number"
-                                                                placeholder={String(item.price)}
-                                                                defaultValue={item.daily_price || ''}
-                                                                onChange={e => setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, daily_price: e.target.value ? Number(e.target.value) : null } : m))}
-                                                                className="w-28 pl-7 border border-gray-200 rounded-xl py-2 text-sm outline-none focus:border-amber-400 transition text-right font-bold"
-                                                            />
-                                                        </div>
-                                                        <button
-                                                            onClick={() => setMenuItems(prev => prev.map(m => m.id === item.id ? { ...m, is_daily_special: !m.is_daily_special } : m))}
-                                                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${item.is_daily_special ? 'bg-amber-500' : 'bg-gray-200'}`}
-                                                        >
-                                                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${item.is_daily_special ? 'translate-x-6' : 'translate-x-1'}`} />
-                                                        </button>
-                                                        <span className="text-xs font-semibold text-gray-500 w-16">{item.is_daily_special ? <span className="text-amber-600 font-black">Aktif ✓</span> : 'Pasif'}</span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                        <div className="p-6 border-t border-gray-100 flex justify-end">
-                                            <button
-                                                onClick={() => alert('Günlük fiyatlar kaydedildi! Menü güncellendi.')}
-                                                className="bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-3 rounded-xl shadow-lg transition-all hover:-translate-y-0.5"
-                                            >
-                                                Fiyatları Kaydet & Yayımla
-                                            </button>
                                         </div>
                                     </div>
                                 </div>

@@ -56,7 +56,7 @@ export default function ProfilePage() {
     useEffect(() => {
         const token = auth.getAccessToken();
         if (!token) {
-            router.push('/login?next=/profile');
+            alert('Lütfen kişisel bilgilerinizi görmek için önce giriş yapın.');
             return;
         }
 
@@ -67,7 +67,7 @@ export default function ProfilePage() {
         .then(data => {
             if (data.detail && data.code === 'token_not_valid') {
                 auth.clearTokens();
-                router.push('/login?next=/profile');
+                alert('Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.');
                 return;
             }
             setFormState(prev => ({
