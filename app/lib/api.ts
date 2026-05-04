@@ -20,16 +20,19 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
             throw new Error(err.detail || err.error || `API Error: ${res.status}`);
         }
         return await res.json();
-    } catch (error: any) {
+    } catch (error: unknown) {
         // Silently handle network errors (backend not running)
-        const msg = (error?.message || error?.toString() || '').toLowerCase();
-        const causeMsg = (error?.cause?.message || error?.cause?.toString() || '').toLowerCase();
+        const errorWithCause = error as { message?: string, cause?: { message?: string } };
+        const msg = (errorWithCause.message || String(error)).toLowerCase();
+        const causeMsg = (errorWithCause.cause?.message || '').toLowerCase();
+        
         const isNetworkError =
             msg.includes('fetch') ||
             msg.includes('network') ||
             msg.includes('econnrefused') ||
             causeMsg.includes('fetch') ||
             causeMsg.includes('econnrefused');
+
 
         if (isNetworkError) {
             // Backend is not available — return null silently

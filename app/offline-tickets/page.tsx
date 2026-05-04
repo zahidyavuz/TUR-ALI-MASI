@@ -113,7 +113,7 @@ export default function OfflineTicketsPage() {
                   <div className="p-6 border-b border-gray-100 bg-slate-50/50">
                     <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Bilet QR Kodu</h3>
                     <div className="flex justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      { }
                       <img src={selected.qrDataUrl} alt="Bilet QR kodu" className="w-40 h-40 rounded-xl bg-white p-2 shadow-inner" />
                     </div>
                     <p className="text-center text-xs text-gray-500 mt-2">Ref: {selected.bookingRef}</p>
@@ -124,7 +124,7 @@ export default function OfflineTicketsPage() {
                     <div className="p-4 border-b border-gray-100">
                       <h3 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3">Rota haritası</h3>
                       <div className="rounded-xl overflow-hidden border border-gray-200 bg-gray-50">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        { }
                         <img
                           src={selected.mapImageDataUrl}
                           alt="Rota haritası"

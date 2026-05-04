@@ -2,6 +2,8 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { fetchAPI } from '../lib/api';
+
 
 export default function ForgotPasswordPage() {
     const router = useRouter();
@@ -17,23 +19,22 @@ export default function ForgotPasswordPage() {
         setSuccessMsg('');
 
         try {
-            const res = await fetch('http://localhost:8000/api/v1/auth/password/reset/', {
+            const data = await fetchAPI('/auth/password/reset/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email })
             });
 
-            if (res.ok) {
+            if (data) {
                 setSuccessMsg('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi. Lütfen gelen kutunuzu kontrol edin.');
             } else {
-                const data = await res.json();
-                setErrorMsg(data.email?.[0] || data.detail || 'Bir hata oluştu. Lütfen tekrar deneyin.');
+                setErrorMsg('Bir hata oluştu. Lütfen tekrar deneyin.');
             }
         } catch (err) {
             setErrorMsg('Sunucu ile iletişim kurulamadı.');
         } finally {
             setIsSubmitting(false);
         }
+
     };
 
     return (

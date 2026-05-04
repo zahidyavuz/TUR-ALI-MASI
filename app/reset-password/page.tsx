@@ -2,6 +2,8 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { fetchAPI } from '../lib/api';
+
 
 function ResetPasswordForm() {
     const router = useRouter();
@@ -41,9 +43,8 @@ function ResetPasswordForm() {
         setSuccessMsg('');
 
         try {
-            const res = await fetch('http://localhost:8000/api/v1/auth/password/reset/confirm/', {
+            const data = await fetchAPI('/auth/password/reset/confirm/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     uid,
                     token,
@@ -52,17 +53,17 @@ function ResetPasswordForm() {
                 })
             });
 
-            if (res.ok) {
+            if (data) {
                 setSuccessMsg('Şifreniz başarıyla sıfırlandı! Artık yeni şifrenizle giriş yapabilirsiniz.');
             } else {
-                const data = await res.json();
-                setErrorMsg(data.detail || data.non_field_errors?.[0] || 'Bir hata oluştu. Lütfen tekrar deneyin.');
+                setErrorMsg('Bir hata oluştu. Lütfen tekrar deneyin.');
             }
         } catch (err) {
             setErrorMsg('Sunucu ile iletişim kurulamadı.');
         } finally {
             setIsSubmitting(false);
         }
+
     };
 
     if (errorMsg && !uid) {
