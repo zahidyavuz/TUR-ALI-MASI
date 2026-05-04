@@ -1,48 +1,53 @@
 'use client';
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useCallback } from 'react';
+
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { fetchAPI } from '../lib/api';
+
 
 function VerifyEmailLogic() {
     const router = useRouter();
     const searchParams = useSearchParams();
     
-    const [key, setKey] = useState('');
+    // const [key, setKey] = useState(''); // Redundant, can compute from searchParams
+
     const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
     const [message, setMessage] = useState('E-posta adresiniz doğrulanıyor, lütfen bekleyin...');
 
-    useEffect(() => {
-        const urlKey = searchParams.get('key') || searchParams.get('token');
-        if (urlKey) {
-            setKey(urlKey);
-            verifyToken(urlKey);
-        } else {
-            setStatus('error');
-            setMessage('Geçersiz veya eksik doğrulama bağlantısı.');
-        }
-    }, [searchParams]);
-
-    const verifyToken = async (verificationKey: string) => {
+    const verifyToken = useCallback(async (verificationKey: string) => {
         try {
-            const res = await fetch('http://localhost:8000/api/v1/auth/registration/verify-email/', {
+            const data = await fetchAPI('/auth/registration/verify-email/', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ key: verificationKey })
             });
 
-            if (res.ok) {
+            if (data) {
                 setStatus('success');
                 setMessage('E-posta adresiniz başarıyla doğrulandı! Artık giriş yapabilirsiniz.');
             } else {
-                const data = await res.json();
                 setStatus('error');
-                setMessage(data.detail || 'Doğrulama işlemi başarısız oldu. Bu bağlantının süresi dolmuş olabilir.');
+                setMessage('Doğrulama işlemi başarısız oldu. Bu bağlantının süresi dolmuş olabilir.');
             }
         } catch (err) {
             setStatus('error');
             setMessage('Sunucu ile iletişim kurulamadı. Lütfen daha sonra tekrar deneyin.');
         }
-    };
+    }, []);
+
+
+    useEffect(() => {
+        const urlKey = searchParams.get('key') || searchParams.get('token');
+        if (urlKey) {
+            verifyToken(urlKey);
+        } else {
+            setStatus('error');
+            setMessage('Geçersiz veya eksik doğrulama bağlantısı.');
+        }
+    }, [searchParams, verifyToken]);
+
+
+
 
     return (
         <div className="text-center">

@@ -20,6 +20,10 @@ function CheckoutLogic() {
     const [isSimulatingPayment, setIsSimulatingPayment] = useState(false);
     const [showUpsellModal, setShowUpsellModal] = useState(false);
     const [upsellShown, setUpsellShown] = useState(false);
+    const [promoCode, setPromoCode] = useState('');
+    const [isPromoApplied, setIsPromoApplied] = useState(false);
+    const [appliedPromoData, setAppliedPromoData] = useState<any>(null);
+
 
     // Form Data
     const [formData, setFormData] = useState({
@@ -35,6 +39,75 @@ function CheckoutLogic() {
         fetchTour(tourId).then(t => setTour(t)).catch(() => {});
     }, [tourId]);
 
+    // --- AKILLI KOMBO EŞLEŞTİRME MANTIĞI (Intelligent-Combo-Matching) ---
+    const getSuggestedCombo = () => {
+        if (!tour) return null;
+        
+        const loc = (tour.location || '').toLowerCase();
+        const title = (tour.title || '').toLowerCase();
+        
+        // 1. Antalya / Deniz Mantığı
+        if (loc.includes('antalya') || loc.includes('kaş') || title.includes('yat') || title.includes('mavi')) {
+            return {
+                id: 'antalya-fish-combo',
+                name: 'Akdeniz Balık Menüsü',
+                restaurant: 'Marina Seafood',
+                description: 'Günlük taze tutulan deniz mahsulleri ve eşsiz Akdeniz mezeleri.',
+                image: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=400',
+                price: 850,
+                originalPrice: 1200,
+                tag: 'Deniz Esintisi'
+            };
+        }
+        
+        // 2. İstanbul / Tarih Mantığı
+        if (loc.match(/istanbul|i̇stanbul|tanbul/) || title.includes('tarih') || title.includes('saray')) {
+            return {
+                id: 'istanbul-palace-combo',
+                name: 'Osmanlı Saray Mutfağı',
+                restaurant: 'Asitane Restoran',
+                description: 'Padişahların sofrasından günümüze ulaşan asırlık tarifler.',
+                image: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=400',
+                price: 1450,
+                originalPrice: 1900,
+                tag: 'Görkemli Lezzet'
+            };
+        }
+        
+        // 3. Kapadokya / Yerel Mantık
+        if (loc.includes('kapadokya') || title.includes('balon') || title.includes('vadi')) {
+            return {
+                id: 'cappadocia-local-combo',
+                name: 'Geleneksel Testi Kebabı',
+                restaurant: 'Mağara Sofrası',
+                description: 'Kapadokya’nın meşhur ateşte pişen testi kebabı ve yerel şarap tadımı.',
+                image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=400',
+                price: 950,
+                originalPrice: 1300,
+                tag: 'Yerel Tatlar'
+            };
+        }
+
+        // Default / Fallback (Linked Restaurant varsa onu kullan)
+        if (tour.linked_restaurant) {
+            return {
+                id: tour.linked_restaurant.id,
+                name: tour.linked_restaurant.special_menu_name || 'Özel Menü',
+                restaurant: tour.linked_restaurant.name,
+                description: tour.linked_restaurant.description,
+                image: tour.linked_restaurant.image,
+                price: tour.linked_restaurant.price || 500,
+                originalPrice: (tour.linked_restaurant.price || 500) * 1.2,
+                tag: 'Özel Fırsat'
+            };
+        }
+
+        return null;
+    };
+
+    const suggestedCombo = getSuggestedCombo();
+
+
     const handleProceedToPayment = (e: React.FormEvent) => {
         e.preventDefault();
         if (!formData.firstName || !formData.lastName || !formData.phone || !formData.email || !formData.hotelName) {
@@ -45,8 +118,8 @@ function CheckoutLogic() {
     };
 
     const handleSimulatePaymentProcess = () => {
-        // Upsell Logic: Eğer sadece tur varsa ve henüz teklif gösterilmediyse
-        if (!menuId && tour?.linked_restaurant && !upsellShown) {
+        // Upsell Logic: Akıllı Eşleştirme Motoru
+        if (!menuId && suggestedCombo && !upsellShown) {
             setShowUpsellModal(true);
             setUpsellShown(true);
             return;
@@ -99,20 +172,55 @@ function CheckoutLogic() {
     
     // BACKEND LOGIC: Dynamic_Discount_Engine
     const calculateBundleDiscount = (tPrice: number, mPrice: number) => {
+        let bundleDiscount = 0;
+        let promoDiscount = 0;
+        let isBundle = false;
+
         if (tPrice > 0 && mPrice > 0) {
-            const sum = tPrice + mPrice;
-            const discount = sum * 0.10; // %10 Paket İndirimi
-            return {
-                isBundle: true,
-                discountAmount: discount,
-                finalTotal: sum - discount
-            };
+            isBundle = true;
+            bundleDiscount = (tPrice + mPrice) * 0.10; // %10 Standart Paket İndirimi
         }
-        return { isBundle: false, discountAmount: 0, finalTotal: tPrice + mPrice };
+
+        // Promo Code Logic
+        if (isPromoApplied && appliedPromoData) {
+            // Eğer COMBO15 ise (VIP Upgrade), bundle indirimini %15'e çıkarır (override)
+            if (appliedPromoData.code === 'COMBO15') {
+                const totalBase = tPrice + mPrice;
+                promoDiscount = totalBase * 0.15;
+                bundleDiscount = 0; // Promo indirimine dahil edildi
+            } else {
+                promoDiscount = (tPrice + mPrice - bundleDiscount) * (appliedPromoData.rate / 100);
+            }
+        }
+
+        const finalTotal = (tPrice + mPrice) - bundleDiscount - promoDiscount;
+
+        return {
+            isBundle,
+            bundleDiscountAmount: bundleDiscount,
+            promoDiscountAmount: promoDiscount,
+            finalTotal
+        };
     };
 
     const bundleLogic = calculateBundleDiscount(tourPrice, mealPrice);
     const totalPrice = bundleLogic.finalTotal;
+
+    const handleApplyPromo = (codeToApply?: string) => {
+        const code = (codeToApply || promoCode).toUpperCase();
+        if (code === 'COMBO15') {
+            setAppliedPromoData({ code: 'COMBO15', rate: 15, label: 'Kombo İndirimi Uygulandı' });
+            setIsPromoApplied(true);
+            setPromoCode('COMBO15');
+        } else if (code === 'WELCOME10') {
+            setAppliedPromoData({ code: 'WELCOME10', rate: 10, label: 'Hoş Geldin İndirimi' });
+            setIsPromoApplied(true);
+            setPromoCode('WELCOME10');
+        } else {
+            if (!codeToApply) alert('Geçersiz Promosyon Kodu');
+        }
+    };
+
 
     return (
         <div className="w-full max-w-6xl mx-auto mt-8 flex flex-col lg:flex-row gap-8">
@@ -279,12 +387,20 @@ function CheckoutLogic() {
                                 )}
                             </div>
 
-                             {bundleLogic.isBundle && (
+                             {bundleLogic.isBundle && !isPromoApplied && (
                                 <div className="flex justify-between items-center text-xs font-bold text-orange-600 bg-orange-50 p-2 rounded-xl border border-orange-100 animate-in slide-in-from-top-1 duration-300 mb-4">
                                     <span className="flex items-center gap-1">✨ Paket Avantajı (%10):</span>
-                                    <span>- {bundleLogic.discountAmount.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
+                                    <span>- {bundleLogic.bundleDiscountAmount.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
                                 </div>
                              )}
+
+                             {isPromoApplied && (
+                                <div className="flex justify-between items-center text-xs font-bold text-emerald-600 bg-emerald-50 p-2 rounded-xl border border-emerald-100 animate-in slide-in-from-top-1 duration-300 mb-4">
+                                    <span className="flex items-center gap-1">✅ {appliedPromoData.label}:</span>
+                                    <span>- {bundleLogic.promoDiscountAmount.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
+                                </div>
+                             )}
+
 
                             <div className="border-t border-gray-100 pt-4 flex justify-between items-center">
                                 <span className="font-black text-slate-800">Toplam Tutur:</span>
@@ -297,7 +413,34 @@ function CheckoutLogic() {
                                     <span className="text-2xl font-black text-[#008cb3]">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
                                 </div>
                             </div>
+
+                            {/* Promo Code Input */}
+                            <div className="mt-6 pt-6 border-t border-gray-100">
+                                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Promosyon Kodu</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text" 
+                                        value={promoCode}
+                                        onChange={(e) => setPromoCode(e.target.value)}
+                                        placeholder="KOD GIRIN"
+                                        className="flex-1 bg-slate-50 border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold outline-none focus:border-blue-500 transition"
+                                    />
+                                    <button 
+                                        onClick={() => handleApplyPromo()}
+                                        className="bg-slate-800 text-white text-[10px] font-black px-4 py-2 rounded-xl hover:bg-slate-900 transition"
+                                    >
+                                        UYGULA
+                                    </button>
+                                </div>
+                                {isPromoApplied && (
+                                    <p className="text-[10px] font-bold text-emerald-600 mt-2 flex items-center gap-1">
+                                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                        "{appliedPromoData.code}" kodu başarıyla uygulandı!
+                                    </p>
+                                )}
+                            </div>
                         </>
+
                     ) : (
                         <div className="animate-pulse flex flex-col gap-4">
                             <div className="h-16 bg-gray-200 rounded-xl w-full"></div>
@@ -320,9 +463,9 @@ function CheckoutLogic() {
                             {/* Sol: Görsel (Geniş ve Estetik) */}
                             <div className="w-full md:w-5/12 h-64 md:h-auto relative">
                                 <img 
-                                    src={!menuId ? (tour?.linked_restaurant?.image || tour?.imageMain) : 'https://upload.wikimedia.org/wikipedia/commons/7/7e/Hot_air_balloon_at_sunrise_over_Cappadocia%2C_Turkey.JPG'} 
+                                    src={suggestedCombo?.image} 
                                     className="w-full h-full object-cover" 
-                                    alt="Upsell" 
+                                    alt={suggestedCombo?.name} 
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-transparent to-orange-500/20"></div>
                                 
@@ -346,33 +489,25 @@ function CheckoutLogic() {
                                 </h2>
 
                                 <div className="space-y-4 mb-10">
-                                    <div className="flex items-start gap-3 bg-white/40 p-4 rounded-3xl border border-white/60">
-                                        <span className="text-emerald-500 mt-1">✓</span>
                                         <p className="text-sm font-bold text-slate-700">
-                                            {!menuId ? (
-                                                <>Seçtiğiniz tura <b>{tour?.linked_restaurant?.special_menu_name || 'Özel Akşam Yemeği'}</b> paketi ekleyin.</>
-                                            ) : (
-                                                <>Seçtiğiniz yemeğe <b>Kapadokya Balon Turu</b> ekleyerek günü taçlandırın.</>
-                                            )}
+                                            Seçtiğiniz tura <b>{suggestedCombo?.name}</b> paketi ekleyin.
                                         </p>
-                                    </div>
                                     <p className="text-sm font-medium text-slate-500 leading-relaxed px-2">
                                         Bu teklif sadece şu anki rezervasyonunuza özeldir. Ayrı ayrı alımlarda geçerli olmayan <b>VIP Paket Fiyatı</b> avantajını kaçırmayın.
                                     </p>
 
-                                    {/* Fiyat Karşılaştırma Görseli (New) */}
                                     <div className="flex items-center gap-4 py-4 px-2">
                                         <div className="flex-1 bg-white/30 border border-white/50 p-4 rounded-3xl text-center">
-                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Standard</p>
-                                            <p className="text-xl font-bold text-slate-500 line-through">€150</p>
+                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Normal</p>
+                                            <p className="text-xl font-bold text-slate-500 line-through">₺{suggestedCombo?.originalPrice}</p>
                                         </div>
                                         <div className="text-2xl font-black text-orange-500">➔</div>
                                         <div className="flex-1 bg-orange-50 border border-orange-100 p-4 rounded-3xl text-center relative overflow-hidden">
                                             <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded-bl-xl shadow-sm">
-                                                SAVE €25 EXTRA!
+                                                SAVE BIG!
                                             </div>
-                                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">VIP Combo</p>
-                                            <p className="text-2xl font-black text-slate-900">€175</p>
+                                            <p className="text-[10px] font-black text-orange-600 uppercase tracking-widest mb-1">VIP Kombo</p>
+                                            <p className="text-2xl font-black text-slate-900">₺{suggestedCombo?.price}</p>
                                         </div>
                                     </div>
 
@@ -390,12 +525,9 @@ function CheckoutLogic() {
                                     <button 
                                         onClick={() => {
                                             const params = new URLSearchParams(window.location.search);
-                                            if (!menuId) {
-                                                params.set('menuId', tour?.linked_restaurant?.id || 'demo-menu');
-                                            } else {
-                                                params.set('tourId', 'kapadokya-klasik-balon');
-                                            }
+                                            params.set('menuId', suggestedCombo?.id || 'demo-menu');
                                             router.replace(`/checkout?${params.toString()}`, { scroll: false });
+                                            handleApplyPromo('COMBO15'); // Arka planda indirim kodunu enjekte et
                                             setShowUpsellModal(false);
                                             setIsSimulatingPayment(true);
                                             setTimeout(() => {

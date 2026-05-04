@@ -99,6 +99,7 @@ export default function GroupChatPage() {
         const messageType = text === '📍 Konum Paylaş' ? 'location' : 'text';
 
         const newMessage: Message = {
+            // eslint-disable-next-line react-hooks/purity
             id: Date.now(),
             senderId: 'me1',
             senderName: 'Ben',

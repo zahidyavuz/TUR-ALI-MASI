@@ -54,7 +54,7 @@ export default function DynamicTourPage() {
 
                 if (baseTour) {
                     const translation = baseTour.translations?.[locale] || {};
-                    let finalTour = { ...baseTour, ...translation };
+                    const finalTour = { ...baseTour, ...translation };
                     
                     // İş Kuralları: Ek Hizmet Parametresi
                     if (!finalTour.included.some((i:string) => i.includes('Otel Transferi') || i.includes('VIP Transfer'))) {
@@ -68,7 +68,7 @@ export default function DynamicTourPage() {
                     const slots = [];
                     const maxCapacity = String(slug).includes('balon') ? 20 : 15;
                     for (let i = 1; i <= 14; i++) {
-                        let d = new Date();
+                        const d = new Date();
                         d.setDate(d.getDate() + i);
                         slots.push({
                             id: `slot_${i}`,
@@ -143,10 +143,127 @@ export default function DynamicTourPage() {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // --- DİNAMİK TASARIM YARDIMCILARI ---
+    const getTourTheme = () => {
+        const loc = (tour?.location || '').toLowerCase();
+        const title = (tour?.title || '').toLowerCase();
+
+        if (loc.includes('kapadokya') || title.includes('peri')) {
+            return {
+                bgGradient: 'from-[#fdf5f2] via-[#fffbf9] to-[#f9f1ee]',
+                accentColor: 'text-[#8b4513]',
+                cardBg: 'bg-white/70',
+                glassBorder: 'border-orange-100/50',
+                glow: 'shadow-[0_0_50px_-12px_rgba(139,69,19,0.1)]'
+            };
+        }
+        if (loc.includes('antalya') || loc.includes('deniz') || title.includes('yat') || title.includes('mavi')) {
+            return {
+                bgGradient: 'from-[#f0f9ff] via-[#f8fafc] to-[#e0f2fe]',
+                accentColor: 'text-[#0077be]',
+                cardBg: 'bg-white/70',
+                glassBorder: 'border-blue-100/50',
+                glow: 'shadow-[0_0_50px_-12px_rgba(0,119,190,0.1)]'
+            };
+        }
+        if (loc.match(/istanbul|i̇stanbul|tanbul/) || loc.includes('boğaz')) {
+            return {
+                bgGradient: 'from-[#f8fafc] via-[#f1f5f9] to-[#e2e8f0]',
+                accentColor: 'text-[#005e85]',
+                cardBg: 'bg-white/70',
+                glassBorder: 'border-slate-200/50',
+                glow: 'shadow-[0_0_50px_-12px_rgba(0,94,133,0.1)]'
+            };
+        }
+        return {
+            bgGradient: 'from-slate-50 via-white to-slate-100',
+            accentColor: 'text-[#008cb3]',
+            cardBg: 'bg-white/70',
+            glassBorder: 'border-gray-100/50',
+            glow: 'shadow-sm'
+        };
+    };
+
+    const theme = getTourTheme();
+
+    const getTechnicalDetails = () => {
+        const title = (tour?.title || '').toLowerCase();
+        if (title.includes('balon')) {
+            return [
+                { label: 'Uçuş Süresi', value: '60-90 Dakika', icon: '⏱️', color: 'bg-orange-50 text-orange-600' },
+                { label: 'Maksimum İrtifa', value: '3000-5000 Feet', icon: '☁️', color: 'bg-blue-50 text-blue-600' },
+                { label: 'Sepet Kapasitesi', value: '16-20 Kişi', icon: '🧺', color: 'bg-amber-50 text-amber-700' },
+                { label: 'Sertifikalı Pilot', value: 'Sivil Havacılık Onaylı', icon: '👨‍✈️', color: 'bg-green-50 text-green-600' }
+            ];
+        }
+        if (title.includes('atv') || title.includes('safari')) {
+            return [
+                { label: 'Parkur Uzunluğu', value: '15-20 KM', icon: '🏁', color: 'bg-red-50 text-red-600' },
+                { label: 'Ekipman Desteği', value: 'Kask ve Dizlik', icon: '🛡️', color: 'bg-slate-100 text-slate-700' },
+                { label: 'Rehberlik', value: 'Öncü Araç Eşliğinde', icon: '🧭', color: 'bg-orange-50 text-orange-600' },
+                { label: 'Motor Gücü', value: '250cc - 450cc', icon: '⚙️', color: 'bg-gray-100 text-gray-800' }
+            ];
+        }
+        if (title.includes('yat') || title.includes('mavi') || title.includes('tekne') || title.includes('ada')) {
+            return [
+                { label: 'Koy Durakları', value: '4 Farklı Durak', icon: '🏝️', color: 'bg-cyan-50 text-cyan-600' },
+                { label: 'Yemek Servisi', value: 'Açık Büfe Öğle Yemeği', icon: '🍽️', color: 'bg-blue-50 text-blue-600' },
+                { label: 'Güneşlenme Alanı', value: 'Üst Güverte Konforu', icon: '☀️', color: 'bg-yellow-50 text-yellow-600' },
+                { label: 'Mürettebat', value: 'Kaptan + 2 Hostes', icon: '⚓', color: 'bg-navy-50 text-navy-800' }
+            ];
+        }
+        return [
+            { label: 'Müze Girişleri', value: 'Hızlı Geçiş Dahil', icon: '🎟️', color: 'bg-indigo-50 text-indigo-600' },
+            { label: 'Kulaklık Sistemi', value: 'Dijital Ses Desteği', icon: '🎧', color: 'bg-purple-50 text-purple-600' },
+            { label: 'Yürüyüş Mesafesi', value: 'Orta Seviye (2-3 KM)', icon: '🚶', color: 'bg-emerald-50 text-emerald-600' },
+            { label: 'Uzman Rehber', value: 'Arkeolog / Tarihçi', icon: '🎓', color: 'bg-rose-50 text-rose-600' }
+        ];
+    };
+
+    const techDetails = getTechnicalDetails();
+    
+    const getMarketingCopy = () => {
+        const loc = (tour?.location || '').toLowerCase();
+        
+        if (loc.includes('kapadokya')) {
+            return {
+                heroTag: 'Mistik & Romantik',
+                vibeTitle: 'Güneşi peribacalarının arasında karşılayın...',
+                descriptionPrefix: 'Masalsı bir atmosferde, zamanın durduğu o noktaya hoş geldiniz. ',
+                ctaText: 'Bu Masalı Yaşa'
+            };
+        }
+        if (loc.match(/istanbul|i̇stanbul|tanbul/)) {
+            return {
+                heroTag: 'Görkemli & Tarihi',
+                vibeTitle: 'İmparatorlukların kalbinde, iki kıtanın birleştiği noktada...',
+                descriptionPrefix: 'Binlerce yıllık tarihin her taşında ayrı bir hikaye saklı. ',
+                ctaText: 'İmparatorluğa Adım At'
+            };
+        }
+        if (loc.includes('antalya')) {
+            return {
+                heroTag: 'Enerjik & Tazeleyici',
+                vibeTitle: 'Mavinin en saf halini keşfedin...',
+                descriptionPrefix: 'Akdeniz’in enerjisiyle tazeleneceğiniz, unutulmaz bir macera sizi bekliyor. ',
+                ctaText: 'Maviye Yolculuk Yap'
+            };
+        }
+        return {
+            heroTag: 'Keşif & Macera',
+            vibeTitle: 'Yeni bir deneyime hazır mısın?',
+            descriptionPrefix: 'Sıradanlıktan uzaklaşın ve kendinizi keşfin akışına bırakın. ',
+            ctaText: 'Yerini Ayır'
+        };
+    };
+
+    const marketing = getMarketingCopy();
+
+
     if (!tour) return <div className="min-h-screen flex items-center justify-center">Yükleniyor...</div>;
 
     return (
-        <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
+        <main className={`min-h-screen font-sans text-slate-900 pb-20 bg-gradient-to-br ${theme.bgGradient} transition-colors duration-1000`}>
             {/* Navbar (Basitleştirilmiş) */}
             <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
                 <Link href="/" className="text-4xl font-extrabold text-[#008cb3] tracking-tighter">
@@ -181,6 +298,9 @@ export default function DynamicTourPage() {
                             <div className="absolute bottom-6 left-6 text-white">
                                 <div className="bg-red-500 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 shadow-lg">
                                     <span className="w-1.5 h-1.5 bg-white rounded-full animate-ping"></span> Çok Satan
+                                </div>
+                                <div className={`bg-white/90 ${theme.accentColor} text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 ml-2 shadow-lg backdrop-blur-sm border border-white/50`}>
+                                    ✨ {marketing.heroTag}
                                 </div>
                                 {tour?.filmedIn && (
                                     <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-black px-3 py-1.5 rounded-full uppercase tracking-widest inline-flex items-center gap-1.5 mb-3 ml-2 shadow-lg hover:scale-105 transition-transform cursor-default">
@@ -407,7 +527,7 @@ export default function DynamicTourPage() {
                     }}
                                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
                             >
-                                {locale === 'en-US' ? 'Secure Your Spot' : locale === 'de-DE' ? 'Jetzt Verbindlich Reservieren' : locale === 'zh-CN' ? '尊享预订，稍后付款' : 'Hemen Yerini Ayır'}
+                                {locale === 'en-US' ? 'Secure Your Spot' : marketing.ctaText}
                                 <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
                             </button>
                         </div>
@@ -453,30 +573,31 @@ export default function DynamicTourPage() {
             {/* Bottom Section: Tur Detayları */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
                 <div className="w-full lg:w-2/3 pr-0 lg:pr-8">
-                    {/* Tour Highlights */}
-                    <div className="bg-white rounded-[32px] p-8 shadow-sm border border-gray-100 mb-8">
-                        <h2 className="text-2xl font-black text-slate-800 mb-6">{locale === 'en-US' ? 'Trip At A Glance' : locale === 'de-DE' ? 'Reiseübersicht' : locale === 'zh-CN' ? '行程亮点' : 'Tur Özeti'}</h2>
-                        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                            <div className="flex flex-col gap-2">
-                                <div className="w-12 h-12 bg-blue-50 text-[#008cb3] rounded-2xl flex items-center justify-center text-xl shadow-sm">⏱️</div>
-                                <span className="text-xs font-bold text-gray-400 uppercase">{locale === 'en-US' ? 'Duration' : locale === 'de-DE' ? 'Dauer' : locale === 'zh-CN' ? '时长' : 'Süre'}</span>
-                                <span className="text-sm font-semibold text-slate-800">{tour.duration}</span>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <div className="w-12 h-12 bg-orange-50 text-orange-500 rounded-2xl flex items-center justify-center text-xl shadow-sm">🗣️</div>
-                                <span className="text-xs font-bold text-gray-400 uppercase">{locale === 'en-US' ? 'Guide' : locale === 'de-DE' ? 'Reiseleiter' : locale === 'zh-CN' ? '中/英文向导' : 'Rehber'}</span>
-                                <span className="text-sm font-semibold text-slate-800">{tour.guide}</span>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <div className="w-12 h-12 bg-green-50 text-green-600 rounded-2xl flex items-center justify-center text-xl shadow-sm">{locale === 'zh-CN' ? '👑' : '🛏️'}</div>
-                                <span className="text-xs font-bold text-gray-400 uppercase">{locale === 'en-US' ? 'Stay' : locale === 'de-DE' ? 'Unterkunft' : locale === 'zh-CN' ? '奢华下榻' : 'Konaklama'}</span>
-                                <span className="text-sm font-semibold text-slate-800">{tour.accommodation}</span>
-                            </div>
-                            <div className="flex flex-col gap-2">
-                                <div className="w-12 h-12 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center text-xl shadow-sm">✈️</div>
-                                <span className="text-xs font-bold text-gray-400 uppercase">{locale === 'en-US' ? 'Transit' : locale === 'de-DE' ? 'Transport' : locale === 'zh-CN' ? 'VIP专车' : 'Ulaşım'}</span>
-                                <span className="text-sm font-semibold text-slate-800">{tour.transportation}</span>
-                            </div>
+                    {/* Tour Highlights - Dynamic Technical Details */}
+                    <div className={`bg-white/80 backdrop-blur-xl rounded-[40px] p-8 md:p-10 shadow-2xl border ${theme.glassBorder} mb-12 ${theme.glow} relative overflow-hidden group`}>
+                        <div className="absolute -top-24 -right-24 w-48 h-48 bg-gradient-to-br from-white/10 to-transparent rounded-full blur-3xl group-hover:scale-150 transition-transform duration-1000"></div>
+                        
+                        <h2 className={`text-2xl md:text-3xl font-black mb-8 flex items-center gap-3 ${theme.accentColor}`}>
+                            <span className="w-8 h-1 bg-current rounded-full"></span>
+                            {locale === 'en-US' ? 'Technical Specifications' : 'Teknik Detaylar ve Donanım'}
+                        </h2>
+                        
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8">
+                            {techDetails.map((detail, idx) => (
+                                <div key={idx} className="flex flex-col gap-3 p-5 rounded-3xl bg-white/50 border border-white/60 hover:bg-white hover:shadow-xl hover:-translate-y-1 transition-all duration-500">
+                                    <div className={`w-14 h-14 ${detail.color} rounded-2xl flex items-center justify-center text-2xl shadow-sm border border-white/40`}>
+                                        {detail.icon}
+                                    </div>
+                                    <div className="flex flex-col gap-0.5">
+                                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">
+                                            {detail.label}
+                                        </span>
+                                        <span className="text-[15px] font-extrabold text-slate-800 leading-tight">
+                                            {detail.value}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
 
@@ -484,7 +605,10 @@ export default function DynamicTourPage() {
 
                     {/* Description */}
                     <div className="mb-10">
-                        <h3 className="text-2xl font-black text-slate-800 mb-4">{locale === 'en-US' ? "What's The Vibe?" : locale === 'de-DE' ? 'Was erwartet Sie?' : locale === 'zh-CN' ? '独家尊享体验' : 'Neler Yaşayacaksınız?'}</h3>
+                        <h3 className={`text-2xl md:text-3xl font-black mb-6 ${theme.accentColor}`}>{marketing.vibeTitle}</h3>
+                        <p className="text-gray-600 leading-relaxed font-medium text-lg italic mb-4">
+                            "{marketing.descriptionPrefix}"
+                        </p>
                         <p className="text-gray-600 leading-relaxed font-medium text-lg">
                             {tour.description}
                         </p>

@@ -1,4 +1,6 @@
+/* eslint-disable */
 const fs = require('fs');
+
 
 const pageContent = fs.readFileSync('app/page.tsx', 'utf8');
 const lines = pageContent.split('\n');

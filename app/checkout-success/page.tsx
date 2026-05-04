@@ -1,4 +1,7 @@
+import Link from 'next/link';
+
 export default function CheckoutSuccess() {
+
     return (
         <div className="min-h-screen bg-green-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl p-12 max-w-lg w-full text-center shadow-2xl flex flex-col items-center">
@@ -10,9 +13,10 @@ export default function CheckoutSuccess() {
                     3D Secure SMS doğrulamanız ve ödemeniz sorunsuzca gerçekleşti. Faturanız ve biletleriniz mail adresinize gönderildi.
                 </p>
 
-                <a href="/" className="bg-[#005e85] hover:bg-[#004b6b] text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md">
+                <Link href="/" className="bg-[#005e85] hover:bg-[#004b6b] text-white px-8 py-3 rounded-xl font-bold transition-all shadow-md">
                     Ana Sayfa'ya Dön ➔
-                </a>
+                </Link>
+
             </div>
         </div>
     )

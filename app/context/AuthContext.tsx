@@ -1,5 +1,6 @@
 'use client';
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react';
+
 import { auth } from '../lib/auth';
 import { fetchAPI } from '../lib/api';
 
@@ -32,7 +33,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const checkAuth = async () => {
+    const checkAuth = useCallback(async () => {
         setIsLoading(true);
         const token = auth.getAccessToken();
 
@@ -51,11 +52,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(null);
         }
         setIsLoading(false);
-    };
+    }, []);
 
     useEffect(() => {
         checkAuth();
-    }, []);
+    }, [checkAuth]);
+
 
     const login = async (tokens: { access: string, refresh: string }) => {
         auth.setTokens(tokens);
