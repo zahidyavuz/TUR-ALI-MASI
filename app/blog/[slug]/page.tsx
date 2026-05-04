@@ -4,6 +4,7 @@ import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
 import { fetchBlog } from '../../lib/blog';
 import { fetchTours } from '../../lib/tours';
+import Navbar from '../../components/Navbar';
 import { Metadata } from 'next';
 
 type Props = {
@@ -80,15 +81,7 @@ export default async function BlogPostPage({ params }: Props) {
             />
             <main className="min-h-screen bg-white font-sans text-slate-800 pb-20">
                 {/* Navbar */}
-                <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-                    <Link href="/" className="text-4xl font-extrabold text-[#008cb3] tracking-tighter">
-                        tour<span className="text-[#005e85]">kia</span>
-                        <span className="ml-2 text-sm font-medium text-slate-400">| Blog</span>
-                    </Link>
-                    <div className="flex gap-4 items-center">
-                        <Link href="/blog" className="text-sm font-bold text-gray-500 hover:text-blue-500 transition-colors hidden md:block">Tüm Yazılar</Link>
-                    </div>
-                </nav>
+                <Navbar />
 
                 <article className="max-w-4xl mx-auto px-6 sm:px-12 mt-12">
                     {/* Header Info */}

@@ -15,6 +15,30 @@ export default function LoginPage() {
     const router = useRouter();
     const { login } = useAuth();
 
+    const handleRedirect = (user: any) => {
+        if (!user) {
+            router.push('/');
+            return;
+        }
+        
+        const role = user.role?.toLowerCase() || '';
+        
+        // SuperAdmin check
+        if (user.username === 'yavuz50' || user.is_staff || role === 'superadmin' || role === 'admin') {
+            router.push('/dashboard');
+            return;
+        }
+        
+        // Merchant/Agency check
+        if (user.is_agency || role === 'merchant' || role === 'agency' || role === 'merchant/agency') {
+            router.push('/agency/dashboard');
+            return;
+        }
+        
+        // Default Customer
+        router.push('/');
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
@@ -26,8 +50,8 @@ export default function LoginPage() {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('access_token', 'admin_demo_token');
                 }
-                await login({ access: 'admin_demo_token', refresh: 'admin_demo_token' });
-                router.push('/dashboard');
+                const user = await login({ access: 'admin_demo_token', refresh: 'admin_demo_token' });
+                handleRedirect(user);
                 return;
             }
 
@@ -45,18 +69,18 @@ export default function LoginPage() {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('access_token', 'mock_token');
                 }
-                await login({ access: 'mock_token', refresh: 'mock_token' });
-                router.push('/dashboard');
+                const user = await login({ access: 'mock_token', refresh: 'mock_token' });
+                handleRedirect(user);
                 return;
             }
 
             if (response.access_token && response.refresh_token) {
-                await login({ access: response.access_token, refresh: response.refresh_token });
-                router.push('/dashboard');
+                const user = await login({ access: response.access_token, refresh: response.refresh_token });
+                handleRedirect(user);
             } else if (response.access) {
                 // native simple-jwt format
-                await login({ access: response.access, refresh: response.refresh });
-                router.push('/dashboard');
+                const user = await login({ access: response.access, refresh: response.refresh });
+                handleRedirect(user);
             } else {
                 setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
             }
@@ -69,8 +93,8 @@ export default function LoginPage() {
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('access_token', 'mock_token');
                 }
-                await login({ access: 'mock_token', refresh: 'mock_token' });
-                router.push('/dashboard');
+                const user = await login({ access: 'mock_token', refresh: 'mock_token' });
+                handleRedirect(user);
             } else {
                 setError(errMsg || 'Bir hata oluştu. Lütfen tekrar deneyin.');
             }

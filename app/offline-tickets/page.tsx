@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { getAllOfflineTickets, deleteOfflineTicket } from '../lib/offline-db';
+import Navbar from '../components/Navbar';
 import type { OfflineTicket } from '../lib/offline-types';
 
 export default function OfflineTicketsPage() {
@@ -34,16 +35,7 @@ export default function OfflineTicketsPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
-      <nav className="w-full bg-white/80 backdrop-blur-md py-4 px-6 md:px-12 flex justify-between items-center sticky top-0 z-50 border-b border-gray-100 shadow-sm">
-        <Link href="/" className="text-2xl font-extrabold text-[#008cb3] tracking-tighter">
-          tour<span className="text-[#005e85]">kia</span>
-        </Link>
-        <div className="flex gap-4">
-          <Link href="/" className="text-sm font-bold text-gray-500 hover:text-blue-500 transition-colors">
-            Ana Sayfa
-          </Link>
-        </div>
-      </nav>
+      <Navbar />
 
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-2xl font-black text-slate-800 mb-2">Offline Biletlerim</h1>

@@ -1,7 +1,7 @@
 import Cookies from 'js-cookie';
 
-const ACCESS_TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
+const ACCESS_TOKEN_KEY = 'tourkia_access_token';
+const REFRESH_TOKEN_KEY = 'tourkia_refresh_token';
 
 interface TokenData {
     access: string;
@@ -10,11 +10,12 @@ interface TokenData {
 
 export const auth = {
     setTokens: (data: TokenData) => {
+        const isSecure = typeof window !== 'undefined' && window.location.protocol === 'https:';
         if (data.access) {
-            Cookies.set(ACCESS_TOKEN_KEY, data.access, { secure: true, sameSite: 'strict', expires: 1 }); // 1 day expire
+            Cookies.set(ACCESS_TOKEN_KEY, data.access, { path: '/', secure: isSecure, sameSite: 'strict', expires: 1 }); // 1 day expire
         }
         if (data.refresh) {
-            Cookies.set(REFRESH_TOKEN_KEY, data.refresh, { secure: true, sameSite: 'strict', expires: 7 }); // 7 days expire
+            Cookies.set(REFRESH_TOKEN_KEY, data.refresh, { path: '/', secure: isSecure, sameSite: 'strict', expires: 7 }); // 7 days expire
         }
     },
     getAccessToken: () => {

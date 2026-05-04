@@ -12,11 +12,23 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
+    is_agency = serializers.SerializerMethodField()
+    role = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile']
-        read_only_fields = ['id', 'username']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile', 'is_agency', 'is_staff', 'role']
+        read_only_fields = ['id', 'username', 'is_agency', 'is_staff', 'role']
+
+    def get_is_agency(self, obj):
+        return hasattr(obj, 'agency_profile')
+
+    def get_role(self, obj):
+        if obj.is_superuser or obj.is_staff:
+            return 'Admin'
+        if hasattr(obj, 'agency_profile'):
+            return 'Agency'
+        return 'Customer'
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})

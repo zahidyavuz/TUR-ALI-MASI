@@ -17,7 +17,30 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         if (!res.ok) {
             // Trying to parse standard Django REST error response
             const err = await res.json().catch(() => ({}));
-            throw new Error(err.detail || err.error || `API Error: ${res.status}`);
+            
+            // Extract the most relevant error message from Django's various formats
+            let message = err.detail || err.error;
+            
+            if (!message) {
+                if (err.non_field_errors) {
+                    message = Array.isArray(err.non_field_errors) ? err.non_field_errors[0] : err.non_field_errors;
+                } else {
+                    // Collect field-specific validation errors
+                    const fieldErrors = Object.entries(err)
+                        .map(([key, value]) => {
+                            const val = Array.isArray(value) ? value[0] : value;
+                            return `${key}: ${val}`;
+                        });
+                    if (fieldErrors.length > 0) {
+                        message = fieldErrors.join(', ');
+                    }
+                }
+            }
+            
+            const error = new Error(message || `API Error: ${res.status}`);
+            (error as any).data = err;
+            (error as any).status = res.status;
+            throw error;
         }
         return await res.json();
     } catch (error: unknown) {

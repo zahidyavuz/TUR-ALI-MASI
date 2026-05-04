@@ -136,6 +136,7 @@ REST_AUTH = {
     'PASSWORD_RESET_CONFIRM_URL': 'reset-password/?uid={uid}&token={token}',
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'LOGOUT_ON_PASSWORD_CHANGE': False,
+    'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
 }
 
 # Stripe Settings
