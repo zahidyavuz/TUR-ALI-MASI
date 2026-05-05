@@ -14,6 +14,7 @@ import GeofenceTrigger from '../../components/GeofenceTrigger';
 import CurrencySelector from '../../components/CurrencySelector';
 import TourReviews from '../../components/TourReviews';
 import Navbar from '../../components/Navbar';
+import FavoriteButton from '../../components/FavoriteButton';
 
 export default function DynamicTourPage() {
     const { t, locale, formatPrice } = useLocale();
