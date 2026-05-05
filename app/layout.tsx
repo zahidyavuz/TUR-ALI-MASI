@@ -28,6 +28,7 @@ export const metadata: Metadata = {
 import Script from "next/script";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import Chatbot from "./components/Chatbot";
+import Footer from "./components/Footer";
 import { CurrencyProvider } from "./context/CurrencyContext";
 import { LocaleProvider } from "./context/LocaleContext";
 import { NotificationProvider } from "./context/NotificationContext";
@@ -64,6 +65,7 @@ export default function RootLayout({
                   {children}
                   <GeofenceBanner />
                   <Chatbot />
+                  <Footer />
                 </GeofenceProvider>
               </NotificationProvider>
             </AuthProvider>
