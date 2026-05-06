@@ -163,6 +163,7 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedPrice, setSelectedPrice] = useState('Bütçeniz');
   const [selectedGuests, setSelectedGuests] = useState<number | ''>(1);
+  const [activeCityTab, setActiveCityTab] = useState('istanbul');
 
   const POPULAR_LOCATIONS = ['Kapadokya, Türkiye', 'Ege Kıyıları, Türkiye', 'Roma, İtalya', 'Paris, Fransa', 'Bali, Endonezya', 'Moskova, Rusya', 'Pekin, Çin', 'Maldivler', 'Dubai, BAE'];
   const searchParams = useSearchParams();
@@ -324,15 +325,36 @@ export default function Home() {
             <div className="absolute inset-0 bg-black/45" />
           </div>
 
-          {/* İçerik */}
-          <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center mt-2">
+          <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between mt-2 gap-12 px-6">
             
-            <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3 drop-shadow-lg leading-tight w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700" 
-                dangerouslySetInnerHTML={{ __html: t.hero.title }}>
-            </h1>
-            <p className="text-xs md:text-sm text-white/90 font-medium max-w-3xl mx-auto mb-6 drop-shadow-md px-4 leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150">
-              {t.hero.subtitle}
-            </p>
+            <div className="flex-1 text-center md:text-left">
+              <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3 drop-shadow-lg leading-tight animate-in fade-in slide-in-from-bottom-4 duration-700" 
+                  dangerouslySetInnerHTML={{ __html: t.hero.title }}>
+              </h1>
+              <p className="text-xs md:text-sm text-white/90 font-medium mb-6 drop-shadow-md leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150">
+                {t.hero.subtitle}
+              </p>
+            </div>
+
+            {/* Sadakat Programı Kartı (Hero'da sağda yüzen) */}
+            {isLoggedIn && (
+              <div className="hidden lg:block w-72 bg-white/10 backdrop-blur-xl rounded-[32px] p-6 border border-white/20 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-700 delay-300">
+                <div className="flex items-center gap-2 mb-4">
+                  <span className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs">★</span>
+                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Sadakat Programı</span>
+                </div>
+                <div className="flex justify-between items-center w-full mb-2">
+                  <span className="font-extrabold text-lg text-white tracking-tight">TourPuan™</span>
+                  <span className="bg-[#008cb3] text-white font-black text-[11px] px-3 py-1 rounded-full shadow-lg animate-pulse">1.450 Puan</span>
+                </div>
+                <p className="text-[11px] text-white/70 font-bold mb-4">Mevcut Bakiyeniz: <span className="text-green-400">₺145 İndirim!</span></p>
+                <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
+                  <div className="h-full bg-orange-500 w-[65%]"></div>
+                </div>
+                <p className="text-[9px] text-white/50 font-medium mt-2">Sonraki seviyeye 550 puan kaldı.</p>
+              </div>
+            )}
+          </div>
 
             {/* Gelişmiş Filtre Çubuğu */}
             <div className="dropdown-container bg-white p-4 md:p-2 rounded-2xl md:rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col md:flex-row w-full max-w-4xl items-stretch md:items-center justify-between relative z-50 gap-0" data-dropdown="searchBar">
@@ -515,7 +537,6 @@ export default function Home() {
             </div>
         </div>
       </div>
-    </div>
       
 
 
@@ -628,6 +649,103 @@ export default function Home() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* 2. City Discovery Tabs (İstanbul, Antalya, Kapadokya) */}
+      <div className="w-full bg-slate-50/50 py-16 md:py-24">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase mb-6 leading-none">
+              Şehri <span className="text-[#008cb3]">Yerlisinden Keşfet</span>
+            </h2>
+            
+            {/* Tab Navigasyonu */}
+            <div className="flex justify-center gap-2 md:gap-4 mt-8 flex-wrap">
+              {[
+                { id: 'istanbul', label: 'İstanbul', icon: '🕌' },
+                { id: 'antalya', label: 'Antalya', icon: '🏖️' },
+                { id: 'kapadokya', label: 'Kapadokya', icon: '🎈' }
+              ].map((city) => (
+                <button
+                  key={city.id}
+                  onClick={() => setActiveCityTab(city.id)}
+                  className={`px-6 md:px-10 py-3 md:py-4 rounded-full font-black text-xs md:text-sm uppercase tracking-widest transition-all duration-300 flex items-center gap-2 md:gap-3 shadow-sm ${activeCityTab === city.id ? 'bg-[#008cb3] text-white scale-105 shadow-xl shadow-blue-500/20' : 'bg-white text-gray-500 hover:bg-white hover:text-[#008cb3] border border-gray-100 hover:border-[#008cb3]/20'}`}
+                >
+                  <span className="text-lg md:text-xl">{city.icon}</span>
+                  {city.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Tab İçeriği (Turlar) */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
+            {tours
+              .filter((t: any) => {
+                const loc = (t.location || '').toLowerCase();
+                const searchStr = activeCityTab === 'istanbul' ? 'istanbul' : activeCityTab;
+                return loc.replace(/\u0131/g, 'i').replace(/\u0069\u0307/g, 'i').includes(searchStr);
+              })
+              .map((tur: any, i: number) => (
+                <div 
+                  key={tur.id || i}
+                  className="group bg-white rounded-[32px] overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_70px_rgba(0,0,0,0.1)] transition-all duration-700 animate-in fade-in slide-in-from-bottom-8 flex flex-col h-full border border-gray-100/50"
+                  style={{ animationDelay: `${i * 150}ms` }}
+                >
+                  <div className="relative h-64 md:h-72 overflow-hidden">
+                    <Image src={tur.image} alt={tur.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+                    
+                    <div className="absolute top-5 left-5">
+                      <span className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl text-[10px] font-black text-[#008cb3] uppercase tracking-widest shadow-lg">
+                        {tur.category || 'Popüler'}
+                      </span>
+                    </div>
+
+                    <div className="absolute bottom-5 right-5 flex gap-2">
+                       <FavoriteButton tourId={tur.id} className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors shadow-lg" />
+                    </div>
+                  </div>
+
+                  <div className="p-8 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="flex text-yellow-400 text-xs">{'★'.repeat(5)}</div>
+                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">({(Math.random() * 200 + 50).toFixed(0)} Değerlendirme)</span>
+                    </div>
+
+                    <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-4 group-hover:text-[#008cb3] transition-colors leading-tight">
+                      {tur.name}
+                    </h3>
+
+                    <p className="text-sm text-gray-500 font-medium mb-8 line-clamp-2 leading-relaxed">
+                      {tur.description || `${activeCityTab.charAt(0).toUpperCase() + activeCityTab.slice(1)}'ın büyüleyici atmosferinde unutulmaz bir deneyime hazır olun.`}
+                    </p>
+
+                    <div className="mt-auto flex items-center justify-between pt-6 border-t border-gray-100">
+                      <div>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Kişi Başı</p>
+                        <div className="text-3xl font-black text-[#008cb3] tracking-tighter">
+                          {formatPrice(tur.price)}
+                        </div>
+                      </div>
+                      <Link 
+                        href={`/tour/${tur.id}`}
+                        className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#008cb3] transition-all active:scale-95 shadow-xl shadow-slate-900/10"
+                      >
+                        İncele
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+          </div>
+
+          <div className="mt-16 text-center">
+            <Link href="/search" className="inline-flex items-center gap-3 bg-white border-2 border-gray-100 text-slate-800 hover:border-[#008cb3] hover:text-[#008cb3] px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-sm">
+              TÜM {activeCityTab.toUpperCase()} TURLARINI GÖR ➔
+            </Link>
+          </div>
         </div>
       </div>
 

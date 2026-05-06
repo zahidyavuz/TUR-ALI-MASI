@@ -60,12 +60,12 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
           Tour<span className="text-[#005e85]">kia</span>
         </Link>
 
-        {isLoggedIn && userRole === 'customer' && (
-          <div className="hidden lg:flex gap-6 font-semibold text-gray-700 text-[14px] ml-8 flex-1">
-            <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-[#008cb3] cursor-pointer transition-colors">{t.nav.destinations}</Link>
-            <Link href="/taste" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-[#008cb3] cursor-pointer transition-colors">{t.nav.taste}</Link>
-            <Link href="/profile/styles" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-[#008cb3] cursor-pointer transition-colors">{t.nav.styles}</Link>
-            <Link href="/profile/memories" className="px-3 py-2 rounded-xl hover:bg-slate-50 hover:text-[#008cb3] cursor-pointer transition-colors">{t.nav.memories}</Link>
+        {(userRole === 'customer' || !isLoggedIn) && (
+          <div className="hidden lg:flex gap-10 font-black text-[#005e85] text-[18px] flex-1 justify-center items-center">
+            <Link href={isLoggedIn ? "/profile/goals" : "/search"} className="px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95">{t.nav.destinations}</Link>
+            <Link href="/taste" className="px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95">{t.nav.taste}</Link>
+            <Link href={isLoggedIn ? "/profile/styles" : "/search"} className="px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95">{t.nav.styles}</Link>
+            <Link href={isLoggedIn ? "/profile/memories" : "/blog"} className="px-4 py-2 rounded-xl hover:bg-blue-50 transition-all active:scale-95">{t.nav.memories}</Link>
           </div>
         )}
 
@@ -396,23 +396,25 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                       </div>
                     </div>
 
-                    <div className="mb-2">
-                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Müşteri Paneli</p>
-                      <div className="flex flex-col gap-2">
-                        <Link href="/profile/goals" className="px-4 py-3 rounded-2xl bg-blue-50 text-[#008cb3] font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">📍</span> {t.nav.destinations}
-                        </Link>
-                        <Link href="/taste" className="px-4 py-3 rounded-2xl bg-orange-50 text-orange-600 font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">🍽️</span> {t.nav.taste}
-                        </Link>
-                        <Link href="/profile/styles" className="px-4 py-3 rounded-2xl bg-purple-50 text-purple-600 font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">🎨</span> {t.nav.styles}
-                        </Link>
-                        <Link href="/profile/memories" className="px-4 py-3 rounded-2xl bg-pink-50 text-pink-600 font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">✨</span> {t.nav.memories}
-                        </Link>
-                      </div>
+                {(userRole === 'customer' || !isLoggedIn) && (
+                  <div className="mb-2">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Müşteri Paneli</p>
+                    <div className="flex flex-col gap-2">
+                      <Link href={isLoggedIn ? "/profile/goals" : "/search"} className="px-4 py-3 rounded-2xl bg-blue-50 text-[#008cb3] font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
+                        <span className="text-xl">📍</span> {t.nav.destinations}
+                      </Link>
+                      <Link href="/taste" className="px-4 py-3 rounded-2xl bg-orange-50 text-orange-600 font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
+                        <span className="text-xl">🍽️</span> {t.nav.taste}
+                      </Link>
+                      <Link href={isLoggedIn ? "/profile/styles" : "/search"} className="px-4 py-3 rounded-2xl bg-purple-50 text-purple-600 font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
+                        <span className="text-xl">🎨</span> {t.nav.styles}
+                      </Link>
+                      <Link href={isLoggedIn ? "/profile/memories" : "/blog"} className="px-4 py-3 rounded-2xl bg-pink-50 text-pink-600 font-bold flex items-center gap-3" onClick={() => setIsMobileMenuOpen(false)}>
+                        <span className="text-xl">✨</span> {t.nav.memories}
+                      </Link>
                     </div>
+                  </div>
+                )}
                   </>
                 )}
 
