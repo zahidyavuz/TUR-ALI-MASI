@@ -80,12 +80,12 @@ type Translations = {
 const TRANSLATIONS: Translations = {
     'tr-TR': {
         nav: {
-            destinations: "Hedeflerim",
-            styles: "Tarzım",
-            memories: "Anılarım",
+            destinations: "Keşfet",
+            styles: "Tarzlar",
+            memories: "Anılar",
             deals: "Fırsatlar",
-            taste: "Damak Tadım",
-            contact: "Temas",
+            taste: "Lezzet Durakları",
+            contact: "İletişim",
             competitorReport: "Rakip Analizi",
             customerLogin: "Müşteri Girişi",
             agencyLogin: "Acenta Girişi",
