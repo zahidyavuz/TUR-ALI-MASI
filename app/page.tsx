@@ -163,7 +163,6 @@ export default function Home() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedPrice, setSelectedPrice] = useState('Bütçeniz');
   const [selectedGuests, setSelectedGuests] = useState<number | ''>(1);
-  const [activeCityTab, setActiveCityTab] = useState('istanbul');
 
   const POPULAR_LOCATIONS = ['Kapadokya, Türkiye', 'Ege Kıyıları, Türkiye', 'Roma, İtalya', 'Paris, Fransa', 'Bali, Endonezya', 'Moskova, Rusya', 'Pekin, Çin', 'Maldivler', 'Dubai, BAE'];
   const searchParams = useSearchParams();
@@ -189,74 +188,6 @@ export default function Home() {
       setAgencyTab('register');
     }
   }, [searchParams]);
-
-  // Canlı Kur Simülasyonu State
-  const initialRates = [
-    { birim: '1 USD', karsilik: 35.150, ikon: '🇺🇸', isim: 'Amerikan Doları' },
-    { birim: '1 EUR', karsilik: 38.650, ikon: '🇪🇺', isim: 'Euro' },
-    { birim: '1 GBP', karsilik: 45.120, ikon: '🇬🇧', isim: 'İngiliz Sterlini' },
-    { birim: '1 CNY', karsilik: 4.880, ikon: '🇨🇳', isim: 'Çin Yuanı' },
-    { birim: '1 AED', karsilik: 9.570, ikon: '🇦🇪', isim: 'BAE Dirhemi' },
-    { birim: '1 RUB', karsilik: 0.380, ikon: '🇷🇺', isim: 'Rus Rublesi' },
-    { birim: '1 SAR', karsilik: 9.350, ikon: '🇸🇦', isim: 'Suudi Riyali' },
-    { birim: '1 INR', karsilik: 0.420, ikon: '🇮🇳', isim: 'Hindistan Rupisi' }
-  ];
-  const [liveRates, setLiveRates] = useState(initialRates);
-  const [rateColors, setRateColors] = useState<{ [key: string]: 'text-green-500' | 'text-red-500' | 'text-[#005e85]' }>({});
-
-  useEffect(() => {
-    
-
-    // API'den gerçek kurları çekme fonksiyonu
-    const fetchRealRates = async () => {
-      try {
-        const res = await fetch('https://api.exchangerate-api.com/v4/latest/TRY');
-        const data = await res.json();
-        if (data && data.rates) {
-          const tryRates = data.rates;
-          const updatedRates = [
-            { birim: '1 USD', karsilik: 1 / tryRates.USD, ikon: '🇺🇸', isim: 'Amerikan Doları' },
-            { birim: '1 EUR', karsilik: 1 / tryRates.EUR, ikon: '🇪🇺', isim: 'Euro' },
-            { birim: '1 GBP', karsilik: 1 / tryRates.GBP, ikon: '🇬🇧', isim: 'İngiliz Sterlini' },
-            { birim: '1 CNY', karsilik: 1 / tryRates.CNY, ikon: '🇨🇳', isim: 'Çin Yuanı' },
-            { birim: '1 AED', karsilik: 1 / tryRates.AED, ikon: '🇦🇪', isim: 'BAE Dirhemi' },
-            { birim: '1 RUB', karsilik: 1 / tryRates.RUB, ikon: '🇷🇺', isim: 'Rus Rublesi' },
-            { birim: '1 SAR', karsilik: 1 / tryRates.SAR, ikon: '🇸🇦', isim: 'Suudi Riyali' },
-            { birim: '1 INR', karsilik: 1 / tryRates.INR, ikon: '🇮🇳', isim: 'Hindistan Rupisi' }
-          ];
-          setLiveRates(updatedRates);
-        }
-      } catch (error) {
-        console.error("Kur güncellenemedi:", error);
-      }
-    };
-
-    // İlk yüklemede kurları çek
-    fetchRealRates();
-    // Saatte bir API'den güncel veriyi al
-    const apiInterval = setInterval(fetchRealRates, 1000 * 60 * 60);
-
-    // Borsa efekti simülasyonunu (küçük dalgalanmaları) devam ettir
-    const simInterval = setInterval(() => {
-      setLiveRates(prevRates => {
-        const newColors: { [key: string]: 'text-green-500' | 'text-red-500' | 'text-[#005e85]' } = {};
-        const updated = prevRates.map(rate => {
-          // Borsa efekti: Kura çok çok ufak bir değişim ekle
-          const change = rate.karsilik * (Math.random() * 0.0004 - 0.0002);
-          newColors[rate.birim] = change > 0 ? 'text-green-500' : 'text-red-500';
-          return { ...rate, karsilik: rate.karsilik + change };
-        });
-        setRateColors(newColors);
-        return updated;
-      });
-    }, 3000);
-
-    return () => {
-      clearInterval(apiInterval);
-      clearInterval(simInterval);
-    };
-  }, []);
-
 
   useEffect(() => {
     const trustTimer = setInterval(() => {
@@ -325,36 +256,15 @@ export default function Home() {
             <div className="absolute inset-0 bg-black/45" />
           </div>
 
-          <div className="relative z-10 w-full max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between mt-2 gap-12 px-6">
+          {/* İçerik */}
+          <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center mt-2">
             
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3 drop-shadow-lg leading-tight animate-in fade-in slide-in-from-bottom-4 duration-700" 
-                  dangerouslySetInnerHTML={{ __html: t.hero.title }}>
-              </h1>
-              <p className="text-xs md:text-sm text-white/90 font-medium mb-6 drop-shadow-md leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150">
-                {t.hero.subtitle}
-              </p>
-            </div>
-
-            {/* Sadakat Programı Kartı (Hero'da sağda yüzen) */}
-            {isLoggedIn && (
-              <div className="hidden lg:block w-72 bg-white/10 backdrop-blur-xl rounded-[32px] p-6 border border-white/20 shadow-2xl animate-in fade-in slide-in-from-right-4 duration-700 delay-300">
-                <div className="flex items-center gap-2 mb-4">
-                  <span className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs">★</span>
-                  <span className="text-[10px] font-black text-white uppercase tracking-widest">Sadakat Programı</span>
-                </div>
-                <div className="flex justify-between items-center w-full mb-2">
-                  <span className="font-extrabold text-lg text-white tracking-tight">TourPuan™</span>
-                  <span className="bg-[#008cb3] text-white font-black text-[11px] px-3 py-1 rounded-full shadow-lg animate-pulse">1.450 Puan</span>
-                </div>
-                <p className="text-[11px] text-white/70 font-bold mb-4">Mevcut Bakiyeniz: <span className="text-green-400">₺145 İndirim!</span></p>
-                <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-                  <div className="h-full bg-orange-500 w-[65%]"></div>
-                </div>
-                <p className="text-[9px] text-white/50 font-medium mt-2">Sonraki seviyeye 550 puan kaldı.</p>
-              </div>
-            )}
-          </div>
+            <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3 drop-shadow-lg leading-tight w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700" 
+                dangerouslySetInnerHTML={{ __html: t.hero.title }}>
+            </h1>
+            <p className="text-xs md:text-sm text-white/90 font-medium max-w-3xl mx-auto mb-6 drop-shadow-md px-4 leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150">
+              {t.hero.subtitle}
+            </p>
 
             {/* Gelişmiş Filtre Çubuğu */}
             <div className="dropdown-container bg-white p-4 md:p-2 rounded-2xl md:rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col md:flex-row w-full max-w-4xl items-stretch md:items-center justify-between relative z-50 gap-0" data-dropdown="searchBar">
@@ -537,6 +447,7 @@ export default function Home() {
             </div>
         </div>
       </div>
+    </div>
       
 
 
@@ -649,103 +560,6 @@ export default function Home() {
               </div>
             </div>
           ))}
-        </div>
-      </div>
-
-      {/* 2. City Discovery Tabs (İstanbul, Antalya, Kapadokya) */}
-      <div className="w-full bg-slate-50/50 py-16 md:py-24">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase mb-6 leading-none">
-              Şehri <span className="text-[#008cb3]">Yerlisinden Keşfet</span>
-            </h2>
-            
-            {/* Tab Navigasyonu */}
-            <div className="flex justify-center gap-2 md:gap-4 mt-8 flex-wrap">
-              {[
-                { id: 'istanbul', label: 'İstanbul', icon: '🕌' },
-                { id: 'antalya', label: 'Antalya', icon: '🏖️' },
-                { id: 'kapadokya', label: 'Kapadokya', icon: '🎈' }
-              ].map((city) => (
-                <button
-                  key={city.id}
-                  onClick={() => setActiveCityTab(city.id)}
-                  className={`px-6 md:px-10 py-3 md:py-4 rounded-full font-black text-xs md:text-sm uppercase tracking-widest transition-all duration-300 flex items-center gap-2 md:gap-3 shadow-sm ${activeCityTab === city.id ? 'bg-[#008cb3] text-white scale-105 shadow-xl shadow-blue-500/20' : 'bg-white text-gray-500 hover:bg-white hover:text-[#008cb3] border border-gray-100 hover:border-[#008cb3]/20'}`}
-                >
-                  <span className="text-lg md:text-xl">{city.icon}</span>
-                  {city.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Tab İçeriği (Turlar) */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 md:gap-10">
-            {tours
-              .filter((t: any) => {
-                const loc = (t.location || '').toLowerCase();
-                const searchStr = activeCityTab === 'istanbul' ? 'istanbul' : activeCityTab;
-                return loc.replace(/\u0131/g, 'i').replace(/\u0069\u0307/g, 'i').includes(searchStr);
-              })
-              .map((tur: any, i: number) => (
-                <div 
-                  key={tur.id || i}
-                  className="group bg-white rounded-[32px] overflow-hidden shadow-[0_15px_45px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_70px_rgba(0,0,0,0.1)] transition-all duration-700 animate-in fade-in slide-in-from-bottom-8 flex flex-col h-full border border-gray-100/50"
-                  style={{ animationDelay: `${i * 150}ms` }}
-                >
-                  <div className="relative h-64 md:h-72 overflow-hidden">
-                    <Image src={tur.image} alt={tur.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                    
-                    <div className="absolute top-5 left-5">
-                      <span className="bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl text-[10px] font-black text-[#008cb3] uppercase tracking-widest shadow-lg">
-                        {tur.category || 'Popüler'}
-                      </span>
-                    </div>
-
-                    <div className="absolute bottom-5 right-5 flex gap-2">
-                       <FavoriteButton tourId={tur.id} className="w-10 h-10 rounded-full bg-white/90 backdrop-blur-md flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors shadow-lg" />
-                    </div>
-                  </div>
-
-                  <div className="p-8 flex flex-col flex-1">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="flex text-yellow-400 text-xs">{'★'.repeat(5)}</div>
-                      <span className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">({(Math.random() * 200 + 50).toFixed(0)} Değerlendirme)</span>
-                    </div>
-
-                    <h3 className="text-xl md:text-2xl font-black text-slate-800 mb-4 group-hover:text-[#008cb3] transition-colors leading-tight">
-                      {tur.name}
-                    </h3>
-
-                    <p className="text-sm text-gray-500 font-medium mb-8 line-clamp-2 leading-relaxed">
-                      {tur.description || `${activeCityTab.charAt(0).toUpperCase() + activeCityTab.slice(1)}'ın büyüleyici atmosferinde unutulmaz bir deneyime hazır olun.`}
-                    </p>
-
-                    <div className="mt-auto flex items-center justify-between pt-6 border-t border-gray-100">
-                      <div>
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Kişi Başı</p>
-                        <div className="text-3xl font-black text-[#008cb3] tracking-tighter">
-                          {formatPrice(tur.price)}
-                        </div>
-                      </div>
-                      <Link 
-                        href={`/tour/${tur.id}`}
-                        className="bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-[#008cb3] transition-all active:scale-95 shadow-xl shadow-slate-900/10"
-                      >
-                        İncele
-                      </Link>
-                    </div>
-                  </div>
-                </div>
-              ))}
-          </div>
-
-          <div className="mt-16 text-center">
-            <Link href="/search" className="inline-flex items-center gap-3 bg-white border-2 border-gray-100 text-slate-800 hover:border-[#008cb3] hover:text-[#008cb3] px-10 py-5 rounded-2xl font-black text-sm uppercase tracking-widest transition-all shadow-sm">
-              TÜM {activeCityTab.toUpperCase()} TURLARINI GÖR ➔
-            </Link>
-          </div>
         </div>
       </div>
 
@@ -1159,192 +973,6 @@ export default function Home() {
         </div>
       </div >
 
-      {/* Kapsamlı Alt Bilgi (Footer) - Tourradar Tarzı */}
-      < footer className="w-full bg-[#f8f8f8] text-slate-800 pt-12 pb-24 border-t border-gray-200 mt-0" >
-        <div className="max-w-[1400px] mx-auto px-6">
-
-          {/* Üst Bar: Puan ve Logolar */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-8 border-b border-gray-300 gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-lg">Harika</span>
-                <span className="bg-[#00b67a] text-white px-1.5 py-0.5 text-xs font-bold tracking-widest flex items-center gap-0.5">
-                  ★ ★ ★ ★ ★
-                </span>
-              </div>
-              <div className="text-xs text-gray-500 font-medium">9.906 değerlendirme <span className="font-bold text-[#00b67a] ml-1">★ Trustpilot</span></div>
-            </div>
-          </div>
-
-          {/* Orta Kısım: Sütunlar */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-12 py-10 text-[13px] leading-[22px] border-b border-gray-300">
-            {/* Sütun 1: Şirket */}
-            <div>
-              <h4 className="font-bold text-[15px] mb-4 text-slate-900">Şirket</h4>
-              <ul className="flex flex-col gap-2 text-gray-600 font-medium">
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Hakkımızda</a></li>
-                <li className="flex items-center gap-2">
-                  <a href="#" className="hover:text-blue-500 transition-colors">Kariyerler</a>
-                  <span className="border border-blue-200 text-[#008cb3] text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">Hemen Başvurun!</span>
-                </li>
-              </ul>
-            </div>
-
-            {/* Sütun 2: Organize Macera Platformu */}
-            <div>
-              <h4 className="font-bold text-[15px] mb-4 text-slate-900">Organize Macera Platformu</h4>
-              <ul className="flex flex-col gap-2 text-gray-600 font-medium">
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Organize Macera Açıklaması</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Bağlantılı iş çözümleri</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Adventure Together Etkinlikleri</a></li>
-              </ul>
-            </div>
-
-            {/* Sütun 3: Operatörler & Rehberler */}
-            <div>
-              <h4 className="font-bold text-[15px] mb-4 text-slate-900">Operatörler</h4>
-              <ul className="flex flex-col gap-2 text-gray-600 font-medium mb-8">
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Başarılı bir işletme kurun</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Ödeme çözümleri</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Görünürlüğü artırın</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Doğrudan rezervasyonları en üst düzeye çıkarın</a></li>
-                <li><a href="#" className="hover:text-[#008cb3] text-[#005e85] transition-colors">Operatör girişi</a></li>
-              </ul>
-
-              <h4 className="font-bold text-[15px] mb-4 text-slate-900">Rehberler</h4>
-              <ul className="flex flex-col gap-2 text-gray-600 font-medium">
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Yılın Rehberi</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Rehber kaydı</a></li>
-                <li><a href="#" className="hover:text-[#008cb3] text-[#005e85] transition-colors">Rehbere giriş yap</a></li>
-              </ul>
-            </div>
-
-            {/* Sütun 4: Ortaklar */}
-            <div>
-              <h4 className="font-bold text-[15px] mb-4 text-slate-900">Ortaklar</h4>
-              <ul className="flex flex-col gap-2 text-gray-600 font-medium">
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Seyahat acenteleri ve danışmanları</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">RISE: Ortaklar ve İçerik oluşturucular</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">DMO'lar ve pazarlamacılar</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Çevrimiçi seyahat acenteleri, havayolları...</a></li>
-                <li><a href="#" className="hover:text-[#008cb3] text-[#005e85] transition-colors">İş ortağı girişi</a></li>
-              </ul>
-            </div>
-
-            {/* Sütun 5: Destek */}
-            <div>
-              <h4 className="font-bold text-[15px] mb-4 text-slate-900">Destek</h4>
-              <ul className="flex flex-col gap-3 text-gray-600 font-medium text-[13px]">
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Bize Ulaşın</a></li>
-                <li><a href="#" className="hover:text-blue-500 transition-colors">Yardım merkezi</a></li>
-                <li className="text-gray-900 mt-2">Türkiye <a href="#" className="hover:text-blue-500 block text-gray-500">+90 850 123 45 67</a></li>
-              </ul>
-            </div>
-          </div>
-
-          {/* Yeni: Güncel Kurlar Barı */}
-          <div className="py-6 mt-8 border-t border-b border-gray-100 mb-8">
-            <h4 className="font-bold text-[12px] uppercase tracking-widest text-[#008cb3] mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              Canlı Kur Referansları (₺)
-            </h4>
-            <div className="flex flex-wrap gap-4 md:gap-8 overflow-x-auto pb-2 scrollbar-hide">
-              {liveRates.map((kur) => (
-                <div key={kur.birim} className="flex flex-col flex-shrink-0 group cursor-default">
-                  <div className="flex items-center gap-1.5 text-slate-700 font-bold text-[14px]">
-                    <span className="text-sm">{kur.ikon}</span>
-                    {kur.birim} <span className="text-gray-400 text-xs font-medium mx-0.5">=</span>
-                    <span className={`transition-colors duration-500 ${rateColors[kur.birim] || 'text-[#005e85]'}`}>
-                      ₺{kur.karsilik.toFixed(3)}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-semibold">{kur.isim}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Alt Kısım: Dil, Sosyal, Ödeme ve Uygulama */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
-
-            {/* Dil Seçimi (Top 10 Dünya Dili) */}
-            <div>
-              <h4 className="font-bold text-[13px] mb-3 text-slate-900">Otomatik Çeviri (Beta)</h4>
-              <div className="flex gap-2 text-[10px] font-black text-slate-700 flex-wrap max-w-[280px]">
-                {[
-                  { code: 'tr', label: 'TR', title: 'Türkçe' },
-                  { code: 'en', label: 'EN', title: 'İngilizce' },
-                  { code: 'zh-CN', label: 'ZH', title: 'Çince' },
-                  { code: 'hi', label: 'HI', title: 'Hintçe' },
-                  { code: 'es', label: 'ES', title: 'İspanyolca' },
-                  { code: 'fr', label: 'FR', title: 'Fransızca' },
-                  { code: 'ar', label: 'AR', title: 'Arapça' },
-                  { code: 'bn', label: 'BN', title: 'Bengalce' },
-                  { code: 'ru', label: 'RU', title: 'Rusça' },
-                  { code: 'pt', label: 'PT', title: 'Portekizce' }
-                ].map((lang) => (
-                  <button
-                    key={lang.code}
-                    title={lang.title}
-                    onClick={() => {
-                      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-                      if (select) {
-                        select.value = lang.code;
-                        select.dispatchEvent(new Event('change'));
-                      } else {
-                        alert('Çeviri sistemi yükleniyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
-                      }
-                    }}
-                    className="w-10 h-10 rounded-full border border-gray-300 bg-white flex items-center justify-center hover:border-[#008cb3] hover:text-[#008cb3] hover:bg-slate-50 transition-all shadow-sm"
-                  >
-                    {lang.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Bizi Takip Edin (Sosyal Medya) */}
-            <div>
-              <h4 className="font-bold text-[13px] mb-3 text-slate-900">Bizi takip edin</h4>
-              <div className="flex gap-4 text-gray-600 border-none items-center mt-2">
-                <span className="font-black hover:text-[#008cb3] cursor-pointer text-lg" title="Facebook">f</span>
-                <span className="font-black hover:text-[#008cb3] cursor-pointer text-lg" title="X (Twitter)">𝕏</span>
-                <span className="font-black hover:text-[#008cb3] cursor-pointer text-xl" title="Instagram">ℹ</span>
-                <span className="font-black hover:text-[#2787F5] cursor-pointer text-xl" title="VKontakte">K</span>
-                <span className="font-black hover:text-[#008cb3] cursor-pointer text-xl" title="WeChat (Weixin)">💬</span>
-                <span className="font-black hover:text-[#e6162d] cursor-pointer text-xl" title="Sina Weibo">Ⓦ</span>
-              </div>
-            </div>
-
-            {/* Ödeme Yöntemleri */}
-            <div>
-              <h4 className="font-bold text-[13px] mb-3 text-slate-900">Ödeme Yöntemleri</h4>
-              <div className="flex gap-2 flex-wrap items-center">
-                <span className="bg-white border border-gray-300 rounded px-2 py-0.5 text-blue-800 font-black italic text-[10px]">VISA</span>
-                <span className="bg-white border border-gray-300 rounded px-2 py-0.5 text-red-500 font-bold text-[10px]">mastercard</span>
-                <span className="bg-[#009b4d] border border-transparent rounded px-2 py-0.5 text-white font-bold text-[10px] italic">MİR</span>
-                <span className="bg-white border border-gray-200 rounded px-2 py-0.5 text-[#003C7A] font-bold text-[10px] uppercase">UnionPay</span>
-                <span className="bg-[#2DC100] border border-transparent rounded px-2 py-0.5 text-white font-bold text-[10px]">WeChat Pay</span>
-                <span className="bg-[#1677FF] border border-transparent rounded px-2 py-0.5 text-white font-bold text-[10px]">Alipay</span>
-              </div>
-            </div>
-
-            {/* Uygulamamızı İndirin */}
-            <div>
-              <h4 className="font-bold text-[13px] mb-3 text-slate-900">Uygulamamızı İndirin</h4>
-              <div className="flex gap-2 flex-col lg:flex-row">
-                <button className="bg-black text-white px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition w-auto">
-                  <span className="font-black text-xs text-left leading-tight tracking-wider">Download on the <br /> <span className="text-sm">App Store</span></span>
-                </button>
-                <button className="bg-black text-white px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition w-auto">
-                  <span className="font-black text-xs text-left leading-tight tracking-wider">GET IT ON <br /> <span className="text-sm">Google Play</span></span>
-                </button>
-              </div>
-            </div>
-
-          </div>
-        </div>
-      </footer >
 
       {/* Yüzen Çoklu Mesajlaşma (Contact) Menüsü */}
       < FloatingContactMenu />
