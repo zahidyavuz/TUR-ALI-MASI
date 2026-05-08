@@ -208,15 +208,15 @@ export default function ProfilePage() {
 
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-transparent py-12 font-sans overflow-x-hidden transition-colors duration-500">
+        <div className="min-h-screen bg-slate-50 dark:bg-background py-12 font-sans overflow-x-hidden transition-colors duration-500">
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
                 {/* Üst Kısım: Başlık & Rol Değiştirici (TourkiaPuan vb. yerine demo amaçlı) */}
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                     <div>
-                        <h1 className="text-3xl font-extrabold text-[#005e85] tracking-tight">Kişisel Bilgilerim</h1>
-                        <p className="text-gray-500 font-medium text-sm mt-1 flex items-center gap-2">
-                            <Link href="/" className="hover:text-[#008cb3] transition-colors flex items-center gap-1">
+                        <h1 className="text-3xl font-extrabold text-[#005e85] dark:text-white tracking-tight">Kişisel Bilgilerim</h1>
+                        <p className="text-gray-500 dark:text-slate-400 font-medium text-sm mt-1 flex items-center gap-2">
+                            <Link href="/" className="hover:text-[#008cb3] dark:hover:text-blue-400 transition-colors flex items-center gap-1">
                                 <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
                                 Anasayfaya Dön
                             </Link>
@@ -230,10 +230,10 @@ export default function ProfilePage() {
 
                     {/* Sol Sütun: Profil Özeti & Fotoğraf */}
                     <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 flex flex-col items-center relative overflow-hidden group transition-all duration-500">
+                        <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-slate-800 p-6 flex flex-col items-center relative overflow-hidden group transition-all duration-500">
                             <div className="absolute top-0 w-full h-24 bg-gradient-to-r from-blue-600 to-indigo-600 z-0"></div>
 
-                            <div className="relative z-10 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl mt-6 group-hover:scale-105 transition-transform duration-300 bg-white flex items-center justify-center">
+                            <div className="relative z-10 w-32 h-32 rounded-full overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl mt-6 group-hover:scale-105 transition-transform duration-300 bg-white dark:bg-slate-800 flex items-center justify-center">
                                 {/* Profil Fotoğrafı */}
                                 <Image src={profileImage} alt="Profil Fotoğrafı" fill sizes="128px" className="object-cover" />
                             </div>
@@ -248,7 +248,7 @@ export default function ProfilePage() {
                                 />
                             </div>
 
-                            <h2 className="relative z-10 mt-4 text-xl font-black text-slate-800 text-center tracking-tight flex items-center justify-center gap-2">
+                            <h2 className="relative z-10 mt-4 text-xl font-black text-slate-800 dark:text-white text-center tracking-tight flex items-center justify-center gap-2">
                                 {formState.firstName} {formState.lastName}
                                 {isVip && (
                                     <div className="flex items-center justify-center w-6 h-6 bg-gradient-to-tr from-yellow-400 via-orange-500 to-yellow-300 rounded-full shadow-[0_0_15px_rgba(234,179,8,0.6)] animate-pulse border border-yellow-200" title="VIP Üye">
@@ -256,7 +256,7 @@ export default function ProfilePage() {
                                     </div>
                                 )}
                             </h2>
-                            <span className={`relative z-10 text-xs font-bold mt-1 mb-2 px-3 py-1 rounded-md border ${isVip ? 'bg-yellow-50 text-orange-600 border-yellow-200 shadow-sm' : 'bg-gray-50 text-gray-400 border-gray-100'}`}>
+                            <span className={`relative z-10 text-xs font-bold mt-1 mb-2 px-3 py-1 rounded-md border ${isVip ? 'bg-yellow-50 text-orange-600 border-yellow-200 shadow-sm' : 'bg-gray-50 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border-gray-100 dark:border-slate-700'}`}>
                                 {userRole === 'agency' ? '🌟 VIP Acenta İş Ortağı' : isVip ? '🏆 Premium VIP Gezgin' : '✨ Diamond Gezgin'}
                             </span>
 
@@ -277,57 +277,57 @@ export default function ProfilePage() {
                     <div className="lg:col-span-2 space-y-8">
 
                         {/* 1. Kişisel Bilgiler (Ana Bölüm) */}
-                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 md:p-8 transition-all duration-500">
-                            <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
-                                <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
+                        <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-slate-800 p-6 md:p-8 transition-all duration-500">
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
                                 Kimlik Bilgileri
                             </h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
                                 <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Adınız</label>
-                                    <input type="text" name="firstName" value={formState.firstName} onChange={handleInputChange} className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Adınız</label>
+                                    <input type="text" name="firstName" value={formState.firstName} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                 </div>
                                 <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Soyadınız</label>
-                                    <input type="text" name="lastName" value={formState.lastName} onChange={handleInputChange} className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Soyadınız</label>
+                                    <input type="text" name="lastName" value={formState.lastName} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-semibold rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                 </div>
                             </div>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                 <div className="relative">
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">E-Posta Adresi</label>
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">E-Posta Adresi</label>
                                     <div className="relative flex items-center">
-                                        <input type="email" name="email" value={formState.email} onChange={handleInputChange} className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-xl pl-4 pr-10 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
+                                        <input type="email" name="email" value={formState.email} onChange={handleInputChange} className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-semibold rounded-xl pl-4 pr-10 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                     </div>
                                 </div>
 
                                 <div>
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
                                         <span>Telefon Numarası</span>
                                         <span className="text-[9px] text-orange-500 normal-case">(Acil Ulaşım İçin)</span>
                                     </label>
                                     <div className="flex">
-                                        <span className="inline-flex items-center px-4 bg-gray-100 border border-r-0 border-gray-200 text-gray-500 font-black rounded-l-xl text-sm">
+                                        <span className="inline-flex items-center px-4 bg-gray-100 dark:bg-slate-800 border border-r-0 border-gray-200 dark:border-slate-700 text-gray-500 dark:text-slate-400 font-black rounded-l-xl text-sm">
                                             +90
                                         </span>
-                                        <input type="tel" name="phone" value={formState.phone} onChange={handleInputChange} placeholder="5XX XXX XXXX" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-semibold rounded-r-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
+                                        <input type="tel" name="phone" value={formState.phone} onChange={handleInputChange} placeholder="5XX XXX XXXX" className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-semibold rounded-r-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-1 focus:ring-[#008cb3] transition-all" />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* 2. Sistem & Görünüm Tercihleri */}
-                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 md:p-8 transition-all duration-500">
-                            <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
-                                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg></div>
+                        <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-slate-800 p-6 md:p-8 transition-all duration-500">
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg></div>
                                 Seçenekler ve Tercihler
                             </h3>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Para Birimi */}
-                                <div className="bg-slate-50/50 border border-gray-100 p-4 rounded-2xl relative overflow-hidden group hover:border-[#008cb3] hover:shadow-md transition-all">
+                                <div className="bg-slate-50/50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 p-4 rounded-2xl relative overflow-hidden group hover:border-[#008cb3] hover:shadow-md transition-all">
                                     <div className="flex items-center justify-between mb-3">
-                                        <label className="text-[12px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-1.5">
+                                        <label className="text-[12px] font-bold text-gray-600 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                             Varsayılan Para Birimi
                                         </label>
@@ -335,7 +335,7 @@ export default function ProfilePage() {
                                     <select
                                         value={currency}
                                         onChange={(e) => setCurrency(e.target.value as Currency)}
-                                        className="w-full h-12 bg-white border border-gray-200 text-slate-800 font-extrabold text-[15px] rounded-xl px-4 outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm transition appearance-none cursor-pointer"
+                                        className="w-full h-12 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-extrabold text-[15px] rounded-xl px-4 outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm transition appearance-none cursor-pointer"
                                         style={{ backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23008cb3' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
                                     >
                                         <option value="TRY">₺ Türk Lirası (TRY)</option>
@@ -343,13 +343,13 @@ export default function ProfilePage() {
                                         <option value="EUR">€ Euro (EUR)</option>
                                         <option value="RUB">₽ Rus Rublesi (RUB)</option>
                                     </select>
-                                    <p className="text-[10px] text-gray-400 font-medium mt-2 leading-tight">Geçerli otel ve turlar bu kur baz alınarak hesaplanır.</p>
+                                    <p className="text-[10px] text-gray-400 dark:text-slate-500 font-medium mt-2 leading-tight">Geçerli otel ve turlar bu kur baz alınarak hesaplanır.</p>
                                 </div>
 
                                 {/* Dil Tercihi */}
-                                <div className="bg-slate-50/50 border border-gray-100 p-4 rounded-2xl relative overflow-hidden group hover:border-[#008cb3] hover:shadow-md transition-all">
+                                <div className="bg-slate-50/50 dark:bg-slate-800/50 border border-gray-100 dark:border-slate-700 p-4 rounded-2xl relative overflow-hidden group hover:border-[#008cb3] hover:shadow-md transition-all">
                                     <div className="flex items-center justify-between mb-3">
-                                        <label className="text-[12px] font-bold text-gray-600 uppercase tracking-widest flex items-center gap-1.5">
+                                        <label className="text-[12px] font-bold text-gray-600 dark:text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
                                             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 5h12M9 3v2m1.048 9.5L15.6 13M3 13h12m-6 4l3-3m5-6h2a2 2 0 012 2v10a2 2 0 01-2 2h-2m-8 0v-2" /></svg>
                                             Arayüz Dili
                                         </label>
@@ -357,7 +357,7 @@ export default function ProfilePage() {
                                     <select
                                         value={locale}
                                         onChange={(e) => setLocale(e.target.value as Locale)}
-                                        className="w-full h-12 bg-white border border-gray-200 text-slate-800 font-extrabold text-[15px] rounded-xl px-4 outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm transition appearance-none cursor-pointer"
+                                        className="w-full h-12 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-extrabold text-[15px] rounded-xl px-4 outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm transition appearance-none cursor-pointer"
                                         style={{ backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23008cb3' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 1rem center', backgroundSize: '1em' }}
                                     >
                                         <option value="tr-TR">🇹🇷 Türkçe</option>
@@ -375,52 +375,52 @@ export default function ProfilePage() {
 
                         {/* 3. Acenta Bilgileri (Sadece Acentalar İçin Gösterilir) */}
                         {userRole === 'agency' && (
-                            <div className="bg-orange-50/30 rounded-[24px] shadow-sm border border-orange-200 p-6 md:p-8 relative overflow-hidden">
-                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
+                            <div className="bg-orange-50/30 dark:bg-orange-900/10 rounded-[24px] shadow-sm border border-orange-200 dark:border-orange-800/30 p-6 md:p-8 relative overflow-hidden">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-100 dark:bg-orange-900/20 rounded-full blur-3xl opacity-50 pointer-events-none"></div>
 
-                                <h3 className="text-lg font-black text-orange-800 mb-6 flex items-center gap-2 relative z-10">
-                                    <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg></div>
+                                <h3 className="text-lg font-black text-orange-800 dark:text-orange-400 mb-6 flex items-center gap-2 relative z-10">
+                                    <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg></div>
                                     Kurumsal Acenta Profili
                                 </h3>
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5 relative z-10">
                                     <div>
-                                        <label className="block text-[11px] font-bold text-orange-700 uppercase tracking-widest mb-1.5 ml-1">Firma / Ünvan Adı</label>
-                                        <input type="text" defaultValue="Tourkia Turizm A.Ş." className="w-full bg-white border border-orange-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm" />
+                                        <label className="block text-[11px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-widest mb-1.5 ml-1">Firma / Ünvan Adı</label>
+                                        <input type="text" defaultValue="Tourkia Turizm A.Ş." className="w-full bg-white dark:bg-slate-800 border border-orange-200 dark:border-orange-800/30 text-slate-800 dark:text-white font-bold rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm" />
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-orange-700 uppercase tracking-widest mb-1.5 ml-1">TÜRSAB Belge Numarası</label>
-                                        <input type="text" defaultValue="14833" className="w-full bg-white border border-orange-200 text-slate-800 font-bold rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm" maxLength={6} />
+                                        <label className="block text-[11px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-widest mb-1.5 ml-1">TÜRSAB Belge Numarası</label>
+                                        <input type="text" defaultValue="14833" className="w-full bg-white dark:bg-slate-800 border border-orange-200 dark:border-orange-800/30 text-slate-800 dark:text-white font-bold rounded-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm" maxLength={6} />
                                     </div>
                                 </div>
 
                                 <div className="relative z-10">
-                                    <label className="block text-[11px] font-bold text-orange-700 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
+                                    <label className="block text-[11px] font-bold text-orange-700 dark:text-orange-400 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
                                         <span>Banka IBAN (Hakedişler İçin)</span>
-                                        <span className="text-[9px] text-green-600 font-bold bg-green-50 border border-green-100 px-2 rounded-full hidden sm:inline-block">Doğrulanmış Hesap</span>
+                                        <span className="text-[9px] text-green-600 font-bold bg-green-50 dark:bg-green-900/30 border border-green-100 dark:border-green-800/30 px-2 rounded-full hidden sm:inline-block">Doğrulanmış Hesap</span>
                                     </label>
                                     <div className="flex">
-                                        <span className="inline-flex items-center px-4 bg-orange-100 border border-r-0 border-orange-200 text-orange-800 font-extrabold rounded-l-xl text-sm shadow-sm">
+                                        <span className="inline-flex items-center px-4 bg-orange-100 dark:bg-slate-800 border border-r-0 border-orange-200 dark:border-orange-800/30 text-orange-800 dark:text-orange-400 font-extrabold rounded-l-xl text-sm shadow-sm">
                                             TR
                                         </span>
-                                        <input type="text" defaultValue="61 0006 2000 1234 5678 9000 11" placeholder="Banka hesabınızın İBAN numarasını giriniz" className="w-full bg-white border border-orange-200 text-slate-800 font-bold tracking-wide rounded-r-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm font-mono text-sm" />
+                                        <input type="text" defaultValue="61 0006 2000 1234 5678 9000 11" placeholder="Banka hesabınızın İBAN numarasını giriniz" className="w-full bg-white dark:bg-slate-800 border border-orange-200 dark:border-orange-800/30 text-slate-800 dark:text-white font-bold tracking-wide rounded-r-xl px-4 py-3 outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500 transition-all shadow-sm font-mono text-sm" />
                                     </div>
                                 </div>
                             </div>
                         )}
 
                         {/* 4. Şifre & Güvenlik Özellikleri */}
-                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 md:p-8 transition-all duration-500">
-                            <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
-                                <div className="p-1.5 bg-red-50 text-red-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
+                        <div className="bg-white dark:bg-slate-900 rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-slate-800 p-6 md:p-8 transition-all duration-500">
+                            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-6 flex items-center gap-2">
+                                <div className="p-1.5 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
                                 Güvenlik ve Şifre Belirleme
                             </h3>
 
                                 <div className="space-y-5">
                                 <div className="relative">
-                                    <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Kullanımdaki Mevcut Şifre</label>
+                                    <label className="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Kullanımdaki Mevcut Şifre</label>
                                     <div className="relative">
-                                        <input type={showCurrentPassword ? "text" : "password"} name="currentPassword" value={formState.currentPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                        <input type={showCurrentPassword ? "text" : "password"} name="currentPassword" value={formState.currentPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
                                         <button type="button" onClick={() => setShowCurrentPassword(!showCurrentPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
                                             {showCurrentPassword ? (
                                                 <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
@@ -433,11 +433,11 @@ export default function ProfilePage() {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
+                                        <label className="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1 flex justify-between">
                                             <span>Yeni Güçlü Şifre</span>
                                         </label>
                                         <div className="relative">
-                                            <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formState.newPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                            <input type={showNewPassword ? "text" : "password"} name="newPassword" value={formState.newPassword} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
                                             <button type="button" onClick={() => setShowNewPassword(!showNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
                                                 {showNewPassword ? (
                                                     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>
@@ -448,9 +448,9 @@ export default function ProfilePage() {
                                         </div>
                                     </div>
                                     <div>
-                                        <label className="block text-[11px] font-bold text-gray-500 uppercase tracking-widest mb-1.5 ml-1">Yeni Şifre (Yeniden Yazınız)</label>
+                                        <label className="block text-[11px] font-bold text-gray-500 dark:text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Yeni Şifre (Yeniden Yazınız)</label>
                                         <div className="relative">
-                                            <input type={showConfirmNewPassword ? "text" : "password"} name="newPasswordConfirm" value={formState.newPasswordConfirm} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
+                                            <input type={showConfirmNewPassword ? "text" : "password"} name="newPasswordConfirm" value={formState.newPasswordConfirm} onChange={handleInputChange} placeholder="••••••••" className="w-full bg-slate-50 dark:bg-slate-800 border border-gray-200 dark:border-slate-700 text-slate-800 dark:text-white font-mono text-lg tracking-widest rounded-xl pl-4 pr-12 py-3 outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 transition-all" />
                                             <button type="button" onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none">
                                                 {showConfirmNewPassword ? (
                                                     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24M1 1l22 22"/></svg>

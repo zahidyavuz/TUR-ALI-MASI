@@ -106,11 +106,11 @@ export default function RegisterPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4 py-12">
-            <div className="bg-white p-8 rounded-[32px] shadow-2xl w-full max-w-md border border-gray-100">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4 py-12 transition-colors duration-500">
+            <div className="bg-white dark:bg-slate-900 p-8 rounded-[32px] shadow-2xl w-full max-w-md border border-gray-100 dark:border-slate-800">
                 <div className="text-center mb-8">
-                    <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Aramıza Katılın</h1>
-                    <p className="text-gray-500 font-medium">Büyük ayrıcalıklar sadece bir tık uzakta.</p>
+                    <h1 className="text-3xl font-extrabold text-slate-800 dark:text-white mb-2">Aramıza Katılın</h1>
+                    <p className="text-gray-500 dark:text-slate-400 font-medium">Büyük ayrıcalıklar sadece bir tık uzakta.</p>
                 </div>
 
                 {error && (

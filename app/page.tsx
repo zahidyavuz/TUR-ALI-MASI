@@ -265,15 +265,15 @@ export default function Home() {
             </p>
 
             {/* Gelişmiş Filtre Çubuğu */}
-            <div className="dropdown-container bg-white p-4 md:p-2 rounded-2xl md:rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col md:flex-row w-full max-w-4xl items-stretch md:items-center justify-between relative z-50 gap-0" data-dropdown="searchBar">
+            <div className="dropdown-container bg-white dark:bg-slate-900/80 backdrop-blur-xl p-4 md:p-2 rounded-2xl md:rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col md:flex-row w-full max-w-4xl items-stretch md:items-center justify-between relative z-50 gap-0 border border-transparent dark:border-white/10" data-dropdown="searchBar">
 
               {/* 1. Yer Seçimi */}
-              <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 md:border-none">
+              <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 dark:border-slate-800 md:border-none">
                 <div
                   onClick={() => { if (activeDropdown !== 'location') toggleDropdown('location'); }}
-                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-text hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
+                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-text hover:bg-gray-50 dark:hover:bg-slate-800 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
                 >
-                  <span className="text-[10px] md:text-xs font-black text-gray-700 md:text-gray-900 uppercase tracking-wider">{t.hero.searchLocationLabel}</span>
+                  <span className="text-[10px] md:text-xs font-black text-gray-700 dark:text-slate-400 md:text-gray-900 uppercase tracking-wider">{t.hero.searchLocationLabel}</span>
                   <input
                     type="text"
                     value={selectedLocation === 'Nereye gitmek istersin?' ? '' : selectedLocation}
@@ -283,19 +283,19 @@ export default function Home() {
                     }}
                     onFocus={() => setActiveDropdown('location')}
                     placeholder={t.hero.searchLocationPlaceholder}
-                    className="w-full bg-transparent outline-none text-sm text-blue-900 font-extrabold placeholder-gray-400 truncate mt-0.5"
+                    className="w-full bg-transparent outline-none text-sm text-blue-900 dark:text-blue-400 font-extrabold placeholder-gray-400 truncate mt-0.5"
                   />
                 </div>
 
                 {activeDropdown === 'location' && (
-                  <div className="absolute top-[105%] md:top-[120%] left-0 w-[calc(100vw-40px)] md:w-64 max-w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 text-left animate-in fade-in zoom-in duration-200">
+                  <div className="absolute top-[105%] md:top-[120%] left-0 w-[calc(100vw-40px)] md:w-64 max-w-[400px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 p-4 z-50 text-left animate-in fade-in zoom-in duration-200">
                     <h4 className="text-xs font-bold text-gray-400 mb-3 uppercase">Rota Önerileri</h4>
                     <ul className="flex flex-col gap-1 max-h-[220px] overflow-y-auto pr-1">
                       {POPULAR_LOCATIONS.filter(loc => loc.toLowerCase().includes((selectedLocation === 'Nereye gitmek istersin?' ? '' : selectedLocation).toLowerCase())).map((loc) => (
                         <li
                           key={loc}
                           onClick={() => { setSelectedLocation(loc); setActiveDropdown(null); }}
-                          className="text-sm font-semibold text-gray-700 hover:text-[#008cb3] hover:bg-blue-50 cursor-pointer p-2.5 rounded-xl transition-colors flex items-center gap-2"
+                          className="text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-[#008cb3] hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer p-2.5 rounded-xl transition-colors flex items-center gap-2"
                         >
                           <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                           {loc}

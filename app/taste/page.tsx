@@ -136,7 +136,7 @@ export default function TastePage() {
 
             {/* World Cuisines Navigation (Tabs) */}
             <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-10 relative z-20">
-                <div className="bg-white/80 backdrop-blur-xl p-3 rounded-[32px] shadow-2xl border border-white/20 flex items-center overflow-x-auto scrollbar-hide gap-2 no-scrollbar">
+                <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl p-3 rounded-[32px] shadow-2xl border border-white/20 dark:border-white/10 flex items-center overflow-x-auto scrollbar-hide gap-2 no-scrollbar">
                     {[
                         { id: 'All', name: 'Tümü', icon: '🍽️' },
                         { id: 'Kebap', name: 'Türk Mutfağı', icon: '🥙' },
@@ -153,7 +153,7 @@ export default function TastePage() {
                             className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm transition-all whitespace-nowrap active:scale-95 ${
                                 selectedCuisine === c.id 
                                 ? 'bg-[#008cb3] text-white shadow-lg shadow-blue-500/20' 
-                                : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                                : 'bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                             }`}
                         >
                             <span className="text-xl">{c.icon}</span>
@@ -232,8 +232,8 @@ export default function TastePage() {
                 {filteredRestaurants.length === 0 && (
                     <div className="text-center py-20">
                         <div className="text-6xl mb-4">🍽️</div>
-                        <h3 className="text-2xl font-black text-slate-800 mb-2">Seçimlerinizle eşleşen yer bulamadık</h3>
-                        <p className="text-gray-500 font-bold">Filtreleri temizleyerek daha fazla lezzeti keşfedebilirsiniz.</p>
+                        <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">Seçimlerinizle eşleşen yer bulamadık</h3>
+                        <p className="text-gray-500 dark:text-slate-400 font-bold">Filtreleri temizleyerek daha fazla lezzeti keşfedebilirsiniz.</p>
                         <button
                             onClick={() => { setSelectedLoc('All'); setSelectedCuisine('All'); setSelectedPrice('All'); }}
                             className="mt-6 bg-[#008cb3] text-white px-8 py-3 rounded-xl font-bold hover:bg-[#005e85] transition shadow-md"
@@ -246,13 +246,13 @@ export default function TastePage() {
 
             {/* Business Onboarding CTA */}
             <div className="max-w-7xl mx-auto px-6 mt-20">
-                <div className="bg-white rounded-[40px] p-8 md:p-12 border-2 border-dashed border-orange-200 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-orange-500 transition-all duration-500">
+                <div className="bg-white dark:bg-slate-900/50 rounded-[40px] p-8 md:p-12 border-2 border-dashed border-orange-200 dark:border-orange-900/30 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-orange-500 transition-all duration-500">
                     <div className="flex-1 text-center md:text-left">
-                        <span className="bg-orange-100 text-orange-600 text-[10px] uppercase font-black px-3 py-1 rounded-full mb-4 inline-block tracking-widest">İşletme Sahipleri İçin</span>
-                        <h2 className="text-2xl md:text-4xl font-black text-slate-800 mb-4 transition-colors group-hover:text-orange-600">Restoranınızı veya Cafenizi <br /> Sisteme Ekleyin!</h2>
-                        <p className="text-gray-500 font-bold max-w-xl">Maliyetleri düşürün, rezervasyonlarınızı tek panelden yönetin ve binlerce turiste anında ulaşın. Üstelik ilk 3 ay komisyon ödemeyin.</p>
+                        <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] uppercase font-black px-3 py-1 rounded-full mb-4 inline-block tracking-widest">İşletme Sahipleri İçin</span>
+                        <h2 className="text-2xl md:text-4xl font-black text-slate-800 dark:text-white mb-4 transition-colors group-hover:text-orange-600">Restoranınızı veya Cafenizi <br /> Sisteme Ekleyin!</h2>
+                        <p className="text-gray-500 dark:text-slate-400 font-bold max-w-xl">Maliyetleri düşürün, rezervasyonlarınızı tek panelden yönetin ve binlerce turiste anında ulaşın. Üstelik ilk 3 ay komisyon ödemeyin.</p>
                     </div>
-                    <Link href="/?showAgencyModal=true" className="bg-slate-900 text-white px-10 py-5 rounded-[24px] font-black text-lg transition-all shadow-xl hover:bg-orange-500 hover:shadow-orange-500/20 active:scale-95 whitespace-nowrap">
+                    <Link href="/?showAgencyModal=true" className="bg-slate-900 dark:bg-slate-800 text-white px-10 py-5 rounded-[24px] font-black text-lg transition-all shadow-xl hover:bg-orange-500 hover:shadow-orange-500/20 active:scale-95 whitespace-nowrap">
                         Hemen Başvur ➔
                     </Link>
                 </div>
@@ -260,7 +260,7 @@ export default function TastePage() {
 
             {/* CTA Section */}
             <div className="max-w-7xl mx-auto px-6 mt-12 mb-20">
-                <div className="bg-[#005e85] rounded-[48px] p-8 md:p-16 text-center text-white relative overflow-hidden">
+                <div className="bg-[#005e85] dark:bg-[#004a6b] rounded-[48px] p-8 md:p-16 text-center text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/20 rounded-full -ml-32 -mb-32 blur-3xl"></div>
                     <div className="relative z-10">

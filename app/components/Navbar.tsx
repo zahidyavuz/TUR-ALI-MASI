@@ -57,7 +57,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
       {/* Navbar: Ana Menü */}
       <nav className="w-full bg-white dark:bg-slate-900 py-3 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] border-b border-gray-100 dark:border-slate-800 shadow-sm md:shadow-none transition-colors duration-500">
         <div className="flex items-center gap-6">
-          <Link href="/" className="text-3xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter">
+          <Link href="/" className="text-3xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter transition-colors">
             Tour<span className="text-[#005e85] dark:text-blue-400">kia</span>
           </Link>
 
@@ -145,35 +145,35 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
             </button>
 
             {activeDropdown === 'favorites' && (
-              <div className="absolute right-0 top-[120%] w-72 bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+              <div className="absolute right-0 top-[120%] w-72 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 p-4 z-50 flex flex-col animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
                 <div className="flex justify-between items-center mb-3">
-                  <h4 className="font-black text-slate-800 text-[15px]">Favorilediklerim</h4>
-                  <span className="bg-red-50 text-red-500 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">2 Tur</span>
+                  <h4 className="font-black text-slate-800 dark:text-white text-[15px]">Favorilediklerim</h4>
+                  <span className="bg-red-50 dark:bg-red-900/30 text-red-500 dark:text-red-400 text-[10px] uppercase font-bold px-2 py-0.5 rounded-full">2 Tur</span>
                 </div>
 
                 <div className="flex flex-col gap-3">
                   {/* Örnek Favori 1 */}
-                  <div className="flex gap-3 items-center group cursor-pointer p-2 hover:bg-slate-50 rounded-xl transition">
+                  <div className="flex gap-3 items-center group cursor-pointer p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition">
                       <div className="relative w-12 h-12 shrink-0">
                         <Image src="https://upload.wikimedia.org/wikipedia/commons/7/7e/Hot_air_balloon_at_sunrise_over_Cappadocia%2C_Turkey.JPG" alt="Kapadokya" fill sizes="48px" className="rounded-lg object-cover shadow-sm" />
                       </div>
                     <div className="flex-1">
-                      <h5 className="font-bold text-[13px] text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight">Kapadokya Balon Turu</h5>
+                      <h5 className="font-bold text-[13px] text-slate-800 dark:text-white group-hover:text-[#008cb3] transition-colors leading-tight">Kapadokya Balon Turu</h5>
                       <span className="text-[11px] font-semibold text-red-500">₺2.400</span>
                     </div>
                   </div>
-                    <div className="flex gap-3 items-center group cursor-pointer p-2 hover:bg-slate-50 rounded-xl transition">
+                    <div className="flex gap-3 items-center group cursor-pointer p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition">
                       <div className="relative w-12 h-12 shrink-0">
                         <Image src="https://upload.wikimedia.org/wikipedia/commons/c/c3/Atv_tour_in_Cappadocia.jpg" alt="ATV" fill sizes="48px" className="rounded-lg object-cover shadow-sm" />
                       </div>
                       <div className="flex-1">
-                        <h5 className="font-bold text-[13px] text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight">Kapadokya ATV Turu</h5>
+                        <h5 className="font-bold text-[13px] text-slate-800 dark:text-white group-hover:text-[#008cb3] transition-colors leading-tight">Kapadokya ATV Turu</h5>
                         <span className="text-[11px] font-semibold text-red-500">₺800</span>
                       </div>
                     </div>
                 </div>
 
-                <button className="w-full mt-3 bg-red-50 text-red-600 hover:bg-red-500 hover:text-white font-bold text-xs py-2.5 rounded-xl transition-colors cursor-pointer" onClick={() => setActiveDropdown(null)}>
+                <button className="w-full mt-3 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-500 hover:text-white font-bold text-xs py-2.5 rounded-xl transition-colors cursor-pointer" onClick={() => setActiveDropdown(null)}>
                   Tümünü Gör
                 </button>
               </div>
@@ -196,14 +196,14 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
 
             {/* Kullanıcı / Acenta Girişi Dropdown */}
             {activeDropdown === 'userMenu' && (
-              <div className="absolute right-0 top-[120%] w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[60] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
+              <div className="absolute right-0 top-[120%] w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 py-3 z-[60] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
 
                 {/* Müşteri Araçları */}
                 {isLoggedIn && userRole === 'customer' && (
                   <div className="flex flex-col">
                     <button
                       onClick={() => { window.location.href = '/profile'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a4 4 0 00-8 0v3h8v-3z" /></svg>
@@ -213,7 +213,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
 
                     <button
                       onClick={() => { window.location.href = '/bookings'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"></path><path d="M18 12h4"></path></svg>
@@ -223,7 +223,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
 
                     <button
                       onClick={() => { setActiveDropdown(null); toggleDropdown('favorites'); }}
-                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
@@ -237,11 +237,11 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                 {isLoggedIn && userRole === 'agency' && (
                   <>
                     <div className="px-5 py-2">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Acenta İşlemleri</h4>
+                      <h4 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Acenta İşlemleri</h4>
                     </div>
                     <button
                       onClick={() => { window.location.href = '/agency/dashboard'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-500 dark:hover:text-orange-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
@@ -250,7 +250,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                     </button>
                     <button 
                       onClick={() => { setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-500 dark:hover:text-orange-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -259,7 +259,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                     </button>
                     <button 
                       onClick={() => { setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-500 dark:hover:text-orange-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -274,7 +274,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                   <div className="flex flex-col py-1">
                     <button
                       onClick={() => { window.location.href = '/login'; setActiveDropdown(null); }}
-                      className="w-full px-6 py-4 text-[14px] font-black text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-4 transition-colors cursor-pointer group"
+                      className="w-full px-6 py-4 text-[14px] font-black text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-4 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-4 pointer-events-none">
                         <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
@@ -283,7 +283,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                     </button>
                     <button
                       onClick={() => { handleAgencyLogin(); setActiveDropdown(null); }}
-                      className="w-full px-6 py-4 text-[14px] font-black text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-4 transition-colors cursor-pointer group"
+                      className="w-full px-6 py-4 text-[14px] font-black text-gray-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-500 dark:hover:text-orange-400 text-left flex items-center gap-4 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-4 pointer-events-none">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
@@ -296,13 +296,13 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                 {/* Çıkış Yap Butonu (Sadece Giriş Yapılıysa) */}
                 {isLoggedIn && (
                   <>
-                    <div className="border-t border-gray-100/50 my-1.5"></div>
+                    <div className="border-t border-gray-100/50 dark:border-slate-800 my-1.5"></div>
                     <button
                       onClick={() => {
                         logout();
                         setActiveDropdown(null);
                       }}
-                      className="w-full px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 text-left flex items-center gap-3 transition-colors cursor-pointer group mb-1"
+                      className="w-full px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 text-left flex items-center gap-3 transition-colors cursor-pointer group mb-1"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>

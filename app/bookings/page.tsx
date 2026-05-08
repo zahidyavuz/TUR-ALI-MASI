@@ -159,29 +159,29 @@ export default function MyBookingsPage() {
             <ForbiddenPage message={deniedMessage || 'Bu kaynağa erişim yetkiniz yok.'} />
         )}
         {!accessDenied && (
-        <main className="min-h-screen bg-[#F2F2F7] dark:bg-transparent pb-20 pt-8 sm:py-12 transition-colors duration-500">
+        <main className="min-h-screen bg-[#F2F2F7] dark:bg-background pb-20 pt-8 sm:py-12 transition-colors duration-500">
             <div className="max-w-3xl mx-auto px-4 sm:px-6">
 
                 {/* Header */}
                 <div className="mb-8 pl-1">
-                    <Link href="/" className="inline-flex items-center gap-2 text-[#008cb3] font-bold text-sm mb-4 hover:underline">
+                    <Link href="/" className="inline-flex items-center gap-2 text-[#008cb3] dark:text-blue-400 font-bold text-sm mb-4 hover:underline">
                         <span>←</span> Ana Sayfaya Dön
                     </Link>
-                    <h1 className="text-3xl font-black text-slate-800 tracking-tight">Biletlerim</h1>
-                    <p className="text-sm font-medium text-gray-500 mt-1">Gelecek maceralarınızı ve geçmiş seyahatlerinizi yönetin.</p>
+                    <h1 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Biletlerim</h1>
+                    <p className="text-sm font-medium text-gray-500 dark:text-slate-400 mt-1">Gelecek maceralarınızı ve geçmiş seyahatlerinizi yönetin.</p>
                 </div>
 
                 {/* iOS Style Segmented Control */}
-                <div className="bg-gray-200/60 p-1 rounded-xl mb-8 flex relative z-10 w-full max-w-sm mx-auto sm:mx-0">
+                <div className="bg-gray-200/60 dark:bg-slate-800 p-1 rounded-xl mb-8 flex relative z-10 w-full max-w-sm mx-auto sm:mx-0">
                     <button
                         onClick={() => setActiveTab('upcoming')}
-                        className={`flex-1 py-2 text-[13px] font-bold rounded-[9px] transition-all duration-300 z-10 ${activeTab === 'upcoming' ? 'bg-white text-slate-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 py-2 text-[13px] font-bold rounded-[9px] transition-all duration-300 z-10 ${activeTab === 'upcoming' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
                     >
                         Gelecek Turlar
                     </button>
                     <button
                         onClick={() => setActiveTab('past')}
-                        className={`flex-1 py-2 text-[13px] font-bold rounded-[9px] transition-all duration-300 z-10 ${activeTab === 'past' ? 'bg-white text-slate-800 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                        className={`flex-1 py-2 text-[13px] font-bold rounded-[9px] transition-all duration-300 z-10 ${activeTab === 'past' ? 'bg-white dark:bg-slate-700 text-slate-800 dark:text-white shadow-sm' : 'text-gray-500 dark:text-slate-400 hover:text-gray-700 dark:hover:text-slate-200'}`}
                     >
                         Geçmiş Turlar
                     </button>
@@ -190,23 +190,23 @@ export default function MyBookingsPage() {
                 {/* FlatList (Bilet Kartları Listesi) */}
                 <div className="flex flex-col gap-5">
                     {isLoading ? (
-                        <div className="text-center py-12 text-gray-500 font-semibold space-y-4">
-                            <div className="w-8 h-8 mx-auto border-4 border-slate-200 border-t-[#008cb3] rounded-full animate-spin"></div>
+                        <div className="text-center py-12 text-gray-500 dark:text-slate-400 font-semibold space-y-4">
+                            <div className="w-8 h-8 mx-auto border-4 border-slate-200 dark:border-slate-800 border-t-[#008cb3] rounded-full animate-spin"></div>
                             Biletleriniz yükleniyor...
                         </div>
                     ) : error ? (
                         <div className="text-center py-12 text-red-500 font-semibold">{error}</div>
                     ) : displayTickets.length === 0 ? (
-                        <div className="text-center py-12 text-gray-500">Bu kategoride biletiniz bulunmuyor.</div>
+                        <div className="text-center py-12 text-gray-500 dark:text-slate-400">Bu kategoride biletiniz bulunmuyor.</div>
                     ) : (
                         displayTickets.map((ticket: any) => (
                             <div
                                 key={ticket.id}
                                 // Apple Style Gölgelendirme (shadow-sm, hafif saydam) ve BorderRadius (rounded-[15px])
-                                className="bg-white rounded-[15px] p-4 sm:p-5 flex gap-4 sm:gap-5 relative border border-gray-100/50 shadow-[0_4px_20px_rgba(0,0,0,0.04)] transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] group"
+                                className="bg-white dark:bg-slate-900 rounded-[15px] p-4 sm:p-5 flex gap-4 sm:gap-5 relative border border-gray-100/50 dark:border-slate-800 shadow-[0_4px_20px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.4)] transition-all hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)] group"
                             >
                                 {/* Sol: Tur Fotoğrafı */}
-                                <div className="w-24 h-28 sm:w-32 sm:h-32 rounded-[12px] overflow-hidden shrink-0 relative bg-slate-100">
+                                <div className="w-24 h-28 sm:w-32 sm:h-32 rounded-[12px] overflow-hidden shrink-0 relative bg-slate-100 dark:bg-slate-800">
                                     <Image
                                         src={ticket.image}
                                         alt={ticket.title}
@@ -220,22 +220,22 @@ export default function MyBookingsPage() {
                                 <div className="flex flex-col justify-between flex-1 py-1">
                                     <div>
                                         <div className="flex justify-between items-start gap-2 mb-1">
-                                            <span className="text-[10px] font-black tracking-widest text-[#008cb3] uppercase">{ticket.id}</span>
+                                            <span className="text-[10px] font-black tracking-widest text-[#008cb3] dark:text-blue-400 uppercase">{ticket.id}</span>
                                             {/* Durum (Onaylandı / Beklemede) */}
                                             <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-md border ${ticket.statusColor} uppercase tracking-wider`}>
                                                 {ticket.status}
                                             </span>
                                         </div>
-                                        <h3 className="font-bold text-slate-800 text-sm sm:text-base leading-snug line-clamp-2 max-w-[90%]">
+                                        <h3 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base leading-snug line-clamp-2 max-w-[90%]">
                                             {ticket.title}
                                         </h3>
                                     </div>
 
                                     <div className="mt-3 flex flex-col gap-1.5 justify-end">
-                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium">
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium">
                                             <span className="opacity-70 text-base">📅</span> {ticket.date}
                                         </div>
-                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium">
+                                        <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 dark:text-slate-400 font-medium">
                                             <span className="opacity-70 text-base">⏰</span> {ticket.time}
                                         </div>
                                     </div>
@@ -246,7 +246,7 @@ export default function MyBookingsPage() {
                                     <div className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5">
                                         <button
                                             onClick={() => handleOpenReview(ticket.tourId)}
-                                            className="px-4 py-2 bg-orange-50 text-orange-600 hover:bg-orange-100 hover:text-orange-700 text-xs font-bold rounded-lg transition-colors border border-orange-200"
+                                            className="px-4 py-2 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 hover:bg-orange-100 dark:hover:bg-orange-800 hover:text-orange-700 text-xs font-bold rounded-lg transition-colors border border-orange-200 dark:border-orange-800/50"
                                         >
                                             Değerlendir ★
                                         </button>
@@ -258,7 +258,7 @@ export default function MyBookingsPage() {
                                     <Link
                                         href={ticket.qrLink}
                                         onClick={(e) => handleSecureTicketNav(e, ticket.id, ticket.qrLink)}
-                                        className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 w-10 h-10 bg-[#F2F2F7] hover:bg-[#E5E5EA] text-slate-700 rounded-full flex items-center justify-center transition-colors active:scale-90"
+                                        className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 w-10 h-10 bg-[#F2F2F7] dark:bg-slate-800 hover:bg-[#E5E5EA] dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-full flex items-center justify-center transition-colors active:scale-90"
                                         aria-label="Bileti Görüntüle / QR Kod"
                                     >
                                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -276,11 +276,11 @@ export default function MyBookingsPage() {
 
             {/* Review Modal */}
             {reviewModalOpen && (
-                <div className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center p-4">
-                    <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl relative">
+                <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 w-full max-w-sm shadow-2xl relative border border-gray-100 dark:border-slate-800">
                         <button
                             onClick={() => setReviewModalOpen(false)}
-                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+                            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-slate-200"
                         >
                             ✕
                         </button>
@@ -288,19 +288,19 @@ export default function MyBookingsPage() {
                         {reviewSuccess ? (
                             <div className="text-center py-8">
                                 <div className="text-4xl mb-4">🎉</div>
-                                <h3 className="font-bold text-slate-800 text-lg mb-2">Teşekkürler!</h3>
-                                <p className="text-sm text-gray-500">Değerlendirmeniz başarıyla kaydedildi.</p>
+                                <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-2">Teşekkürler!</h3>
+                                <p className="text-sm text-gray-500 dark:text-slate-400">Değerlendirmeniz başarıyla kaydedildi.</p>
                             </div>
                         ) : (
                             <>
-                                <h3 className="font-bold text-slate-800 text-lg mb-4">Deneyiminizi Puanlayın</h3>
+                                <h3 className="font-bold text-slate-800 dark:text-white text-lg mb-4">Deneyiminizi Puanlayın</h3>
 
                                 <div className="flex gap-2 justify-center mb-6">
                                     {[1, 2, 3, 4, 5].map((star) => (
                                         <button
                                             key={star}
                                             onClick={() => setRating(star)}
-                                            className={`text-3xl transition-transform hover:scale-110 ${rating >= star ? 'text-orange-400' : 'text-gray-200'}`}
+                                            className={`text-3xl transition-transform hover:scale-110 ${rating >= star ? 'text-orange-400' : 'text-gray-200 dark:text-slate-700'}`}
                                         >
                                             ★
                                         </button>
@@ -311,13 +311,13 @@ export default function MyBookingsPage() {
                                     value={comment}
                                     onChange={(e) => setComment(e.target.value)}
                                     placeholder="Tur hakkında düşünceleriniz..."
-                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-sm focus:outline-none focus:border-[#008cb3] resize-none h-24 mb-4"
+                                    className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 text-sm text-slate-800 dark:text-white focus:outline-none focus:border-[#008cb3] resize-none h-24 mb-4"
                                 ></textarea>
 
                                 <button
                                     onClick={submitReview}
                                     disabled={isSubmittingReview}
-                                    className="w-full bg-[#008cb3] hover:bg-[#007a9b] text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50"
+                                    className="w-full bg-[#008cb3] hover:bg-[#007a9b] text-white font-bold py-3 rounded-xl transition-colors disabled:opacity-50 shadow-lg shadow-blue-500/20"
                                 >
                                     {isSubmittingReview ? 'Gönderiliyor...' : 'Gönder'}
                                 </button>

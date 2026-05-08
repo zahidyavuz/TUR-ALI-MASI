@@ -159,11 +159,11 @@ export default function Footer() {
 
             {/* Sütun 5: Destek */}
             <div>
-              <h4 className="font-bold text-[15px] mb-4 text-slate-900">Destek</h4>
-              <ul className="flex flex-col gap-3 text-gray-600 font-medium text-[13px]">
+              <h4 className="font-bold text-[15px] mb-4 text-slate-900 dark:text-white">Destek</h4>
+              <ul className="flex flex-col gap-3 text-gray-600 dark:text-slate-400 font-medium text-[13px]">
                 <li><a href="#" className="hover:text-blue-500 transition-colors">Bize Ulaşın</a></li>
                 <li><a href="#" className="hover:text-blue-500 transition-colors">Yardım merkezi</a></li>
-                <li className="text-gray-900 mt-2">Türkiye <a href="#" className="hover:text-blue-500 block text-gray-500">+90 850 123 45 67</a></li>
+                <li className="text-gray-900 dark:text-slate-200 mt-2">Türkiye <a href="#" className="hover:text-blue-500 block text-gray-500 dark:text-slate-400">+90 850 123 45 67</a></li>
               </ul>
             </div>
           </div>
