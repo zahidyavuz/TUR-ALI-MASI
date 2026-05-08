@@ -35,6 +35,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
+    const logout = useCallback(() => {
+        auth.clearTokens();
+        setUser(null);
+    }, []);
+
     const checkAuth = useCallback(async (): Promise<User | null> => {
         setIsLoading(true);
         const token = auth.getAccessToken();
@@ -93,22 +98,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
         setIsLoading(false);
         return null;
-    }, []);
+    }, [logout]);
 
     useEffect(() => {
         checkAuth();
     }, [checkAuth]);
 
-
-    const login = async (tokens: { access: string, refresh: string }): Promise<User | null> => {
+    const login = useCallback(async (tokens: { access: string, refresh: string }): Promise<User | null> => {
         auth.setTokens(tokens);
         return await checkAuth();
-    };
-
-    const logout = () => {
-        auth.clearTokens();
-        setUser(null);
-    };
+    }, [checkAuth]);
 
     return (
         <AuthContext.Provider value={{ user, isLoading, login, logout, checkAuth }}>

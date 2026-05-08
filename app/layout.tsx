@@ -36,6 +36,8 @@ import { GeofenceProvider } from "./context/GeofenceContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import GeofenceBanner from "./components/GeofenceBanner";
+import HoneypotTraps from "./components/HoneypotTraps";
+import BehavioralTracker from "./components/BehavioralTracker";
 
 export default function RootLayout({
   children,
@@ -77,6 +79,8 @@ export default function RootLayout({
                   <GeofenceProvider>
                     {children}
                     <GeofenceBanner />
+                    <HoneypotTraps />
+                    <BehavioralTracker />
                     <Chatbot />
                     <Footer />
                   </GeofenceProvider>
@@ -99,6 +103,24 @@ export default function RootLayout({
                 includedLanguages: 'en,zh-CN,hi,es,fr,ar,bn,ru,pt,tr',
                 autoDisplay: false
               }, 'google_translate_element');
+
+              // Otomatik Dil Algılama ve Çeviri Mantığı
+              setTimeout(() => {
+                const userLang = navigator.language || navigator.userLanguage;
+                const shortLang = userLang.split('-')[0];
+                const supportedLangs = ['en', 'zh', 'hi', 'es', 'fr', 'ar', 'bn', 'ru', 'pt'];
+                
+                if (shortLang !== 'tr') {
+                  const targetLang = shortLang === 'zh' ? 'zh-CN' : shortLang;
+                  if (supportedLangs.includes(shortLang)) {
+                    const select = document.querySelector('.goog-te-combo');
+                    if (select) {
+                      select.value = targetLang;
+                      select.dispatchEvent(new Event('change'));
+                    }
+                  }
+                }
+              }, 1500);
             }
           `}
         </Script>

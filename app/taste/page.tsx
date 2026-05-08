@@ -113,7 +113,7 @@ export default function TastePage() {
     });
 
     return (
-        <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
+        <main className="min-h-screen bg-background font-sans text-foreground pb-20 transition-colors duration-500">
             <Navbar />
 
             {/* Header */}
@@ -134,46 +134,32 @@ export default function TastePage() {
                 </div>
             </div>
 
-            {/* Filters Bar */}
-            <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-8 relative z-20">
-                <div className="bg-white p-4 rounded-[24px] shadow-2xl border border-gray-100 flex flex-wrap gap-4 items-center justify-between">
-                    <div className="flex flex-wrap gap-4 items-center flex-1">
-                        <div className="flex flex-col gap-1 min-w-[150px]">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">{t.tastePage.filters.location}</label>
-                            <select
-                                value={selectedLoc}
-                                onChange={(e) => setSelectedLoc(e.target.value)}
-                                className="bg-slate-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:border-[#008cb3] transition-colors"
-                            >
-                                {locations.map(loc => <option key={loc} value={loc}>{loc === 'All' ? (locale === 'tr-TR' ? 'Tüm Bölgeler' : 'All Spots') : loc}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1 min-w-[150px]">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">{t.tastePage.filters.cuisine}</label>
-                            <select
-                                value={selectedCuisine}
-                                onChange={(e) => setSelectedCuisine(e.target.value)}
-                                className="bg-slate-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:border-[#008cb3] transition-colors"
-                            >
-                                {cuisines.map(c => <option key={c} value={c}>{c === 'All' ? (locale === 'tr-TR' ? 'Tüm Mutfaklar' : 'All Cuisines') : c}</option>)}
-                            </select>
-                        </div>
-
-                        <div className="flex flex-col gap-1 min-w-[120px]">
-                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-2">{t.tastePage.filters.price}</label>
-                            <select
-                                value={selectedPrice}
-                                onChange={(e) => setSelectedPrice(e.target.value)}
-                                className="bg-slate-50 border border-gray-200 rounded-xl px-4 py-2 text-sm font-bold text-slate-700 outline-none focus:border-[#008cb3] transition-colors"
-                            >
-                                {prices.map(p => <option key={p} value={p}>{p === 'All' ? (locale === 'tr-TR' ? 'Tümü' : 'All') : p}</option>)}
-                            </select>
-                        </div>
-                    </div>
-                    <div className="text-xs font-bold text-gray-400 bg-slate-100 px-4 py-2 rounded-full hidden lg:block">
-                        {filteredRestaurants.length} sonuç bulundu
-                    </div>
+            {/* World Cuisines Navigation (Tabs) */}
+            <div className="max-w-7xl mx-auto px-4 md:px-8 -mt-10 relative z-20">
+                <div className="bg-white/80 backdrop-blur-xl p-3 rounded-[32px] shadow-2xl border border-white/20 flex items-center overflow-x-auto scrollbar-hide gap-2 no-scrollbar">
+                    {[
+                        { id: 'All', name: 'Tümü', icon: '🍽️' },
+                        { id: 'Kebap', name: 'Türk Mutfağı', icon: '🥙' },
+                        { id: 'Avrupa', name: 'Avrupa Mutfağı', icon: '🏰' },
+                        { id: 'Arap', name: 'Arap Mutfağı', icon: '🥘' },
+                        { id: 'Uzak Doğu', name: 'Uzak Doğu', icon: '🍣' },
+                        { id: 'Deniz Ürünleri', name: 'Deniz Ürünleri', icon: '🦞' },
+                        { id: 'Sokak Lezzetleri', name: 'Sokak Lezzetleri', icon: '🍔' },
+                        { id: 'Vegan', name: 'Vegan/Sağlıklı', icon: '🥗' }
+                    ].map((c) => (
+                        <button
+                            key={c.id}
+                            onClick={() => setSelectedCuisine(c.id)}
+                            className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-black text-sm transition-all whitespace-nowrap active:scale-95 ${
+                                selectedCuisine === c.id 
+                                ? 'bg-[#008cb3] text-white shadow-lg shadow-blue-500/20' 
+                                : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+                            }`}
+                        >
+                            <span className="text-xl">{c.icon}</span>
+                            {c.name}
+                        </button>
+                    ))}
                 </div>
             </div>
 
@@ -231,18 +217,12 @@ export default function TastePage() {
                                 )}
 
                                 <div className="space-y-3 mt-auto">
-                                    <button
-                                        onClick={() => alert('Ödeme sayfasına yönlendiriliyor...')}
-                                        className="w-full bg-[#008cb3] hover:bg-[#005e85] text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-500/20 transition-all active:scale-95 text-sm"
+                                    <Link
+                                        href={`/menu/${res.id}`}
+                                        className="w-full bg-[#008cb3] hover:bg-[#005e85] text-white font-black py-4 rounded-2xl shadow-lg shadow-blue-500/20 transition-all active:scale-95 text-sm flex items-center justify-center"
                                     >
                                         {t.tastePage.actions.buyMenu}
-                                    </button>
-                                    <button
-                                        onClick={() => alert('Rezervasyon talebiniz alındı!')}
-                                        className="w-full bg-slate-50 hover:bg-slate-100 text-slate-800 font-black py-4 rounded-2xl border border-gray-200 transition-all active:scale-95 text-sm"
-                                    >
-                                        {t.tastePage.actions.reserve}
-                                    </button>
+                                    </Link>
                                 </div>
                             </div>
                         </div>

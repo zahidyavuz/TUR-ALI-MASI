@@ -50,26 +50,40 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
     <>
       {/* Üst Bar: Trustpilot, Destek vb. */}
       <div className="w-full bg-slate-50 dark:bg-slate-950 border-b border-gray-200 dark:border-slate-800 py-2 px-8 hidden md:flex justify-center gap-12 text-xs font-semibold text-gray-500 dark:text-slate-400 transition-colors duration-500">
-        <span className="flex items-center gap-2"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg> 2.500 işletmeci</span>
-        <span className="flex items-center gap-2">4,6 yıldız <span className="text-green-600 font-bold flex items-center gap-1"><svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> Trustpilot</span> <span className="text-gray-400 font-normal dark:text-slate-500">(9.906 değerlendirme)</span></span>
+        <span className="flex items-center gap-2">4,6 yıldız <span className="text-green-600 font-bold flex items-center gap-1"><svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> Trustpilot</span></span>
         <span className="flex items-center gap-2"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg> 7/24 müşteri desteği</span>
-        <span className="flex items-center gap-2"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg> Ücretsiz eSIM</span>
       </div>
 
       {/* Navbar: Ana Menü */}
       <nav className="w-full bg-white dark:bg-slate-900 py-3 px-4 md:py-5 md:px-8 flex justify-between items-center sticky top-0 z-[99999] border-b border-gray-100 dark:border-slate-800 shadow-sm md:shadow-none transition-colors duration-500">
-        <Link href="/" className="text-3xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter">
-          Tour<span className="text-[#005e85] dark:text-blue-400">kia</span>
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link href="/" className="text-3xl md:text-[40px] font-extrabold text-[#008cb3] tracking-tighter">
+            Tour<span className="text-[#005e85] dark:text-blue-400">kia</span>
+          </Link>
 
-        {isLoggedIn && userRole === 'customer' && (
-          <div className="hidden lg:flex gap-6 font-semibold text-gray-700 dark:text-slate-300 text-[14px] ml-8 flex-1 transition-colors duration-500">
-            <Link href="/profile/goals" className="px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 cursor-pointer transition-all">{t.nav.destinations}</Link>
-            <Link href="/taste" className="px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 cursor-pointer transition-all">{t.nav.taste}</Link>
-            <Link href="/profile/styles" className="px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 cursor-pointer transition-all">{t.nav.styles}</Link>
-            <Link href="/profile/memories" className="px-3 py-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 cursor-pointer transition-all">{t.nav.memories}</Link>
+          {/* Ana Navigasyon Linkleri - Main Concepts */}
+          <div className="hidden lg:flex items-center gap-2 ml-8">
+            <Link 
+              href="/search" 
+              className="group flex items-center gap-3 px-6 py-3 rounded-2xl text-[17px] font-black text-slate-800 dark:text-white hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-[#008cb3] dark:hover:text-blue-400 transition-all duration-300 relative overflow-hidden"
+            >
+              <span className="text-2xl group-hover:scale-125 transition-transform duration-300">🌍</span>
+              <span className="tracking-tight uppercase">Turlar</span>
+              <div className="absolute bottom-0 left-0 w-0 h-1 bg-[#008cb3] group-hover:with-full group-hover:w-full transition-all duration-500"></div>
+            </Link>
+
+            <Link 
+              href="/taste" 
+              className="group flex items-center gap-3 px-6 py-3 rounded-2xl text-[17px] font-black text-slate-800 dark:text-white hover:bg-orange-50 dark:hover:bg-orange-500/10 hover:text-orange-600 dark:hover:text-orange-400 transition-all duration-300 relative overflow-hidden whitespace-nowrap"
+            >
+              <span className="text-2xl group-hover:scale-125 transition-transform duration-300">🍽️</span>
+              <span className="tracking-tight uppercase">Lezzet Durakları</span>
+              <div className="absolute bottom-0 left-0 w-0 h-1 bg-orange-500 group-hover:w-full transition-all duration-500"></div>
+            </Link>
           </div>
-        )}
+
+        </div>
+
 
         <div className="flex items-center justify-end w-full md:w-auto gap-4 md:gap-5">
           {/* Mobil Hamburger Butonu */}
@@ -81,47 +95,44 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
             <svg className="pointer-events-none" width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
 
-          {/* Para Birimi Değiştirici */}
-          <div className="block">
-            <CurrencySelector />
+          {/* Tema Değiştirici ve Uygulama Butonları Grubu */}
+          <div className="flex items-center gap-6">
+            {/* App Store & Google Play Badges (Sol Taraf) */}
+            <div className="hidden xl:flex items-center gap-3 pr-6 border-r border-gray-100 dark:border-slate-800">
+              <a href="#" className="bg-black hover:bg-slate-800 text-white rounded-xl px-4 py-2 flex items-center gap-3 transition-all active:scale-95 shadow-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.1 2.48-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .76-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91 1.65.07 2.93.67 3.73 1.84-3.27 1.93-2.73 6.13.56 7.63-.58 1.45-1.31 2.89-2.2 4.19zM15.17 6.69c-.73.89-1.95 1.51-3.14 1.42-.13-1.18.41-2.42 1.13-3.26.73-.86 2-1.5 3.12-1.42.14 1.23-.39 2.37-1.11 3.26z"/></svg>
+                <div className="flex flex-col leading-none text-white">
+                  <span className="text-[8px] uppercase font-bold opacity-60">Store</span>
+                  <span className="text-[12px] font-black">App</span>
+                </div>
+              </a>
+              <a href="#" className="bg-black hover:bg-slate-800 text-white rounded-xl px-4 py-2 flex items-center gap-3 transition-all active:scale-95 shadow-lg">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M3,20.5V3.5C3,2.91,3.34,2.39,3.84,2.15L13.69,12L3.84,21.85C3.34,21.61,3,21.09,3,20.5M16.81,15.12L18.81,16.27C19.46,16.64,19.46,17.36,18.81,17.73L4.82,25.74L14.7,15.86L16.81,15.12M14.7,8.14L4.82,18.26L18.81,26.27C19.46,26.64,19.46,27.36,18.81,27.73L16.81,28.88L14.7,8.14M16.81,8.88L14.7,6.14L18.81,4.27C19.46,3.9,19.46,3.18,18.81,2.81L16.81,1.73L14.7,8.88Z" transform="scale(0.8) translate(3,3)"/></svg>
+                <div className="flex flex-col leading-none text-white">
+                  <span className="text-[8px] uppercase font-bold opacity-60">Play</span>
+                  <span className="text-[12px] font-black">Google</span>
+                </div>
+              </a>
+            </div>
+
+            <button
+              onClick={toggleTheme}
+              aria-label="Tema Değiştir"
+              className="flex items-center justify-center w-11 h-11 rounded-full transition-all duration-500 hover:rotate-12 hover:scale-110 active:scale-95 cursor-pointer bg-black dark:bg-yellow-400 text-white dark:text-black shadow-xl"
+            >
+              {theme === 'light' ? (
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" className="animate-in fade-in zoom-in duration-300">
+                  <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,11.69,1,1,0,0,0,21.64,13Z"/>
+                </svg>
+              ) : (
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" className="animate-in fade-in spin-in-180 duration-500">
+                  <path d="M12,7a5,5,0,1,0,5,5A5,5,0,0,0,12,7Zm0,8a3,3,0,1,1,3-3A3,3,0,0,1,12,15Zm0-9a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V5A1,1,0,0,0,12,6Zm0,12a1,1,0,0,0-1,1v2a1,1,0,0,0,2,0V19A1,1,0,0,0,12,18ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41L5.64,4.22A1,1,0,0,0,4.22,5.64ZM18.36,17a1,1,0,0,0-.71.29,1,1,0,0,0,0,1.41l1.42,1.42a1,1,0,0,0,1.41,0,1,1,0,0,0,0-1.41ZM21,11H19a1,1,0,0,0,0,2h2a1,1,0,0,0,0-2ZM5,11H3a1,1,0,0,0,0,2H5a1,1,0,0,0,0-2Zm13.36-5.36a1,1,0,0,0-1.41-1.41L15.54,5.64a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.29,1,1,0,0,0,.7-.29ZM7.05,18.36a1,1,0,0,0-1.41,0L4.22,19.78a1,1,0,0,0,0,1.41,1,1,0,0,0,.71.29,1,1,0,0,0,.7-.29l1.42-1.42A1,1,0,0,0,7.05,18.36Z"/>
+                </svg>
+              )}
+            </button>
           </div>
 
-          {/* Tema Değiştirici (Theme Toggle) */}
-          <button
-            onClick={toggleTheme}
-            aria-label="Tema Değiştir"
-            className="flex items-center justify-center w-10 h-10 rounded-full transition-all duration-500 hover:rotate-12 hover:scale-110 active:scale-95 cursor-pointer bg-slate-50 dark:bg-slate-800 text-gray-600 dark:text-yellow-400 hover:shadow-[0_0_15px_rgba(234,179,8,0.4)]"
-          >
-            {theme === 'light' ? (
-              <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" className="animate-in fade-in zoom-in duration-300">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-              </svg>
-            ) : (
-              <svg width="22" height="22" fill="currentColor" className="text-yellow-400 animate-in fade-in spin-in-180 duration-500">
-                <path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.122-10.607a1 1 0 010 1.414l-.707.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464l-.707-.707a1 1 0 00-1.414 1.414l.707.707a1 1 0 001.414-1.414zm2.122 10.607a1 1 0 010-1.414l.707-.707a1 1 0 111.414 1.414l-.707.707a1 1 0 01-1.414 0zM4 11a1 1 0 100-2H3a1 1 0 100 2h1z" />
-              </svg>
-            )}
-          </button>
-
-          {/* Dil Değiştirici */}
-          <select
-            value={locale}
-            aria-label="Dil / Lokasyon Seçimi"
-            onChange={(e) => setLocale(e.target.value as Locale)}
-            className="block h-10 bg-white dark:bg-slate-800 border text-sm font-bold border-gray-200 dark:border-slate-700 text-gray-700 dark:text-slate-200 px-3 rounded-full outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 shadow-sm cursor-pointer appearance-none pr-8 relative hover:bg-gray-50 dark:hover:bg-slate-700 transition-all duration-500"
-            style={{ backgroundImage: "url(\"data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e\")", backgroundRepeat: 'no-repeat', backgroundPosition: 'right 0.5rem center', backgroundSize: '1em' }}
-          >
-            <option value="tr-TR">🇹🇷 TR</option>
-            <option value="en-US">🇺🇸 EN</option>
-            <option value="de-DE">🇩🇪 DE</option>
-            <option value="zh-CN">🇨🇳 CN</option>
-            <option value="ar-SA">🇸🇦 AR</option>
-            <option value="es-ES">🇪🇸 ES</option>
-            <option value="fr-FR">🇫🇷 FR</option>
-          </select>
-
           {/* Yakınımdaki turlar (Geofencing) */}
-          <GeofenceTrigger compact className="hidden sm:flex" />
 
           {/* Favoriler Butonu ve Dropdown */}
           <div className="hidden md:flex relative items-center justify-center dropdown-container" data-dropdown="favorites">

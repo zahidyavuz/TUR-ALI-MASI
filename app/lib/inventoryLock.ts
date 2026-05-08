@@ -1,25 +1,25 @@
-"""
-TRANSACTION-RACE-CONDITION-LOCK
-Stok Kilitleme ve Race Condition Koruması
-
-Nasıl Çalışır:
-    1. Müşteri ödeme formunu açtığında bir "Geçici Rezervasyon" (hold) oluşturulur
-    2. Bu hold, seçilen tarih ve kontenjan sayısını 5 dakika (300 saniye) kilitler
-    3. Aynı anda başka bir müşteri aynı tur + tarih + kontenjan için hold talep ederse
-       "Şu an başka bir müşteri işlem yapıyor" mesajı alır
-    4. 5 dakika sonra hold dolunca kilit otomatik açılır
-    5. Ödeme başarılıysa hold kalıcı rezervasyona dönüşür
-    6. Ödeme başarısızsa hold anında serbest bırakılır
-
-Veritabanı Katmanı:
-    Django'da BookingHold modeli: select_for_update() + atomic transaction
-    Bu modül Next.js katmanındaki hafıza içi kilit simülasyonudur.
-    Production'da gerçek kilit Django tarafından yönetilir.
-
-İndirim Kodu Kilidi:
-    Aynı mantık promo kodları için de uygulanır:
-    Bir kod aynı anda birden fazla kişi tarafından kullanılamaz.
-"""
+/**
+ * TRANSACTION-RACE-CONDITION-LOCK
+ * Stok Kilitleme ve Race Condition Koruması
+ * 
+ * Nasıl Çalışır:
+ *     1. Müşteri ödeme formunu açtığında bir "Geçici Rezervasyon" (hold) oluşturulur
+ *     2. Bu hold, seçilen tarih ve kontenjan sayısını 5 dakika (300 saniye) kilitler
+ *     3. Aynı anda başka bir müşteri aynı tur + tarih + kontenjan için hold talep ederse
+ *        "Şu an başka bir müşteri işlem yapıyor" mesajı alır
+ *     4. 5 dakika sonra hold dolunca kilit otomatik açılır
+ *     5. Ödeme başarılıysa hold kalıcı rezervasyona dönüşür
+ *     6. Ödeme başarısızsa hold anında serbest bırakılır
+ * 
+ * Veritabanı Katmanı:
+ *     Django'da BookingHold modeli: select_for_update() + atomic transaction
+ *     Bu modül Next.js katmanındaki hafıza içi kilit simülasyonudur.
+ *     Production'da gerçek kilit Django tarafından yönetilir.
+ * 
+ * İndirim Kodu Kilidi:
+ *     Aynı mantık promo kodları için de uygulanır:
+ *     Bir kod aynı anda birden fazla kişi tarafından kullanılamaz.
+ */
 
 export interface InventoryHold {
   /** Benzersiz hold ID'si */
