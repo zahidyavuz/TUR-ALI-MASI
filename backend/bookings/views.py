@@ -13,13 +13,14 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.http import HttpResponse
 from django.core.mail import send_mail
+from core.permissions import IsOwner, StrictMassAssignmentPermission
 
 logger = logging.getLogger('bookings')
 
 
 class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = BookingSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsOwner, StrictMassAssignmentPermission]
 
     def get_queryset(self):
         return Booking.objects.filter(user=self.request.user).select_related('tour')

@@ -1,23 +1,28 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --card-bg: #ffffff;
+  --nav-bg: #ffffff;
+}
+
+.dark {
+  --background: #0B132B; /* Lüks Lacivert */
+  --foreground: #ffffff; /* Ana başlıklar beyaz */
+  --card-bg: #ffffff; /* Kartların iç kısımları her iki modda sabit bembeyaz */
+  --nav-bg: #0B132B;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-card-bg: var(--card-bg);
+  --color-nav-bg: var(--nav-bg);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {
@@ -25,6 +30,7 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
   top: 0 !important;
+  transition: background-color 0.5s ease, color 0.5s ease;
 }
 
 /* Google Translate Overlays Fix */

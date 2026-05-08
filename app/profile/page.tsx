@@ -7,6 +7,7 @@ import { useLocale, Locale } from '../context/LocaleContext';
 import { useCurrency, Currency } from '../context/CurrencyContext';
 import { auth } from '../lib/auth';
 import { fetchAPI } from '../lib/api';
+import SecureFileUpload from '../components/SecureFileUpload';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -39,18 +40,10 @@ export default function ProfilePage() {
     // Profil Fotoğrafı State'i ve Yükleme
     const [profileImage, setProfileImage] = useState('https://placehold.co/150x150/e2e8f0/475569.png?text=Avatar');
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
-    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            setSelectedFile(file);
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setProfileImage(reader.result as string);
-            };
-            reader.readAsDataURL(file);
-        }
+    const handleSecureImageUpload = (secureFile: File, previewUrl: string) => {
+        setSelectedFile(secureFile);
+        setProfileImage(previewUrl);
     };
 
     // Load Profile
@@ -215,7 +208,7 @@ export default function ProfilePage() {
 
 
     return (
-        <div className="min-h-screen bg-slate-50 py-12 font-sans overflow-x-hidden">
+        <div className="min-h-screen bg-slate-50 dark:bg-transparent py-12 font-sans overflow-x-hidden transition-colors duration-500">
             <div className="max-w-4xl mx-auto px-4 sm:px-6">
 
                 {/* Üst Kısım: Başlık & Rol Değiştirici (TourkiaPuan vb. yerine demo amaçlı) */}
@@ -237,7 +230,7 @@ export default function ProfilePage() {
 
                     {/* Sol Sütun: Profil Özeti & Fotoğraf */}
                     <div className="lg:col-span-1 space-y-6">
-                        <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 flex flex-col items-center relative overflow-hidden group">
+                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 flex flex-col items-center relative overflow-hidden group transition-all duration-500">
                             <div className="absolute top-0 w-full h-24 bg-gradient-to-r from-blue-600 to-indigo-600 z-0"></div>
 
                             <div className="relative z-10 w-32 h-32 rounded-full overflow-hidden border-4 border-white shadow-xl mt-6 group-hover:scale-105 transition-transform duration-300 bg-white flex items-center justify-center">
@@ -245,11 +238,15 @@ export default function ProfilePage() {
                                 <Image src={profileImage} alt="Profil Fotoğrafı" fill sizes="128px" className="object-cover" />
                             </div>
 
-                            <input type="file" accept="image/*" className="hidden" ref={fileInputRef} onChange={handleImageUpload} />
-                            <button onClick={() => fileInputRef.current?.click()} className="relative z-10 mt-5 text-[13px] font-bold text-[#008cb3] hover:text-white bg-blue-50 hover:bg-[#008cb3] px-6 py-2.5 rounded-full transition duration-300 shadow-sm flex items-center gap-2">
-                                <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                Fotoğrafı Değiştir
-                            </button>
+
+                            <div className="relative z-10 mt-6">
+                                <SecureFileUpload
+                                    onFileAccepted={handleSecureImageUpload}
+                                    currentImageUrl={profileImage}
+                                    label="Fotoğrafı Değiştir"
+                                    variant="round"
+                                />
+                            </div>
 
                             <h2 className="relative z-10 mt-4 text-xl font-black text-slate-800 text-center tracking-tight flex items-center justify-center gap-2">
                                 {formState.firstName} {formState.lastName}
@@ -280,7 +277,7 @@ export default function ProfilePage() {
                     <div className="lg:col-span-2 space-y-8">
 
                         {/* 1. Kişisel Bilgiler (Ana Bölüm) */}
-                        <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 md:p-8">
+                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 md:p-8 transition-all duration-500">
                             <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
                                 <div className="p-1.5 bg-blue-50 text-blue-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg></div>
                                 Kimlik Bilgileri
@@ -320,7 +317,7 @@ export default function ProfilePage() {
                         </div>
 
                         {/* 2. Sistem & Görünüm Tercihleri */}
-                        <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 md:p-8">
+                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 md:p-8 transition-all duration-500">
                             <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
                                 <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg></div>
                                 Seçenekler ve Tercihler
@@ -413,7 +410,7 @@ export default function ProfilePage() {
                         )}
 
                         {/* 4. Şifre & Güvenlik Özellikleri */}
-                        <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 p-6 md:p-8">
+                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none p-6 md:p-8 transition-all duration-500">
                             <h3 className="text-lg font-black text-slate-800 mb-6 flex items-center gap-2">
                                 <div className="p-1.5 bg-red-50 text-red-600 rounded-lg"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
                                 Güvenlik ve Şifre Belirleme

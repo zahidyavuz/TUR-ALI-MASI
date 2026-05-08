@@ -25,7 +25,7 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice }: { id: st
   const savings = Math.round(discountAmount);
 
   return (
-    <div className="relative bg-white rounded-[24px] overflow-hidden shadow-xl hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] transition-all duration-700 group cursor-pointer border border-gray-100 flex flex-col md:flex-row w-full mb-6"> 
+    <div className="relative bg-white rounded-[24px] overflow-hidden shadow-xl hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-700 group cursor-pointer border border-gray-100 dark:border-none flex flex-col md:flex-row w-full mb-6"> 
       {/* Görsel Alanı (Geniş Split) */}
       <div className="relative h-56 md:h-auto md:w-[40%] overflow-hidden flex">
         <div className="w-1/2 h-full relative border-r-2 border-white z-10 shrink-0">
@@ -234,7 +234,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-white font-sans text-slate-900 overflow-x-hidden" suppressHydrationWarning>
+    <main className="min-h-screen bg-[var(--background)] font-sans text-[var(--foreground)] overflow-x-hidden transition-colors duration-500" suppressHydrationWarning>
       <Navbar setShowAgencyModal={setShowAgencyModal} setAgencyTab={setAgencyTab} />
 
       {/* Hero: Pazarlama Tasarımı */}
@@ -452,9 +452,9 @@ export default function Home() {
 
 
       {/* 1. Türkiye'deki Popüler Turlar (Horizontal Carousel) */}
-      <div className="w-full bg-white pt-12 pb-2 overflow-hidden">
+      <div className="w-full bg-white dark:bg-transparent pt-12 pb-2 overflow-hidden transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-6 mb-10">
-          <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+          <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none transition-colors duration-500">
             Türkiye'deki <span className="text-[#008cb3]">Popüler Turlar</span>
           </h2>
           <div className="w-24 h-1.5 bg-[#008cb3] mt-6 rounded-full"></div>
@@ -502,7 +502,7 @@ export default function Home() {
               onClick={() => window.location.href = `/tour/${tur.id}`}
 
             >
-              <div className="bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] hover:shadow-[0_25px_60px_rgba(212,175,55,0.2)] transition-all duration-500 border border-amber-100/50 flex flex-col h-full group-hover:-translate-y-2 relative group">
+              <div className="bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_60px_rgba(212,175,55,0.2)] transition-all duration-500 border border-amber-100/50 dark:border-none flex flex-col h-full group-hover:-translate-y-2 relative group">
                 {/* Premium Glow Effect */}
                 <div className="absolute inset-0 rounded-[24px] ring-1 ring-amber-400/10 group-hover:ring-amber-400/30 transition-all duration-500 pointer-events-none"></div>
                 <div className="relative h-60 overflow-hidden">
@@ -564,20 +564,20 @@ export default function Home() {
       </div>
 
       {/* Neden Tourkia? (Compact Middle Bar) */}
-      <div className="w-full bg-slate-50/50 py-8 border-y border-gray-100">
+      <div className="w-full bg-slate-50/50 dark:bg-[#060c1d]/60 py-8 border-y border-gray-100 dark:border-white/5 transition-colors duration-500 backdrop-blur-sm">
         <div className="max-w-7xl mx-auto px-6">
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12">
             {t.whyUs.items.map((item: any, idx: number) => (
               <div key={idx} className="flex items-center gap-4 group">
-                <div className="w-12 h-12 bg-white text-[#008cb3] rounded-2xl flex items-center justify-center shrink-0 shadow-sm group-hover:bg-[#008cb3] group-hover:text-white transition-all duration-300">
+                <div className="w-12 h-12 bg-white dark:bg-white/10 text-[#008cb3] dark:text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm dark:shadow-none group-hover:bg-[#008cb3] dark:group-hover:bg-white/20 group-hover:text-white transition-all duration-300">
                   {idx === 0 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg>}
                   {idx === 1 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M11 11V9a2 2 0 00-2-2m2 4v4a2 2 0 104 0v-1m-4-3H9m2 0h4m6 1a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                   {idx === 2 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                   {idx === 3 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h3 className="text-[13px] font-black text-slate-800 leading-none mb-1 group-hover:text-[#008cb3] transition-colors">{item.title}</h3>
-                  <p className="text-[11px] font-bold text-gray-400 leading-tight line-clamp-1">{item.desc}</p>
+                  <h3 className="text-[13px] font-black text-slate-800 dark:text-white leading-none mb-1 group-hover:text-[#008cb3] dark:group-hover:text-blue-300 transition-colors">{item.title}</h3>
+                  <p className="text-[11px] font-bold text-gray-400 dark:text-white/70 leading-tight line-clamp-1">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -586,7 +586,7 @@ export default function Home() {
       </div>
 
       {/* --- National Showcase Grid (Ulusal Vitrin Dizilimi) --- */}
-      <div className="w-full bg-white py-12 md:py-16 overflow-hidden border-b border-gray-100">
+      <div className="w-full bg-white dark:bg-transparent py-12 md:py-16 overflow-hidden border-b border-gray-100 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-6 mb-12">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="max-w-2xl">
@@ -594,7 +594,7 @@ export default function Home() {
                 <span className="w-10 h-[3px] bg-[#008cb3] rounded-full"></span>
                 <span className="text-[12px] font-black text-[#008cb3] uppercase tracking-[0.4em]">{t.nationalShowcase.badge}</span>
               </div>
-              <h2 className="text-3xl md:text-5xl font-black text-slate-900 tracking-tight mb-4 leading-tight">
+              <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tight mb-4 leading-tight transition-colors duration-500">
                 {t.nationalShowcase.title}
               </h2>
               <p className="text-gray-500 font-medium text-base md:text-lg leading-relaxed">
@@ -662,7 +662,7 @@ export default function Home() {
               onClick={() => window.location.href = `/tour/${tur.id}`}
 
             >
-              <div className="bg-white rounded-[16px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.12)] hover:-translate-y-4 transition-all duration-500 border border-gray-100 flex flex-col h-[480px] md:h-[520px]">
+              <div className="bg-white rounded-[16px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.12)] hover:-translate-y-4 transition-all duration-500 border border-gray-100 dark:border-none flex flex-col h-[480px] md:h-[520px]">
                 {/* Üst Yarı: Görsel */}
                 <div className="relative h-1/2 w-full overflow-hidden">
                   <Image 
@@ -742,12 +742,12 @@ export default function Home() {
 
 
       {/* 4. Lezzet Durakları (Taste Hub - Yeni) */}
-      <div className="w-full bg-white py-24 border-t border-gray-100">
+      <div className="w-full bg-white dark:bg-transparent py-24 border-t border-gray-100 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div className="max-w-2xl">
               <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-3 block">Gastronomi Keşfi</span>
-              <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight mb-4">Lezzet Durakları</h2>
+              <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white tracking-tight mb-4 transition-colors duration-500">Lezzet Durakları</h2>
               <p className="text-gray-500 font-medium leading-relaxed">
                 Sadece gezmek yetmez; Kapadokya'nın ve Türkiye'nin en seçkin restoranlarında gerçek bir lezzet şölenine davetlisiniz. Şeflerin elinden çıkan gurme deneyimleri keşfedin.
               </p>
@@ -764,8 +764,8 @@ export default function Home() {
               { ad: "Museum Terrace", kategori: "Fine Dining & Manzara", puan: "4.8", image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80", tag: "Eşsiz Manzara" },
               { ad: "Seki Restaurant", kategori: "Kaya Oyma & Gurme", puan: "4.7", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&q=80", tag: "Tarihi Doku" }
             ].map((rest, i) => (
-              <div key={i} className="group cursor-pointer">
-                <div className="relative h-72 rounded-[2rem] overflow-hidden mb-5 shadow-lg group-hover:shadow-2xl transition-all duration-500">
+              <div key={i} className="group cursor-pointer bg-white p-3 rounded-[2.5rem] shadow-sm hover:shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-50 dark:border-none transition-all duration-500">
+                <div className="relative h-64 rounded-[2rem] overflow-hidden mb-4 shadow-md group-hover:shadow-xl transition-all duration-500">
                   <Image src={rest.image} alt={rest.ad} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
                   <div className="absolute top-4 left-4">
@@ -778,8 +778,10 @@ export default function Home() {
                     <h4 className="text-xl font-black">{rest.ad}</h4>
                   </div>
                 </div>
-                <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{rest.kategori}</p>
-                <p className="text-sm font-medium text-gray-500 group-hover:text-[#008cb3] transition-colors">Menüyü İncele ve Rezervasyon Yap ➔</p>
+                <div className="px-3 pb-2">
+                  <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">{rest.kategori}</p>
+                  <p className="text-sm font-black text-slate-800 group-hover:text-[#008cb3] transition-colors mt-2">Menüyü İncele ve Rezervasyon Yap ➔</p>
+                </div>
               </div>
             ))}
           </div>
@@ -787,11 +789,11 @@ export default function Home() {
       </div>
     
       {/* 4.5. Tur + VIP Menü Komboları (Combo Showcase - Yeni) */}
-      <div className="w-full bg-[#f9f8f4] py-16 border-t border-gray-200/50">
+      <div className="w-full bg-[#f9f8f4] dark:bg-transparent py-16 border-t border-gray-200/50 transition-colors duration-500">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-10">
             <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-3 block">Ayrıcalıklı Paketler</span>
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight mb-4 italic italic-font-fix">Tur + VIP Menü <span className="text-orange-500 underline decoration-indigo-200 underline-offset-8 italic">Komboları</span></h2>
+            <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-4 italic italic-font-fix transition-colors duration-500">Tur + VIP Menü <span className="text-orange-500 underline decoration-indigo-200 underline-offset-8 italic">Komboları</span></h2>
             <p className="text-xs md:text-sm text-gray-500 font-medium max-w-xl mx-auto leading-relaxed">
               Zamanınızı ve bütçenizi en verimli şekilde kullanın. Popüler turlarımız ve seçkin restoran menüleri tek pakette.
             </p>

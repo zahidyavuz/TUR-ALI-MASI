@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { fetchTour } from '../lib/tours';
 import { useLocale } from '../context/LocaleContext';
+import { checkRateLimit, recordFailedAttempt } from '../lib/rateLimit';
 
 function CheckoutLogic() {
     const searchParams = useSearchParams();
@@ -118,6 +119,13 @@ function CheckoutLogic() {
     };
 
     const handleSimulatePaymentProcess = () => {
+        // ZERO-TRUST: Ödeme ekranı hız sınırı (Spam/Carding Koruması)
+        const limit = checkRateLimit('checkout_attempts');
+        if (!limit.allowed) {
+            alert(`Çok fazla ödeme denemesi yaptınız. Güvenlik sebebiyle işleminiz ${limit.remainingMinutes} dakikalığına durdurulmuştur.`);
+            return;
+        }
+
         // Upsell Logic: Akıllı Eşleştirme Motoru
         if (!menuId && suggestedCombo && !upsellShown) {
             setShowUpsellModal(true);

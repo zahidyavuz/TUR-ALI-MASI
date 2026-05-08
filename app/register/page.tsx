@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { fetchAPI } from '../lib/api';
-
+import SecurityShield from '../components/SecurityShield';
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
         username: '',
@@ -14,6 +14,7 @@ export default function RegisterPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [humanToken, setHumanToken] = useState('');
 
     const router = useRouter();
     const { login } = useAuth();
@@ -28,6 +29,11 @@ export default function RegisterPage() {
 
         if (formData.password !== formData.passwordConfirm) {
             setError('Şifreler eşleşmiyor.');
+            return;
+        }
+
+        if (!humanToken) {
+            setError('Güvenlik doğrulaması tamamlanmadı. Lütfen bekleyin.');
             return;
         }
 
@@ -151,6 +157,10 @@ export default function RegisterPage() {
                             className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold"
                             placeholder="••••••••"
                         />
+                    </div>
+
+                    <div className="pt-2">
+                        <SecurityShield onVerify={setHumanToken} />
                     </div>
 
                     <div className="pt-2">

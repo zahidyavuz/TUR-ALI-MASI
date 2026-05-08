@@ -34,6 +34,7 @@ import { LocaleProvider } from "./context/LocaleContext";
 import { NotificationProvider } from "./context/NotificationContext";
 import { GeofenceProvider } from "./context/GeofenceContext";
 import { AuthProvider } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 import GeofenceBanner from "./components/GeofenceBanner";
 
 export default function RootLayout({
@@ -44,6 +45,17 @@ export default function RootLayout({
   return (
     <html lang="tr" suppressHydrationWarning>
       <head>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            try {
+              if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+              } else {
+                document.documentElement.classList.remove('dark');
+              }
+            } catch (_) {}
+          `
+        }} />
         <style>{`
           /* Google Translate varsayılan çubuğunu gizle */
           .VIpgJd-ZVi9od-ORHb-OEVmcd { display: none !important; }
@@ -60,14 +72,16 @@ export default function RootLayout({
         <CurrencyProvider>
           <LocaleProvider>
             <AuthProvider>
-              <NotificationProvider>
-                <GeofenceProvider>
-                  {children}
-                  <GeofenceBanner />
-                  <Chatbot />
-                  <Footer />
-                </GeofenceProvider>
-              </NotificationProvider>
+              <ThemeProvider>
+                <NotificationProvider>
+                  <GeofenceProvider>
+                    {children}
+                    <GeofenceBanner />
+                    <Chatbot />
+                    <Footer />
+                  </GeofenceProvider>
+                </NotificationProvider>
+              </ThemeProvider>
             </AuthProvider>
           </LocaleProvider>
         </CurrencyProvider>

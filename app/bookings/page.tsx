@@ -7,6 +7,8 @@ import { useRouter } from 'next/navigation';
 import { fetchAPI } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { auth } from '../lib/auth';
+import { verifyLocalBookingOwnership } from '../lib/idor';
+import ForbiddenPage from '../components/ForbiddenPage';
 
 export default function MyBookingsPage() {
     const { user, isLoading: isAuthLoading } = useAuth();
@@ -17,6 +19,8 @@ export default function MyBookingsPage() {
     const [bookings, setBookings] = useState<any>({ upcoming: [], past: [] });
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [accessDenied, setAccessDenied] = useState(false);
+    const [deniedMessage, setDeniedMessage] = useState('');
 
     // Review Modal State
     const [reviewModalOpen, setReviewModalOpen] = useState(false);
@@ -131,8 +135,31 @@ export default function MyBookingsPage() {
     // Aktif sekmeye göre gösterilecek liste
     const displayTickets = activeTab === 'upcoming' ? bookings.upcoming : bookings.past;
 
+    // IDOR: Bilet kaydedildiğinde sahiplik ID'sini localStorage'a aktar
+    const handleSecureTicketNav = async (
+        e: React.MouseEvent,
+        ticketId: string,
+        href: string
+    ) => {
+        e.preventDefault();
+        // Demo modda local ownership check
+        const rawId = ticketId.replace(/^TKT-0*/, '').replace(/[A-Z]+$/, '');
+        const check = verifyLocalBookingOwnership(rawId);
+        if (!check.allowed && check.reason === 'forbidden') {
+            setDeniedMessage(`'${ticketId}' numaralı bileti görüntüleme yetkiniz yok.`);
+            setAccessDenied(true);
+            return;
+        }
+        router.push(href);
+    };
+
     return (
-        <main className="min-h-screen bg-[#F2F2F7] pb-20 pt-8 sm:py-12">
+        <>
+        {accessDenied && (
+            <ForbiddenPage message={deniedMessage || 'Bu kaynağa erişim yetkiniz yok.'} />
+        )}
+        {!accessDenied && (
+        <main className="min-h-screen bg-[#F2F2F7] dark:bg-transparent pb-20 pt-8 sm:py-12 transition-colors duration-500">
             <div className="max-w-3xl mx-auto px-4 sm:px-6">
 
                 {/* Header */}
@@ -230,6 +257,7 @@ export default function MyBookingsPage() {
                                 {activeTab === 'upcoming' && (
                                     <Link
                                         href={ticket.qrLink}
+                                        onClick={(e) => handleSecureTicketNav(e, ticket.id, ticket.qrLink)}
                                         className="absolute bottom-4 right-4 sm:bottom-5 sm:right-5 w-10 h-10 bg-[#F2F2F7] hover:bg-[#E5E5EA] text-slate-700 rounded-full flex items-center justify-center transition-colors active:scale-90"
                                         aria-label="Bileti Görüntüle / QR Kod"
                                     >
@@ -299,5 +327,7 @@ export default function MyBookingsPage() {
                 </div>
             )}
         </main>
+        )}
+        </>
     );
 }

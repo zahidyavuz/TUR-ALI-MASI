@@ -169,7 +169,7 @@ export default function AgencyDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
+        <div className="min-h-screen bg-slate-50 dark:bg-transparent flex flex-col md:flex-row font-sans transition-colors duration-500">
 
             {/* Sidebar (Sol Menü) */}
             <aside className="w-full md:w-64 bg-[#0f172a] text-slate-300 flex flex-col shadow-2xl z-20 shrink-0">
@@ -264,10 +264,10 @@ export default function AgencyDashboard() {
             </aside>
 
             {/* Main Content Area */}
-            <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative z-10 w-full">
+            <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-transparent relative z-10 w-full transition-colors duration-500">
                 {/* Top Navbar */}
-                <header className="bg-white px-8 py-5 border-b border-gray-200 flex items-center justify-between shrink-0 shadow-sm z-20">
-                    <h2 className="text-[22px] font-extrabold text-slate-800 uppercase tracking-tight">
+                <header className="bg-white dark:bg-[#101935] px-8 py-5 border-b border-gray-200 dark:border-white/5 flex items-center justify-between shrink-0 shadow-sm z-20 transition-colors duration-500">
+                    <h2 className="text-[22px] font-extrabold text-slate-800 dark:text-white uppercase tracking-tight transition-colors duration-500">
                         {activeTab === 'dashboard' && 'Genel Bakış'}
                         {activeTab === 'bookings' && 'Rezervasyon Yönetimi'}
                         {activeTab === 'my_tours' && 'Turlarım & Yönetim'}
@@ -312,7 +312,7 @@ export default function AgencyDashboard() {
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
                                         {/* Kart: Toplam Satış */}
-                                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition">
+                                        <div className="bg-white rounded-[24px] p-6 shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none flex items-center gap-5 hover:shadow-md transition">
                                             <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-emerald-500 flex items-center justify-center shrink-0">
                                                 <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                             </div>
@@ -323,7 +323,7 @@ export default function AgencyDashboard() {
                                         </div>
 
                                         {/* Kart: Aktif Rezervasyonlar */}
-                                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition">
+                                        <div className="bg-white rounded-[24px] p-6 shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none flex items-center gap-5 hover:shadow-md transition">
                                             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-500 flex items-center justify-center shrink-0">
                                                 <svg className="w-7 h-7" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                             </div>
@@ -334,7 +334,7 @@ export default function AgencyDashboard() {
                                         </div>
 
                                         {/* Kart: Bekleyen Hakediş */}
-                                        <div className="bg-white rounded-[24px] p-6 shadow-sm border border-gray-100 flex items-center gap-5 hover:shadow-md transition relative overflow-hidden">
+                                        <div className="bg-white rounded-[24px] p-6 shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none flex items-center gap-5 hover:shadow-md transition relative overflow-hidden">
                                             <div className="absolute top-0 right-0 p-3 opacity-10">
                                                 <svg className="w-24 h-24 text-orange-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v4a2 2 0 002 2V6h10a2 2 0 00-2-2H4zm2 6a2 2 0 012-2h8a2 2 0 012 2v4a2 2 0 01-2 2H8a2 2 0 01-2-2v-4zm6 4a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" /></svg>
                                             </div>
@@ -349,7 +349,7 @@ export default function AgencyDashboard() {
                                     </div>
 
                                     {/* Hızlı Tablo (Son Satışlar) */}
-                                    <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden">
+                                    <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none overflow-hidden transition-all duration-500">
                                         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
                                             <h3 className="text-lg font-extrabold text-slate-800">Son İşlemler</h3>
                                             <button onClick={() => setActiveTab('bookings')} className="text-sm font-bold text-blue-500 hover:text-blue-600 transition">Tümünü Gör &rarr;</button>
@@ -400,7 +400,7 @@ export default function AgencyDashboard() {
 
                                     {/* Active Chats List */}
                                     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                                        <div className="bg-white rounded-[24px] shadow-sm border-2 border-orange-400 p-6 relative flex flex-col hover:shadow-md transition">
+                                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border-2 border-orange-400 dark:border-none p-6 relative flex flex-col hover:shadow-md transition">
                                             <div className="absolute top-4 right-4 bg-orange-100 text-orange-600 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md animate-pulse">● CANLI SOHBET</div>
                                             <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Kapadokya VIP Balon Turu</h3>
                                             <p className="text-xs text-gray-500 font-bold mb-4">Tarih: 15 Nisan 2026 • 15 Misafir</p>
@@ -417,7 +417,7 @@ export default function AgencyDashboard() {
                                             </div>
                                         </div>
 
-                                        <div className="bg-white rounded-[24px] shadow-sm border border-gray-200 p-6 relative flex flex-col hover:shadow-md transition opacity-75">
+                                        <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-200 dark:border-none p-6 relative flex flex-col hover:shadow-md transition opacity-75">
                                             <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-md">SALT OKUNUR</div>
                                             <h3 className="font-extrabold text-slate-800 text-lg pr-24 leading-tight mb-2">Büyük İtalya Turu</h3>
                                             <p className="text-xs text-gray-500 font-bold mb-4">Tarih: 5 Nisan 2026 • 45 Misafir</p>
@@ -439,7 +439,7 @@ export default function AgencyDashboard() {
 
                             {/* TAB: BOOKINGS (REZERvasyonlar Tablosu) */}
                             {activeTab === 'bookings' && (
-                                <div className="bg-white rounded-[24px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col h-full min-h-[500px]">
+                                <div className="bg-white rounded-[24px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-500 flex flex-col h-full min-h-[500px]">
                                     <div className="p-6 border-b border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-slate-50/50">
                                         <h3 className="text-lg font-extrabold text-slate-800 flex items-center gap-2">
                                             <svg className="w-5 h-5 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z" /><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm9.707 5.707a1 1 0 00-1.414-1.414L9 12.586l-1.293-1.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
@@ -569,7 +569,7 @@ export default function AgencyDashboard() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                         {tours.map((t, idx) => (
-                                            <div key={t.id || idx} className="bg-white rounded-3xl overflow-hidden shadow-sm border border-gray-100 flex flex-col group hover:shadow-xl transition-all duration-300">
+                                            <div key={t.id || idx} className="bg-white rounded-3xl overflow-hidden shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none flex flex-col group hover:shadow-xl transition-all duration-300">
                                                 <div className="relative h-48 w-full overflow-hidden">
                                                     <Image src={t.image_main || t.imageMain || 'https://placehold.co/600x400'} alt={t.title} fill sizes="33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
                                                     <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-slate-800 text-xs font-black px-2 py-1 rounded-md shadow-sm">
@@ -609,7 +609,7 @@ export default function AgencyDashboard() {
 
                             {/* TAB: QUICK BOOK */}
                             {activeTab === 'quick_book' && (
-                                <div className="max-w-4xl mx-auto bg-white rounded-[32px] shadow-sm border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                                <div className="max-w-4xl mx-auto bg-white rounded-[32px] shadow-sm dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-none overflow-hidden animate-in fade-in zoom-in-95 duration-500">
                                     <div className="bg-[#0f172a] p-8 text-white relative overflow-hidden">
                                         <div className="absolute top-[-50px] right-[-50px] w-64 h-64 bg-blue-500 rounded-full blur-3xl opacity-20"></div>
                                         <h2 className="text-2xl font-black mb-2 relative z-10">B2B Hızlı Satış Ekranı</h2>

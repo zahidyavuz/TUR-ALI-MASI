@@ -72,6 +72,46 @@ services:
   #     - frontend
   #     - backend
 
+  # ─────────────────────────────────────────────────────────────────────────────
+  # DISASTER-RECOVERY-PROTOCOL: Otomatik Yedekleme Servisi
+  # Her gece 04:00 UTC'de şifreli yedek alır ve S3/GCS'e yükler.
+  # Ana sunucu tamamen çökse bile bu servis izole çalışmaya devam eder.
+  # ─────────────────────────────────────────────────────────────────────────────
+  backup-cron:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    command: >
+      sh -c "
+        echo '# Tourkia DR Backup Cron' > /etc/cron.d/backup &&
+        echo '0 4 * * * root cd /app && /app/venv/bin/python manage.py backup_database --destination s3 >> /var/log/backup.log 2>&1' >> /etc/cron.d/backup &&
+        chmod 0644 /etc/cron.d/backup &&
+        crontab /etc/cron.d/backup &&
+        cron -f
+      "
+    environment:
+      - DATABASE_URL=postgres://tourkia:${DB_PASSWORD:-changeme}@db:5432/tourkia_db
+      - SECRET_KEY=${SECRET_KEY}
+      # Şifreleme anahtarı (cryptography.fernet.Fernet.generate_key() ile üret)
+      - BACKUP_ENCRYPTION_KEY=${BACKUP_ENCRYPTION_KEY}
+      # AWS S3 Kimlik Bilgileri
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_REGION=${AWS_REGION:-eu-central-1}
+      - BACKUP_S3_BUCKET=${BACKUP_S3_BUCKET:-tourkia-backups-dr}
+      # Admin Alarm E-postası
+      - ADMIN_ALERT_EMAIL=${ADMIN_ALERT_EMAIL:-admin@tourkia.com}
+    volumes:
+      - backup_data:/app/backups         # Yerel yedek dizini
+      - backup_logs:/var/log             # Cron log'ları
+    depends_on:
+      db:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   backend_media:
+  # ─── DR Yedekleme Hacimleri ───────────────────────────────────────────────
+  backup_data:    # Şifreli yedek dosyaları (7 gün saklama)
+  backup_logs:    # Yedekleme işlem logları
