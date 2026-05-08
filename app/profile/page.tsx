@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useLocale, Locale } from '../context/LocaleContext';
 import { useCurrency, Currency } from '../context/CurrencyContext';
 import { auth } from '../lib/auth';
+import { fetchAPI } from '../lib/api';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -60,11 +61,11 @@ export default function ProfilePage() {
             return;
         }
 
-        fetch('http://localhost:8000/api/v1/users/me/', {
+        fetchAPI('/users/me/', {
             headers: { 'Authorization': `Bearer ${token}` }
         })
-        .then(res => res.json())
         .then(data => {
+            if (!data) return;
             if (data.detail && data.code === 'token_not_valid') {
                 auth.clearTokens();
                 alert('Oturumunuzun süresi doldu. Lütfen tekrar giriş yapın.');
@@ -78,7 +79,7 @@ export default function ProfilePage() {
                 phone: data.profile?.phone_number || ''
             }));
             if (data.profile?.avatar) {
-                setProfileImage(`http://localhost:8000${data.profile.avatar}`);
+                setProfileImage(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${data.profile.avatar}`);
             }
 
             // VIP Check
@@ -90,16 +91,8 @@ export default function ProfilePage() {
                 }
             }
         })
-        .catch(err => {
-            console.error("Profile load error:", err);
-            // Mock Fallback for VIP if network fails
-            const vipData = localStorage.getItem('vip_membership');
-            if (vipData) {
-                const { level, expiry } = JSON.parse(vipData);
-                if (level === 'VIP' && new Date(expiry) > new Date()) {
-                    setIsVip(true);
-                }
-            }
+        .catch(() => {
+            // Silently handle profile load error
         });
     }, [router]);
 
@@ -133,14 +126,14 @@ export default function ProfilePage() {
                 formData.append('profile.phone_number', formState.phone);
                 formData.append('profile.avatar', selectedFile);
 
-                await fetch('http://localhost:8000/api/v1/users/me/', {
+                await fetchAPI('/users/me/', {
                     method: 'PUT',
                     headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
             } else {
                 // JSON payload
-                await fetch('http://localhost:8000/api/v1/users/me/', {
+                await fetchAPI('/users/me/', {
                     method: 'PUT',
                     headers: { 
                         'Authorization': `Bearer ${token}`,
@@ -164,7 +157,7 @@ export default function ProfilePage() {
                     setIsSaving(false);
                     return;
                 }
-                const passRes = await fetch('http://localhost:8000/api/v1/auth/password/change/', {
+                const passData = await fetchAPI('/auth/password/change/', {
                     method: 'POST',
                     headers: { 
                         'Authorization': `Bearer ${token}`,
@@ -175,7 +168,7 @@ export default function ProfilePage() {
                         new_password: formState.newPassword
                     })
                 });
-                if (!passRes.ok) {
+                if (!passData) {
                     alert("Şifre güncellenemedi, mevcut şifrenizi kontrol edin.");
                 }
             }
@@ -196,11 +189,11 @@ export default function ProfilePage() {
         try {
             const token = auth.getAccessToken();
             if (!token) return;
-            const res = await fetch('http://localhost:8000/api/v1/users/me/', {
+            const res = await fetchAPI('/users/me/', {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (res.ok) {
+            if (res) {
                 alert("Hesabınız başarıyla silindi.");
                 auth.clearTokens();
                 router.push('/');

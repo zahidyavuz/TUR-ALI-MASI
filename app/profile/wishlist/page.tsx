@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../context/AuthContext';
 import { auth as authHelper } from '../../lib/auth';
+import { fetchAPI } from '../../lib/api';
 import FavoriteButton from '../../components/FavoriteButton';
 
 export default function WishlistPage() {
@@ -27,15 +28,12 @@ export default function WishlistPage() {
             const token = authHelper.getAccessToken();
             if (!token) throw new Error('Oturum süresi doldu.');
 
-            const res = await fetch('http://localhost:8000/api/v1/users/wishlist/', {
+            const data = await fetchAPI('/users/wishlist/', {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
             });
-
-            if (!res.ok) throw new Error('Favoriler yüklenirken bir hata oluştu.');
-            const data = await res.json();
-            setWishlist(data);
+            if (data) setWishlist(data);
         } catch (err: any) {
             setError(err.message);
         } finally {

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { auth as authHelper } from '../lib/auth';
+import { fetchAPI } from '../lib/api';
 
 interface FavoriteButtonProps {
     tourId: string;
@@ -25,14 +26,13 @@ export default function FavoriteButton({ tourId, className = '' }: FavoriteButto
             const token = authHelper.getAccessToken();
             if (!token) return;
 
-            const res = await fetch(`http://localhost:8000/api/v1/users/wishlist/check/${tourId}/`, {
+            const data = await fetchAPI(`/users/wishlist/check/${tourId}/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,
                 }
             });
-            if (res.ok) {
-                const data = await res.json();
+            if (data) {
                 setIsWishlisted(data.is_wishlisted);
             }
         } catch (error) {
@@ -59,7 +59,7 @@ export default function FavoriteButton({ tourId, className = '' }: FavoriteButto
 
         try {
             const token = authHelper.getAccessToken();
-            const res = await fetch(`http://localhost:8000/api/v1/users/wishlist/toggle/`, {
+            const data = await fetchAPI(`/users/wishlist/toggle/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -68,12 +68,10 @@ export default function FavoriteButton({ tourId, className = '' }: FavoriteButto
                 body: JSON.stringify({ tour: tourId })
             });
 
-            if (!res.ok) {
+            if (!data) {
                 // Revert if failed
                 setIsWishlisted(isWishlisted);
-                console.error('Toggle failed');
             } else {
-                const data = await res.json();
                 setIsWishlisted(data.is_wishlisted);
             }
         } catch (error) {

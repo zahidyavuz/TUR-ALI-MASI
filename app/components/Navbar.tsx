@@ -168,115 +168,43 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
             {activeDropdown === 'userMenu' && (
               <div className="absolute right-0 top-[120%] w-64 bg-white rounded-2xl shadow-2xl border border-gray-100 py-3 z-[60] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
 
-                {/* Sadakat Programı (TourPuan) - (Acentalar için gizlenebilir veya gösterilebilir, genelde müşteriler içindir) */}
-                {userRole === 'customer' && (
-                  <div className="px-5 py-3 mb-1 bg-gradient-to-r from-blue-50 to-indigo-50 flex flex-col items-start border-b border-gray-100/50">
-                    <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-widest mb-1.5 flex items-center gap-1"><svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" /></svg> Sadakat Programı</span>
-                    <div className="flex justify-between items-center w-full">
-                      <span className="font-extrabold text-sm text-slate-800 tracking-tight">TourPuan™</span>
-                      <span className="bg-[#008cb3] text-white font-black text-[11px] px-2.5 py-1 rounded-full shadow-sm animate-pulse">1.450 Puan</span>
-                    </div>
-                    <p className="text-[10px] text-gray-500 font-bold mt-1.5">Mevcut Bakiyeniz: <span className="text-green-600">₺145 İndirim!</span></p>
-                  </div>
-                )}
-
-                {/* Hesabım Bölümü Sadece Müşteriler İçin (Eski Sekmeler) */}
-                {userRole === 'customer' && (
-                  <>
-                    <div className="px-5 py-2">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Hesabım</h4>
-                    </div>
-
+                {/* Müşteri Araçları */}
+                {isLoggedIn && userRole === 'customer' && (
+                  <div className="flex flex-col">
                     <button
                       onClick={() => { window.location.href = '/profile'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a4 4 0 00-8 0v3h8v-3z" /></svg>
-                        Profilimi Düzenle
+                        Profilim ve Ayarlar
                       </span>
                     </button>
 
                     <button
                       onClick={() => { window.location.href = '/bookings'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
-                        Biletlerim & Siparişler
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"></path><path d="M18 12h4"></path></svg>
+                        Biletlerim ve QR Cüzdan
                       </span>
                     </button>
 
                     <button
-                      onClick={() => { window.location.href = '/profile/cards'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      onClick={() => { setActiveDropdown(null); toggleDropdown('favorites'); }}
+                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>
-                        Ödeme Kartlarım
+                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                        Favori Turlarım
                       </span>
                     </button>
-
-                    <button
-                      onClick={() => { window.location.href = '/profile/reviews'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                        Yorumlarım
-                      </span>
-                    </button>
-
-                    <div className="border-t border-gray-100/50 my-1"></div>
-
-                    <div className="px-5 py-2">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Müşteri Paneli</h4>
-                    </div>
-
-                    <button
-                      onClick={() => { window.location.href = '/profile/goals'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <span className="text-lg">📍</span>
-                        {t.nav.destinations}
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => { window.location.href = '/taste'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <span className="text-lg">🍽️</span>
-                        {t.nav.taste}
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => { window.location.href = '/profile/styles'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <span className="text-lg">🎨</span>
-                        {t.nav.styles}
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => { window.location.href = '/profile/memories'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <span className="text-lg">✨</span>
-                        {t.nav.memories}
-                      </span>
-                    </button>
-                  </>
+                  </div>
                 )}
 
                 {/* Sadece Acentalar İçin */}
-                {userRole === 'agency' && (
+                {isLoggedIn && userRole === 'agency' && (
                   <>
                     <div className="px-5 py-2">
                       <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Acenta İşlemleri</h4>
@@ -290,22 +218,22 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                         Panelim
                       </span>
                     </button>
-                    <button
-                      onClick={() => { alert('Yüklediğim Turlar Sayfası Çok Yakında!'); setActiveDropdown(null); }}
+                    <button 
+                      onClick={() => { setActiveDropdown(null); }}
                       className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-                        Yeni Tur Ekle
+                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Yüklediğim Turlar
                       </span>
                     </button>
-                    <button
-                      onClick={() => { alert('Kazançlarım Sayfası Çok Yakında!'); setActiveDropdown(null); }}
+                    <button 
+                      onClick={() => { setActiveDropdown(null); }}
                       className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
                       <span className="flex-1 flex items-center gap-3 pointer-events-none">
                         <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        Kazançlarım
+                        Kazançlarım ve Cüzdan
                       </span>
                     </button>
                   </>
@@ -313,30 +241,26 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
 
                 {/* Giriş Linkleri Sadece Giriş Yapılmamışsa Gözüksün */}
                 {!isLoggedIn && (
-                  <>
-                    <div className="border-t border-gray-100/50 my-1.5"></div>
-                    <div className="px-5 py-1">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Hesap Değiştir / Gir</h4>
-                    </div>
+                  <div className="flex flex-col py-1">
                     <button
                       onClick={() => { window.location.href = '/login'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-gray-50 hover:text-[#008cb3] text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-6 py-4 text-[14px] font-black text-gray-700 hover:bg-slate-50 hover:text-[#008cb3] text-left flex items-center gap-4 transition-colors cursor-pointer group"
                     >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                      <span className="flex-1 flex items-center gap-4 pointer-events-none">
+                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                         {t.nav.customerLogin}
                       </span>
                     </button>
                     <button
                       onClick={() => { handleAgencyLogin(); setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-semibold text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      className="w-full px-6 py-4 text-[14px] font-black text-gray-700 hover:bg-orange-50 hover:text-orange-500 text-left flex items-center gap-4 transition-colors cursor-pointer group"
                     >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
+                      <span className="flex-1 flex items-center gap-4 pointer-events-none">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path></svg>
                         {t.nav.agencyLogin}
                       </span>
                     </button>
-                  </>
+                  </div>
                 )}
 
                 {/* Çıkış Yap Butonu (Sadece Giriş Yapılıysa) */}

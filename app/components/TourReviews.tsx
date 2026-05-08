@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { auth as authHelper } from '../lib/auth';
+import { fetchAPI } from '../lib/api';
 
 interface TourReviewsProps {
     tourId: string;
@@ -24,9 +25,8 @@ export default function TourReviews({ tourId }: TourReviewsProps) {
 
     const fetchReviews = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/api/v1/reviews/?tour=${tourId}`);
-            if (res.ok) {
-                const data = await res.json();
+            const data = await fetchAPI(`/reviews/?tour=${tourId}`);
+            if (data) {
                 setReviews(data.results || data);
             }
         } catch (error) {
@@ -53,7 +53,7 @@ export default function TourReviews({ tourId }: TourReviewsProps) {
         setSubmitting(true);
         try {
             const token = authHelper.getAccessToken();
-            const res = await fetch('http://localhost:8000/api/v1/reviews/', {
+            const data = await fetchAPI('/reviews/', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -66,23 +66,13 @@ export default function TourReviews({ tourId }: TourReviewsProps) {
                 })
             });
 
-            const data = await res.json();
-
-            if (res.ok) {
+            if (data) {
                 setSubmitMessage({ type: 'success', text: 'Yorumunuz başarıyla gönderildi!' });
                 setComment('');
                 setRating(5);
                 fetchReviews(); // Refresh list
             } else {
-                // Backend error handling
-                const errorMsg = data.error || data.detail || 'Yorum gönderilirken bir hata oluştu.';
-                if (errorMsg.includes('already reviewed')) {
-                    setSubmitMessage({ type: 'error', text: 'Bu tur için zaten bir değerlendirme yaptınız.' });
-                } else if (errorMsg.includes('booked and confirmed')) {
-                    setSubmitMessage({ type: 'error', text: 'Sadece bu turu satın alan ve tamamlayan kullanıcılar yorum yapabilir.' });
-                } else {
-                    setSubmitMessage({ type: 'error', text: errorMsg });
-                }
+                setSubmitMessage({ type: 'error', text: 'Yorum gönderilirken bir hata oluştu.' });
             }
         } catch (error: any) {
             setSubmitMessage({ type: 'error', text: 'Bir ağ hatası oluştu.' });

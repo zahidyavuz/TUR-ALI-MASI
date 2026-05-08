@@ -88,7 +88,7 @@ const TRANSLATIONS: Translations = {
             contact: "Temas",
             competitorReport: "Rakip Analizi",
             customerLogin: "Müşteri Girişi",
-            agencyLogin: "Acenta Girişi",
+            agencyLogin: "İşletme Girişi / Partner",
         },
         checkout: {
             paymentDisclaimer: "'Ön Ödemeli Menü' tutarı Tourkia güvencesiyle şu an tahsil edilmektedir. Restoranda vereceğiniz tüm 'Ekstra Siparişler' ise doğrudan işletmeye ödenecektir."
@@ -168,7 +168,7 @@ const TRANSLATIONS: Translations = {
             contact: "Hit Us Up",
             competitorReport: "Market Edge",
             customerLogin: "Traveler Login",
-            agencyLogin: "Partner Portal",
+            agencyLogin: "Business Login / Partner",
         },
         checkout: {
             paymentDisclaimer: "The 'Prepaid Menu' amount is collected now via Tourkia. Any 'Extra Orders' at the restaurant will be paid directly to the establishment."
@@ -248,7 +248,7 @@ const TRANSLATIONS: Translations = {
             contact: "Kontakt",
             competitorReport: "Marktanalyse",
             customerLogin: "Kunden-Login",
-            agencyLogin: "Agentur-Login",
+            agencyLogin: "Business Login / Partner",
         },
         checkout: {
             paymentDisclaimer: "Der Betrag für das 'Prepaid-Menü' wird jetzt über Tourkia eingezogen. Alle 'Extra-Bestellungen' im Restaurant werden direkt vor Ort bezahlt."
@@ -328,7 +328,7 @@ const TRANSLATIONS: Translations = {
             contact: "联系我们",
             competitorReport: "市场优势",
             customerLogin: "贵宾登录",
-            agencyLogin: "合作伙伴",
+            agencyLogin: "业务登录 / 合作伙伴",
         },
         checkout: {
             paymentDisclaimer: "“预付费套餐”金额现通过 Tourkia 收取。餐厅内的所有“额外订单”将直接支付给店方。"
@@ -408,7 +408,7 @@ const TRANSLATIONS: Translations = {
             contact: "اتصل بنا",
             competitorReport: "تحليل السوق",
             customerLogin: "تسجيل دخول العميل",
-            agencyLogin: "بوابة الوكلاء",
+            agencyLogin: "دخول الأعمال / الشريك",
         },
         checkout: {
             paymentDisclaimer: "يتم تحصيل مبلغ 'قائمة الطعام مسبقة الدفع' الآن عبر Tourkia. سيتم دفع أي 'طلبات إضافية' في المطعم مباشرة للمنشأة."
@@ -488,7 +488,7 @@ const TRANSLATIONS: Translations = {
             contact: "Contacto",
             competitorReport: "Análisis de Mercado",
             customerLogin: "Acceso Clientes",
-            agencyLogin: "Portal de Agencias",
+            agencyLogin: "Acceso Negocios / Socio",
         },
         checkout: {
             paymentDisclaimer: "El monto del 'Menú Prepagado' se cobra ahora a través de Tourkia. Cualquier 'Pedido Extra' en el restaurante se pagará directamente al establecimiento."
@@ -568,7 +568,7 @@ const TRANSLATIONS: Translations = {
             contact: "Contact",
             competitorReport: "Rapport de Marché",
             customerLogin: "Connexion Client",
-            agencyLogin: "Portail Agence",
+            agencyLogin: "Connexion Business / Partenaire",
         },
         checkout: {
             paymentDisclaimer: "Le montant du 'Menu Prépayé' est perçu maintenant via Tourkia. Toute 'Commande Supplémentaire' au restaurant sera payée directement à l'établissement."
