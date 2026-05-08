@@ -3,7 +3,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchAPI } from '../lib/api';
-
+import SecurityShield from '../components/SecurityShield';
 
 function ResetPasswordForm() {
     const router = useRouter();
@@ -11,6 +11,7 @@ function ResetPasswordForm() {
     
     const [uid, setUid] = useState('');
     const [token, setToken] = useState('');
+    const [humanToken, setHumanToken] = useState('');
     
     const [password, setPassword] = useState('');
     const [passwordConfirm, setPasswordConfirm] = useState('');
@@ -35,6 +36,11 @@ function ResetPasswordForm() {
         
         if (password !== passwordConfirm) {
             setErrorMsg('Şifreler eşleşmiyor.');
+            return;
+        }
+
+        if (!humanToken) {
+            setErrorMsg('Güvenlik doğrulaması tamamlanmadı. Lütfen bekleyin.');
             return;
         }
 
@@ -119,6 +125,10 @@ function ResetPasswordForm() {
                     placeholder="••••••••" 
                     className="w-full bg-slate-50 border border-gray-200 text-slate-800 font-mono tracking-widest text-lg rounded-xl px-4 py-3 outline-none focus:border-[#008cb3] focus:ring-2 focus:ring-[#008cb3]/20 transition-all" 
                 />
+            </div>
+
+            <div className="pt-2">
+                <SecurityShield onVerify={setHumanToken} />
             </div>
 
             <button 

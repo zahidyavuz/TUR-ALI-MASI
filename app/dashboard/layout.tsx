@@ -7,12 +7,21 @@ import { useAuth } from '../context/AuthContext';
 import './dashboard.css';
 
 const NAV_ITEMS = [
-  { label: 'Dashboard', icon: '📊', href: '/dashboard' },
-  { label: 'Acenteler', icon: '🏢', href: '/dashboard/agencies' },
-  { label: 'Turlar', icon: '🗺️', href: '/dashboard/tours' },
-  { label: 'Rezervasyonlar', icon: '📋', href: '/dashboard/bookings' },
-  { label: 'Ayarlar', icon: '⚙️', href: '/dashboard/settings' },
-];
+  { label: 'Dashboard',       icon: '📊', href: '/dashboard' },
+  { label: 'Acenteler',       icon: '🏢', href: '/dashboard/agencies' },
+  { label: 'Turlar',          icon: '🗺️', href: '/dashboard/tours' },
+  { label: 'Rezervasyonlar',  icon: '📋', href: '/dashboard/bookings' },
+  { label: 'Ayarlar',         icon: '⚙️', href: '/dashboard/settings' },
+  // ── Güvenlik Bölümü ──────────────────────────────────────────────
+  { label: '─ Güvenlik',      icon: '',   href: '', divider: true },
+  { label: 'Kara Kutu',         icon: '⬛', href: '/dashboard/audit-log' },
+  { label: 'Webhook Alarm',     icon: '🛡️', href: '/dashboard/webhook-fraud' },
+  { label: 'Felaket Kurtarma',  icon: '🛸', href: '/dashboard/disaster-recovery' },
+  { label: 'Kütüphane Analiz', icon: '📦', href: '/dashboard/security-status' },
+] as const;
+
+type NavItem = typeof NAV_ITEMS[number];
+
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -87,6 +96,24 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <nav className="dash-nav">
           {NAV_ITEMS.map((item) => {
+            // Divider öğesi
+            if ('divider' in item && item.divider) {
+              return (
+                <div key={item.label} style={{
+                  padding: '8px 16px 4px',
+                  fontSize: '10px',
+                  fontWeight: 800,
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  color: 'rgba(255,255,255,0.3)',
+                  borderTop: '1px solid rgba(255,255,255,0.08)',
+                  marginTop: '8px',
+                }}>
+                  {collapsed ? '—' : 'GÜVENLİK'}
+                </div>
+              );
+            }
+
             const isActive =
               item.href === '/dashboard'
                 ? pathname === '/dashboard'

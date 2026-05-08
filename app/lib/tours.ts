@@ -1,8 +1,12 @@
 import { fetchAPI } from './api';
+import { recordRequestActivity, applyTarpitDelay, getScrambledPrice, getScrambledFomo, isScraperDetected } from './antiScraping';
 
 export async function fetchTours(params: Record<string, string> = {}) {
     try {
-        // Construct query string for filters/pagination
+        // ANTI-SCRAPING: İstek aktivitesini kaydet ve gerekirse yavaşlat
+        recordRequestActivity();
+        await applyTarpitDelay();
+
         const queryString = new URLSearchParams(params).toString();
         const endpoint = queryString ? `/tours/?${queryString}` : '/tours/';
 
@@ -39,23 +43,27 @@ export async function fetchTours(params: Record<string, string> = {}) {
 
         // Django Paginated Response returns results in Response.results 
         const tours = response.results ? response.results : response;
+        const isBot = isScraperDetected();
 
         // Formatted array for frontend consumption
         const resultsArray = Array.isArray(tours) ? tours : [];
-        const formattedTours = resultsArray.map((t: any) => ({
-            ...t,
-            // Ensure properties match the expected frontend structure
-            fomoCount: t.fomo_count || Math.floor(Math.random() * 50) + 10,
-            reviews: t.reviews_count?.toString() || "0",
-            originalPrice: t.original_price?.toString() || "",
-            price: parseFloat(t.price),
-            imageMain: t.image_main,
-            imageSub1: t.image_sub1 || t.image_main,
-            imageSub2: t.image_sub2 || t.image_main,
-            included: t.included || [],
-            excluded: t.excluded || [],
-            translations: {}
-        }));
+        const formattedTours = resultsArray.map((t: any) => {
+            const originalPrice = parseFloat(t.price);
+            return {
+                ...t,
+                // Ensure properties match the expected frontend structure
+                fomoCount: isBot ? getScrambledFomo(t.fomo_count || 10) : (t.fomo_count || Math.floor(Math.random() * 50) + 10),
+                reviews: t.reviews_count?.toString() || "0",
+                originalPrice: isBot ? getScrambledPrice(parseFloat(t.original_price || t.price * 1.2)).toString() : (t.original_price?.toString() || ""),
+                price: isBot ? getScrambledPrice(originalPrice) : originalPrice,
+                imageMain: t.image_main,
+                imageSub1: t.image_sub1 || t.image_main,
+                imageSub2: t.image_sub2 || t.image_main,
+                included: t.included || [],
+                excluded: t.excluded || [],
+                translations: {}
+            };
+        });
 
         // Return array and pagination metadata
         return {
@@ -72,6 +80,11 @@ export async function fetchTours(params: Record<string, string> = {}) {
 
 export async function fetchTour(slug: string) {
     try {
+        // ANTI-SCRAPING: İstek aktivitesini kaydet ve gerekirse yavaşlat
+        recordRequestActivity();
+        await applyTarpitDelay();
+        const isBot = isScraperDetected();
+
         const t = await fetchAPI(`/tours/${slug}/`, {
             next: { revalidate: 60 }
         });
@@ -82,12 +95,13 @@ export async function fetchTour(slug: string) {
             throw new Error("API not found, using fallback");
         }
         
+        const originalPrice = parseFloat(t.price);
         return {
             ...t,
-            fomoCount: t.fomo_count || Math.floor(Math.random() * 50) + 10,
+            fomoCount: isBot ? getScrambledFomo(t.fomo_count || 10) : (t.fomo_count || Math.floor(Math.random() * 50) + 10),
             reviews: t.reviews_count?.toString() || "0",
-            originalPrice: t.original_price?.toString() || "",
-            price: parseFloat(t.price),
+            originalPrice: isBot ? getScrambledPrice(parseFloat(t.original_price || t.price * 1.2)).toString() : (t.original_price?.toString() || ""),
+            price: isBot ? getScrambledPrice(originalPrice) : originalPrice,
             imageMain: t.image_main,
             imageSub1: t.image_sub1 || t.image_main,
             imageSub2: t.image_sub2 || t.image_main,

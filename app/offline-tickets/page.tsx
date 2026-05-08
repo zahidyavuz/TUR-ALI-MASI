@@ -5,11 +5,15 @@ import Link from 'next/link';
 import { getAllOfflineTickets, deleteOfflineTicket } from '../lib/offline-db';
 import Navbar from '../components/Navbar';
 import type { OfflineTicket } from '../lib/offline-types';
+import { verifyLocalBookingOwnership } from '../lib/idor';
+import ForbiddenPage from '../components/ForbiddenPage';
 
 export default function OfflineTicketsPage() {
   const [tickets, setTickets] = useState<OfflineTicket[]>([]);
   const [selected, setSelected] = useState<OfflineTicket | null>(null);
   const [loading, setLoading] = useState(true);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [deniedMsg, setDeniedMsg] = useState('');
 
   const load = async () => {
     try {
@@ -32,6 +36,21 @@ export default function OfflineTicketsPage() {
     setSelected((s) => (s?.id === id ? null : s));
     load();
   };
+
+  const handleSelectTicket = (t: OfflineTicket) => {
+    // IDOR: Biletin bu kullanıcıya ait olduğunu doğrula
+    const check = verifyLocalBookingOwnership(t.id);
+    if (!check.allowed && check.reason === 'forbidden') {
+      setDeniedMsg(`'${t.id}' numaralı bileti görüntüleme yetkiniz yok.`);
+      setAccessDenied(true);
+      return;
+    }
+    setSelected(t);
+  };
+
+  if (accessDenied) {
+    return <ForbiddenPage message={deniedMsg} />;
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 font-sans text-slate-900 pb-20">
@@ -70,7 +89,7 @@ export default function OfflineTicketsPage() {
                 <button
                   key={t.id}
                   type="button"
-                  onClick={() => setSelected(t)}
+                  onClick={() => handleSelectTicket(t)}
                   className={`w-full text-left bg-white rounded-2xl p-4 shadow-sm border-2 transition ${selected?.id === t.id ? 'border-[#008cb3] bg-blue-50/50' : 'border-gray-100 hover:border-gray-200'
                     }`}
                 >

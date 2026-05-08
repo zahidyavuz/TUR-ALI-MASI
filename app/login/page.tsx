@@ -1,9 +1,12 @@
 'use client';
 import { useState } from 'react';
+import { checkRateLimit, recordFailedAttempt, resetAttempts } from '../lib/rateLimit';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { fetchAPI } from '../lib/api';
+import { requires2FA } from '../lib/twoFactor';
+import TwoFactorVerify from '../components/TwoFactorVerify';
 
 export default function LoginPage() {
     const [username, setUsername] = useState('');
@@ -11,6 +14,12 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [twoFactor, setTwoFactor] = useState<{ show: boolean; sessionId: string; user: any; tokens: any }>({
+        show: false,
+        sessionId: '',
+        user: null,
+        tokens: null
+    });
 
     const router = useRouter();
     const { login } = useAuth();
@@ -42,64 +51,121 @@ export default function LoginPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        // ZERO-TRUST: Brute Force Koruması
+        const limit = checkRateLimit('login_attempts');
+        if (!limit.allowed) {
+            setError(`Çok fazla hatalı deneme yaptınız. Güvenlik sebebiyle erişiminiz ${limit.remainingMinutes} dakikalığına kilitlenmiştir.`);
+            return;
+        }
+
         setLoading(true);
 
         try {
             // Özel Admin Girişi
             if (username === 'yavuz50' && password === 'yavuz50') {
+                const mockTokens = { access: 'admin_demo_token', refresh: 'admin_demo_token' };
+                const mockUser = { id: 50, username: 'yavuz50', is_staff: true, role: 'SuperAdmin' };
+                
+                // 2FA Gerekli mi?
+                if (requires2FA(mockUser)) {
+                    const res = await fetch('/api/auth/2fa', {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'initiate', userId: mockUser.id, username: mockUser.username })
+                    });
+                    const { sessionId } = await res.json();
+                    setTwoFactor({ show: true, sessionId, user: mockUser, tokens: mockTokens });
+                    return;
+                }
+
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('access_token', 'admin_demo_token');
                 }
-                const user = await login({ access: 'admin_demo_token', refresh: 'admin_demo_token' });
+                const user = await login(mockTokens);
                 handleRedirect(user);
                 return;
             }
 
-            // Django Simple JWT expects POST /api/v1/options/token/
-            const credentials = { username, password }; // Using standard Django generic TokenView or Custom LoginView
+            const credentials = { username, password };
 
-            // Note: Update backend URL to standard login endpoint. dj-rest-auth uses /auth/login/ usually
-            const response = await fetchAPI('/auth/login/', {
+            let response = await fetchAPI('/auth/login/', {
                 method: 'POST',
                 body: JSON.stringify(credentials)
             });
 
             if (!response) {
-                console.warn("Backend not reachable. Mocking login.");
+                // Mock fallback
+                const mockTokens = { access: 'mock_token', refresh: 'mock_token' };
+                const mockUser = { id: 101, username: 'mock_agency', is_agency: true, role: 'Agency' };
+                
+                if (requires2FA(mockUser)) {
+                    const res = await fetch('/api/auth/2fa', {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'initiate', userId: mockUser.id, username: mockUser.username })
+                    });
+                    const { sessionId } = await res.json();
+                    setTwoFactor({ show: true, sessionId, user: mockUser, tokens: mockTokens });
+                    return;
+                }
+
                 if (typeof window !== 'undefined') {
                     localStorage.setItem('access_token', 'mock_token');
                 }
-                const user = await login({ access: 'mock_token', refresh: 'mock_token' });
+                const user = await login(mockTokens);
                 handleRedirect(user);
                 return;
             }
 
-            if (response.access_token && response.refresh_token) {
-                const user = await login({ access: response.access_token, refresh: response.refresh_token });
-                handleRedirect(user);
-            } else if (response.access) {
-                // native simple-jwt format
-                const user = await login({ access: response.access, refresh: response.refresh });
-                handleRedirect(user);
+            const tokens = response.access_token ? { access: response.access_token, refresh: response.refresh_token } : { access: response.access, refresh: response.refresh };
+            
+            if (tokens.access) {
+                resetAttempts('login_attempts');
+                
+                // Fetch user data first to check 2FA
+                const userData = await fetchAPI('/auth/user/', {
+                    headers: { 'Authorization': `Bearer ${tokens.access}` }
+                });
+
+                if (requires2FA(userData)) {
+                    const res = await fetch('/api/auth/2fa', {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'initiate', userId: userData.id, username: userData.username })
+                    });
+                    const { sessionId } = await res.json();
+                    setTwoFactor({ show: true, sessionId, user: userData, tokens });
+                } else {
+                    const user = await login(tokens);
+                    handleRedirect(user);
+                }
             } else {
+                recordFailedAttempt('login_attempts');
                 setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
             }
 
         } catch (err: any) {
-            console.error("Login Error:", err);
-            const errMsg = err?.message || '';
-            if (errMsg.toLowerCase().includes('fetch') || errMsg.toLowerCase().includes('network')) {
-                console.warn("Backend catch fallback. Mocking login.");
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('access_token', 'mock_token');
-                }
-                const user = await login({ access: 'mock_token', refresh: 'mock_token' });
-                handleRedirect(user);
-            } else {
-                setError(errMsg || 'Bir hata oluştu. Lütfen tekrar deneyin.');
-            }
+            // ... error handling ...
+            setError(err?.message || 'Bir hata oluştu.');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handle2FAVerify = async (code: string) => {
+        const res = await fetch('/api/auth/2fa', {
+            method: 'POST',
+            body: JSON.stringify({ action: 'verify', sessionId: twoFactor.sessionId, code })
+        });
+        
+        if (res.ok) {
+            // Login finalization
+            if (typeof window !== 'undefined' && twoFactor.tokens.access) {
+                localStorage.setItem('access_token', twoFactor.tokens.access);
+            }
+            const user = await login(twoFactor.tokens);
+            handleRedirect(user);
+        } else {
+            const data = await res.json();
+            throw new Error(data.error || 'Geçersiz kod.');
         }
     };
 
@@ -195,6 +261,14 @@ export default function LoginPage() {
                     </p>
                 </div>
             </div>
+            
+            {twoFactor.show && (
+                <TwoFactorVerify 
+                    username={twoFactor.user.username}
+                    onVerify={handle2FAVerify}
+                    onCancel={() => setTwoFactor({ ...twoFactor, show: false })}
+                />
+            )}
         </div>
     );
 }

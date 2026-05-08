@@ -1,12 +1,28 @@
+import { sanitizePayload } from './sanitizer';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
+    // ZERO-TRUST: Otomatik Sanitization
+    let bodyObj = options.body;
+    if (typeof options.body === 'string') {
+        try {
+            // Sadece JSON formatındaki body'leri parse et ve sanitize et
+            const parsedBody = JSON.parse(options.body);
+            const sanitizedBody = sanitizePayload(parsedBody);
+            bodyObj = JSON.stringify(sanitizedBody);
+        } catch (e) {
+            // Eğer JSON parse edilemiyorsa (örneğin FormData vb. ise), orijinal body'i koru
+        }
+    }
+
     const defaultHeaders = {
         'Content-Type': 'application/json',
     };
 
     const config = {
         ...options,
+        body: bodyObj,
         headers: {
             ...defaultHeaders,
             ...options.headers,

@@ -84,9 +84,9 @@ function SearchResultsContent() {
   }, [location, date, guests, maxPrice, duration, selectedCategories, selectedLanguages]);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] font-sans text-slate-900 pb-12">
+    <div className="min-h-screen bg-[#FAF9F6] dark:bg-transparent font-sans text-slate-900 dark:text-white pb-12 transition-colors duration-500">
       {/* Üst Bar: Puan ve Destek */}
-      <div className="w-full bg-[#f8f9fa] py-2 px-4 md:px-8 border-b border-gray-100 flex flex-col md:flex-row justify-between items-center gap-2 text-[11px] font-bold text-gray-500 overflow-hidden">
+      <div className="w-full bg-[#f8f9fa] dark:bg-transparent py-2 px-4 md:px-8 border-b border-gray-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-2 text-[11px] font-bold text-gray-500 dark:text-white/60 overflow-hidden transition-colors duration-500">
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-1.5"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg> 2.500 İşletmeci</span>
           <span className="flex items-center gap-1.5">4,6 Yıldız <span className="text-[#00b67a] font-black">★ Trustpilot</span> <span className="text-gray-400 font-medium">(9.906 Değerlendirme)</span></span>
@@ -101,7 +101,7 @@ function SearchResultsContent() {
       <Navbar />
 
       {/* Arama Özeti Çubuğu */}
-      <div className="bg-white border-b border-gray-200 py-4 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm mb-8">
+      <div className="bg-white dark:bg-[#101935] border-b border-gray-200 dark:border-white/5 py-4 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm mb-8 transition-colors duration-500">
         <div className="text-sm font-semibold text-gray-600 flex items-center gap-2">
           <span>📍 {location || 'Tüm Lokasyonlar'}</span>
           <span className="text-gray-300">|</span>
@@ -120,7 +120,7 @@ function SearchResultsContent() {
       <div className="max-w-7xl mx-auto px-4 md:px-8 flex flex-col md:flex-row gap-8">
         {/* Sol Panel: Filtreler */}
         <aside className="w-full md:w-1/4 shrink-0">
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-none dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] sticky top-24 transition-all duration-500">
             <h3 className="text-lg font-black text-slate-800 mb-6 border-b border-gray-100 pb-2">Sonuçları Filtrele</h3>
             
             {/* Fiyat Filtresi */}
@@ -212,7 +212,7 @@ function SearchResultsContent() {
             </div>
           ) : tours.length === 0 ? (
             <div className="flex flex-col gap-8">
-              <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 text-center flex flex-col items-center overflow-hidden">
+              <div className="bg-white p-10 rounded-3xl shadow-sm border border-gray-100 dark:border-none dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] text-center flex flex-col items-center overflow-hidden transition-all duration-500">
                 <div className="relative w-64 h-64 mb-6 animate-float">
                   <Image 
                     src="/lonely_balloon.png" 
@@ -231,7 +231,7 @@ function SearchResultsContent() {
           ) : (
             <>
               <div className="flex justify-between items-end mb-2">
-                <h2 className="text-xl font-black text-slate-800">
+                <h2 className="text-xl font-black text-slate-800 dark:text-white transition-colors duration-500">
                   {tours.length} Tur Bulundu
                 </h2>
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Önerilen Sıralama</span>
@@ -250,7 +250,7 @@ function SearchResultsContent() {
                 const citySign = getCitySignature(tour.location);
                 
                 return (
-                  <div key={tour.id} className="bg-white rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgb(0,0,0,0.1)] transition-all duration-500 border border-gray-100 flex flex-col md:flex-row group mb-2">
+                  <div key={tour.id} className="bg-white rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_50px_rgb(0,0,0,0.1)] transition-all duration-500 border border-gray-100 dark:border-none flex flex-col md:flex-row group mb-2">
                     {/* Resim Bölümü */}
                     <div className="relative w-full md:w-[360px] h-[240px] md:h-auto overflow-hidden shrink-0">
                       <Image 
@@ -365,7 +365,7 @@ function SearchResultsContent() {
 
 export default function SearchPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#FAF9F6] flex items-center justify-center">Yükleniyor...</div>}>
+    <Suspense fallback={<div className="min-h-screen bg-[#FAF9F6] dark:bg-transparent dark:text-white flex items-center justify-center transition-colors duration-500">Yükleniyor...</div>}>
       <SearchResultsContent />
     </Suspense>
   );

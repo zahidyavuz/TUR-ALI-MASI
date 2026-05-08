@@ -38,6 +38,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = useCallback(async (): Promise<User | null> => {
         setIsLoading(true);
         const token = auth.getAccessToken();
+        const sessionId = localStorage.getItem('session_id') || Math.random().toString(36).substring(7);
+        if (!localStorage.getItem('session_id')) localStorage.setItem('session_id', sessionId);
 
         if (token) {
             // Special handling for Admin Demo Login or Mock Login (Dev mode)
@@ -61,6 +63,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const userData = await fetchAPI('/auth/user/', {
                     headers: auth.getAuthHeaders()
                 });
+
+                // --- SESSION GUARD: Anomali Kontrolü ---
+                if (userData) {
+                    const sessionRes = await fetch('/api/auth/session-check', {
+                        method: 'POST',
+                        body: JSON.stringify({ sessionId, userId: userData.id })
+                    });
+                    
+                    if (sessionRes.status === 403) {
+                        const errorData = await sessionRes.json();
+                        alert(`🚨 GÜVENLİK UYARISI:\n${errorData.message}`);
+                        logout();
+                        setIsLoading(false);
+                        return null;
+                    }
+                }
+
                 setUser(userData);
                 setIsLoading(false);
                 return userData;
