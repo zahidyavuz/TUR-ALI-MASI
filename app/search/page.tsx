@@ -84,9 +84,9 @@ function SearchResultsContent() {
   }, [location, date, guests, maxPrice, duration, selectedCategories, selectedLanguages]);
 
   return (
-    <div className="min-h-screen bg-[#FAF9F6] dark:bg-transparent font-sans text-slate-900 dark:text-white pb-12 transition-colors duration-500">
+    <div className="min-h-screen bg-background font-sans text-slate-900 dark:text-white pb-12 transition-colors duration-500">
       {/* Üst Bar: Puan ve Destek */}
-      <div className="w-full bg-[#f8f9fa] dark:bg-transparent py-2 px-4 md:px-8 border-b border-gray-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-2 text-[11px] font-bold text-gray-500 dark:text-white/60 overflow-hidden transition-colors duration-500">
+      <div className="w-full bg-white dark:bg-slate-950/50 py-2 px-4 md:px-8 border-b border-gray-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-2 text-[11px] font-bold text-gray-500 dark:text-white/60 overflow-hidden transition-colors duration-500">
         <div className="flex items-center gap-6">
           <span className="flex items-center gap-1.5"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg> 2.500 İşletmeci</span>
           <span className="flex items-center gap-1.5">4,6 Yıldız <span className="text-[#00b67a] font-black">★ Trustpilot</span> <span className="text-gray-400 font-medium">(9.906 Değerlendirme)</span></span>

@@ -23,7 +23,17 @@ export default function Footer() {
     // API'den gerçek kurları çekme fonksiyonu
     const fetchRealRates = async () => {
       try {
-        const res = await fetch('https://api.exchangerate-api.com/v4/latest/TRY');
+        // 5 saniye timeout ekle (bağlantı takılırsa UI donmasın)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000);
+
+        const res = await fetch('https://api.exchangerate-api.com/v4/latest/TRY', {
+          signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
         const data = await res.json();
         if (data && data.rates) {
           const tryRates = data.rates;
@@ -40,7 +50,8 @@ export default function Footer() {
           setLiveRates(updatedRates);
         }
       } catch (error) {
-        console.error("Kur güncellenemedi:", error);
+        // Ağ hatası veya CSP engellemesi durumunda sessizce logla ve varsayılan kurları koru
+        console.warn("[Footer] Canlı kurlar güncellenemedi, statik veriler kullanılıyor.");
       }
     };
 
@@ -75,7 +86,7 @@ export default function Footer() {
   return (
     <>
       {/* Kapsamlı Alt Bilgi (Footer) - Tourradar Tarzı */}
-      < footer className="w-full bg-[#f8f8f8] text-slate-800 pt-12 pb-24 border-t border-gray-200 mt-0" >
+      <footer className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-300 pt-12 pb-24 border-t border-gray-200 dark:border-slate-800 mt-0 transition-colors duration-500">
         <div className="max-w-[1400px] mx-auto px-6">
 
           {/* Üst Bar: Puan ve Logolar */}
@@ -182,40 +193,8 @@ export default function Footer() {
           {/* Alt Kısım: Dil, Sosyal, Ödeme ve Uygulama */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 items-start">
 
-            {/* Dil Seçimi (Top 10 Dünya Dili) */}
-            <div>
-              <h4 className="font-bold text-[13px] mb-3 text-slate-900">Otomatik Çeviri (Beta)</h4>
-              <div className="flex gap-2 text-[10px] font-black text-slate-700 flex-wrap max-w-[280px]">
-                {[
-                  { code: 'tr', label: 'TR', title: 'Türkçe' },
-                  { code: 'en', label: 'EN', title: 'İngilizce' },
-                  { code: 'zh-CN', label: 'ZH', title: 'Çince' },
-                  { code: 'hi', label: 'HI', title: 'Hintçe' },
-                  { code: 'es', label: 'ES', title: 'İspanyolca' },
-                  { code: 'fr', label: 'FR', title: 'Fransızca' },
-                  { code: 'ar', label: 'AR', title: 'Arapça' },
-                  { code: 'bn', label: 'BN', title: 'Bengalce' },
-                  { code: 'ru', label: 'RU', title: 'Rusça' },
-                  { code: 'pt', label: 'PT', title: 'Portekizce' }
-                ].map((lang) => (
-                  <button
-                    key={lang.code}
-                    title={lang.title}
-                    onClick={() => {
-                      const select = document.querySelector('.goog-te-combo') as HTMLSelectElement;
-                      if (select) {
-                        select.value = lang.code;
-                        select.dispatchEvent(new Event('change'));
-                      } else {
-                        alert('Çeviri sistemi yükleniyor, lütfen birkaç saniye bekleyip tekrar deneyin.');
-                      }
-                    }}
-                    className="w-10 h-10 rounded-full border border-gray-300 bg-white flex items-center justify-center hover:border-[#008cb3] hover:text-[#008cb3] hover:bg-slate-50 transition-all shadow-sm"
-                  >
-                    {lang.label}
-                  </button>
-                ))}
-              </div>
+            <div className="hidden lg:block invisible">
+              {/* Yer tutucu (layout bozulmasın diye) */}
             </div>
 
             {/* Bizi Takip Edin (Sosyal Medya) */}
@@ -244,17 +223,8 @@ export default function Footer() {
               </div>
             </div>
 
-            {/* Uygulamamızı İndirin */}
-            <div>
-              <h4 className="font-bold text-[13px] mb-3 text-slate-900">Uygulamamızı İndirin</h4>
-              <div className="flex gap-2 flex-col lg:flex-row">
-                <button className="bg-black text-white px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition w-auto">
-                  <span className="font-black text-xs text-left leading-tight tracking-wider">Download on the <br /> <span className="text-sm">App Store</span></span>
-                </button>
-                <button className="bg-black text-white px-3 py-1.5 rounded-lg flex items-center justify-center gap-2 hover:bg-gray-800 transition w-auto">
-                  <span className="font-black text-xs text-left leading-tight tracking-wider">GET IT ON <br /> <span className="text-sm">Google Play</span></span>
-                </button>
-              </div>
+            <div className="hidden lg:block invisible">
+              {/* Yer tutucu (layout bozulmasın diye) */}
             </div>
 
           </div>

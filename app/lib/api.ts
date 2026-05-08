@@ -1,6 +1,6 @@
 import { sanitizePayload } from './sanitizer';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     // ZERO-TRUST: Otomatik Sanitization

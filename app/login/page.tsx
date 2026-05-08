@@ -1,16 +1,17 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { checkRateLimit, recordFailedAttempt, resetAttempts } from '../lib/rateLimit';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { fetchAPI } from '../lib/api';
 import { requires2FA } from '../lib/twoFactor';
 import TwoFactorVerify from '../components/TwoFactorVerify';
 
-export default function LoginPage() {
+function LoginContent() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [businessType, setBusinessType] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -22,7 +23,14 @@ export default function LoginPage() {
     });
 
     const router = useRouter();
+    const searchParams = useSearchParams();
     const { login } = useAuth();
+
+    useEffect(() => {
+        const roleFromUrl = searchParams.get('role');
+        if (roleFromUrl === 'acenta') setBusinessType('agency');
+        if (roleFromUrl === 'restoran' || roleFromUrl === 'kafe') setBusinessType('restaurant');
+    }, [searchParams]);
 
     const handleRedirect = (user: any) => {
         if (!user) {
@@ -88,7 +96,7 @@ export default function LoginPage() {
 
             const credentials = { username, password };
 
-            let response = await fetchAPI('/auth/login/', {
+            const response = await fetchAPI('/auth/login/', {
                 method: 'POST',
                 body: JSON.stringify(credentials)
             });
@@ -121,10 +129,29 @@ export default function LoginPage() {
             if (tokens.access) {
                 resetAttempts('login_attempts');
                 
-                // Fetch user data first to check 2FA
+                // Fetch user data to check 2FA and Role Mismatch
                 const userData = await fetchAPI('/auth/user/', {
                     headers: { 'Authorization': `Bearer ${tokens.access}` }
                 });
+
+                // --- ROLE MISMATCH VALIDATION: Rol Uyuşmazlığı Güvenlik Kontrolü ---
+                if (userData) {
+                    const actualRole = userData.role?.toLowerCase() || '';
+                    const isActuallyAgency = userData.is_agency || actualRole.includes('agency');
+                    const isActuallyRestaurant = actualRole.includes('restaurant') || actualRole.includes('cafe');
+
+                    if (businessType === 'agency' && !isActuallyAgency) {
+                        setError('Hesabınız bir Tur Acentası profili değildir. Lütfen doğru işletme türünü seçerek tekrar deneyin.');
+                        setLoading(false);
+                        return;
+                    }
+
+                    if (businessType === 'restaurant' && !isActuallyRestaurant) {
+                        setError('Hesabınız bir Restoran / Kafe profili değildir. Lütfen doğru işletme türünü seçerek tekrar deneyin.');
+                        setLoading(false);
+                        return;
+                    }
+                }
 
                 if (requires2FA(userData)) {
                     const res = await fetch('/api/auth/2fa', {
@@ -143,7 +170,6 @@ export default function LoginPage() {
             }
 
         } catch (err: any) {
-            // ... error handling ...
             setError(err?.message || 'Bir hata oluştu.');
         } finally {
             setLoading(false);
@@ -170,12 +196,11 @@ export default function LoginPage() {
     };
 
     const handleGoogleLogin = () => {
-        // Redirect to Django Google Login endpoint
         window.location.href = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}/api/v1/auth/google/login/`;
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4 transition-colors duration-500">
             <div className="bg-white p-8 rounded-[32px] shadow-2xl w-full max-w-md border border-gray-100">
                 <div className="text-center mb-8">
                     <h1 className="text-3xl font-extrabold text-slate-800 mb-2">Hoş Geldiniz</h1>
@@ -189,6 +214,19 @@ export default function LoginPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-5">
+                    <div>
+                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">İşletme Türü</label>
+                        <select
+                            value={businessType}
+                            onChange={(e) => setBusinessType(e.target.value)}
+                            required
+                            className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold appearance-none cursor-pointer"
+                        >
+                            <option value="" disabled>Lütfen seçiniz...</option>
+                            <option value="agency">Tur Acentası</option>
+                            <option value="restaurant">Restoran / Kafe</option>
+                        </select>
+                    </div>
                     <div>
                         <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Kullanıcı Adı veya E-Posta</label>
                         <input
@@ -270,5 +308,13 @@ export default function LoginPage() {
                 />
             )}
         </div>
+    );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-slate-50 font-black text-slate-400">Yükleniyor...</div>}>
+            <LoginContent />
+        </Suspense>
     );
 }

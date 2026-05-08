@@ -40,6 +40,18 @@ export default function RegisterPage() {
         setLoading(true);
 
         try {
+            // --- CREDENTIAL STUFFING SHIELD: Sızdırılmış Şifre Kontrolü ---
+            const pwnedRes = await fetch('/api/auth/check-pwned', {
+                method: 'POST',
+                body: JSON.stringify({ password: formData.password })
+            });
+            const pwnedData = await pwnedRes.json();
+            
+            if (pwnedData.pwned) {
+                setError(`Girdiğiniz şifre daha önce ${pwnedData.count.toLocaleString()} kez internetteki veri sızıntılarında (hack olaylarında) saptanmıştır. Güvenliğiniz için lütfen daha zor ve benzersiz bir şifre seçin.`);
+                setLoading(false);
+                return;
+            }
             // Using dj-rest-auth standard registration endpoint
             const response = await fetchAPI('/auth/registration/', {
                 method: 'POST',

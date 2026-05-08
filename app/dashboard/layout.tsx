@@ -18,6 +18,7 @@ const NAV_ITEMS = [
   { label: 'Webhook Alarm',     icon: '🛡️', href: '/dashboard/webhook-fraud' },
   { label: 'Felaket Kurtarma',  icon: '🛸', href: '/dashboard/disaster-recovery' },
   { label: 'Kütüphane Analiz', icon: '📦', href: '/dashboard/security-status' },
+  { label: 'Siber Kapanlar',  icon: '🍯', href: '/dashboard/honeypot' },
 ] as const;
 
 type NavItem = typeof NAV_ITEMS[number];

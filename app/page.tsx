@@ -138,6 +138,9 @@ export default function Home() {
   const [registerEmail, setRegisterEmail] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [demoUrl, setDemoUrl] = useState('');
+  const [showAgencyModal, setShowAgencyModal] = useState(false);
+  const [agencyTab, setAgencyTab] = useState<'login' | 'register' | 'pricing'>('login');
+  const [agencyBusinessType, setAgencyBusinessType] = useState('acenta');
 
   // Sourced from Auth context
   const { user, logout } = useAuth();
@@ -150,13 +153,8 @@ export default function Home() {
   if (isAdmin) userRoleType = 'admin';
   else if (isAgency) userRoleType = 'agency';
 
-  // Agency Modal State
-  const [showAgencyModal, setShowAgencyModal] = useState(false);
-  const [agencyTab, setAgencyTab] = useState<'login' | 'register' | 'pricing'>('login');
-
   // Checkout / Payment Modal State
   const [showPaymentModal, setShowPaymentModal] = useState(false);
-  const [agencyBusinessType, setAgencyBusinessType] = useState('acenta');
 
   // Filtre State'leri
   const [selectedLocation, setSelectedLocation] = useState('Nereye gitmek istersin?');
@@ -845,123 +843,44 @@ export default function Home() {
       </div>
 
       {/* 5. Anılar (Memories / Social Wall - Yeni) */}
-      <div className="w-full bg-slate-900 py-24 relative overflow-hidden">
+      <div className="w-full bg-slate-900 py-10 relative overflow-hidden">
         {/* Dekoratif Arka Plan */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#008cb3] blur-[150px] opacity-20 -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500 blur-[150px] opacity-10 translate-y-1/2 -translate-x-1/2"></div>
 
-        <div className="max-w-7xl mx-auto px-6 relative z-10">
-          <div className="text-center mb-16">
-            <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-4 block">Gezginlerin Gözünden</span>
-            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight mb-6">Ölümsüz Anılar</h2>
-            <p className="text-gray-400 font-medium max-w-2xl mx-auto leading-relaxed">
-              Her seyahat yeni bir hikaye, her hikaye ise bir ömür boyu hatırlanacak bir anıdır. Sizinle birlikte büyüyen bu galeride yerinizi alın.
+        <div className="max-w-6xl mx-auto px-6 relative z-10">
+          <div className="text-center mb-6">
+            <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-2 block">Gezginlerin Gözünden</span>
+            <h2 className="text-xl md:text-3xl font-black text-white tracking-tight mb-2">Ölümsüz Anılar</h2>
+            <p className="text-gray-400 text-xs font-medium max-w-xl mx-auto leading-relaxed">
+              Her seyahat yeni bir hikaye, her hikaye ise bir ömür boyu hatırlanacak bir anıdır.
             </p>
           </div>
 
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
-              { img: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&q=80", user: "@sarah_travels", text: "Balonların şafağı karşıladığı o an... Anlatılmaz, yaşanır! 🎈" },
+              { img: "https://images.unsplash.com/photo-1524231757912-21f4fe3a7200?w=800&q=80", user: "@sarah_travels", text: "Balonların şafağı karşıladığı o an... 🎈" },
               { img: "https://images.unsplash.com/photo-1544833342-a8109041ce04?w=800&q=80", user: "@mehmet.can", text: "Kapadokya vadilerinde ATV turu hayatımın en adrenalin dolu günüydü." },
               { img: "https://images.unsplash.com/photo-1527838832700-5059252407fa?w=800&q=80", user: "@elena_explorer", text: "İstanbul'un ışıkları altında Boğaz turu... Büyüleyici!" },
-              { img: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80", user: "@gurme_ali", text: "Ziyade Ocakbaşı'nda yediğim kuzu şişin tadı damağımda kaldı." },
-              { img: "https://images.unsplash.com/photo-1502485019198-a625bd53ceb7?w=800&q=80", user: "@discovery_couple", text: "Peri bacaları arasında kaybolmak her saniyesine değerdi." },
-              { img: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&q=80", user: "@foodie_nina", text: "Kaya oyma bir restoranda yemek yemek gerçekten mistik bir deneyimdi." }
             ].map((an, i) => (
-              <div key={i} className="relative group rounded-3xl overflow-hidden break-inside-avoid shadow-xl hover:shadow-2xl transition-all duration-500">
-                <Image src={an.img} alt={an.user} width={400} height={500} className="w-full h-auto object-cover group-hover:scale-105 transition-transform duration-700" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-6">
-                  <p className="text-white font-bold text-sm mb-2">{an.text}</p>
-                  <span className="text-[#008cb3] font-black text-xs">{an.user}</span>
+              <div key={i} className="relative group rounded-2xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500 h-48 md:h-64">
+                <Image src={an.img} alt={an.user} fill className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 flex flex-col justify-end p-4">
+                  <p className="text-white font-bold text-[11px] mb-1">{an.text}</p>
+                  <span className="text-[#008cb3] font-black text-[10px]">{an.user}</span>
                 </div>
               </div>
             ))}
           </div>
 
-          <div className="mt-16 text-center">
-            <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 text-white font-black px-8 py-4 rounded-2xl transition-all active:scale-95 flex items-center gap-3 mx-auto">
-              <span className="text-xl">📸</span>
+          <div className="mt-8 text-center">
+            <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-white font-black px-6 py-3 rounded-xl transition-all active:scale-95 flex items-center gap-2 mx-auto text-xs">
+              <span className="text-lg">📸</span>
               KENDİ ANINI PAYLAŞ
             </button>
           </div>
         </div>
       </div>
-
-
-
-
-
-
-
-      {/* 6. İstatistik Barı */}
-      < div className="w-full bg-[#008cb3] py-12 text-white border-b-4 border-[#005e85]" >
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-8 text-center divide-x divide-white/20">
-          <div>
-            <div className="text-4xl md:text-5xl font-black mb-2 drop-shadow-sm">1M+</div>
-            <div className="text-sm md:text-base font-bold text-blue-100 uppercase tracking-widest">{t.stats.travelers}</div>
-          </div>
-          <div>
-            <div className="text-4xl md:text-5xl font-black mb-2 drop-shadow-sm">2.5K</div>
-            <div className="text-sm md:text-base font-bold text-blue-100 uppercase tracking-widest">{t.stats.guides}</div>
-          </div>
-          <div>
-            <div className="text-4xl md:text-5xl font-black mb-2 drop-shadow-sm">150+</div>
-            <div className="text-sm md:text-base font-bold text-blue-100 uppercase tracking-widest">{t.stats.destinations}</div>
-          </div>
-          <div>
-            <div className="text-4xl md:text-5xl font-black mb-2 drop-shadow-sm">24/7</div>
-            <div className="text-sm md:text-base font-bold text-blue-100 uppercase tracking-widest">{t.stats.support}</div>
-          </div>
-        </div>
-      </div >
-
-      {/* 7. Gerçek Müşteri Deneyimleri (Testimonials - Booking.com Tarzı Sosyal Kanıt) */}
-      < div className="w-full bg-slate-50 py-20" >
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-[28px] font-extrabold text-[#005e85] tracking-tight mb-3">Bizimle Seyahat Edenler Ne Diyor?</h2>
-            <p className="text-gray-500 font-medium">TripAdvisor ve Google'da 15.000+ mükemmel yorumla lideriz.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {[
-              { isim: "Ahmet Y.", tur: "Kapadokya Turu", tarih: "2 Hafta Önce", yorum: "Balayımız için tercih etmiştik. Rehberin ilgisi, otelin kalitesi ve VIP transfer hizmeti kusursuzdu. Kesinlikle tavsiye ediyorum!", yildiz: 5 },
-              { isim: "Céline D.", tur: "Mavi Yolculuk", tarih: "1 Ay Önce", yorum: "Fransa'dan geldik, rezervasyon aşamasından turun sonuna kadar Tourkia ekibi inanılmaz profesyoneldi. Yemekler harikaydı.", yildiz: 5 },
-              { isim: "Burak & Ece", tur: "Klasik İtalya", tarih: "3 Ay Önce", yorum: "Uçak biletlerinden müze girişlerine kadar her şey önceden hazırdı. Sıra beklemeden Roma'yı gezmek paha biçilemezdi. Teşekkürler!", yildiz: 4 }
-            ].map((yorum, i) => (
-              <div key={i} className="bg-white p-6 rounded-3xl shadow-lg border border-gray-100 relative">
-                <div className="absolute top-6 right-6 text-[#008cb3] opacity-20">
-                  <svg width="40" height="40" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" /></svg>
-                </div>
-                <div className="flex text-yellow-500 text-sm mb-4">{'★'.repeat(yorum.yildiz)}{'☆'.repeat(5 - yorum.yildiz)}</div>
-                <p className="text-slate-600 font-medium text-[14px] leading-relaxed mb-6 italic">"{yorum.yorum}"</p>
-                <div className="flex items-center gap-3 border-t border-gray-100 pt-4">
-                  <div className="w-10 h-10 bg-indigo-100 text-indigo-700 font-black rounded-full flex items-center justify-center text-sm">{yorum.isim.charAt(0)}</div>
-                  <div>
-                    <h4 className="font-bold text-slate-800 text-sm">{yorum.isim}</h4>
-                    <p className="text-[11px] text-gray-500 font-semibold">{yorum.tur} <span className="mx-1">•</span> {yorum.tarih}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div >
-
-      {/* 8. Küresel Partnerlerimiz (Güven Veren Logolar) */}
-      < div className="w-full bg-white py-12 border-t border-b border-gray-100" >
-        <div className="max-w-7xl mx-auto px-6">
-          <p className="text-center text-xs font-black text-gray-400 uppercase tracking-[0.2em] mb-8">Dünyanın Öncü Markalarıyla Birlikte Uçuyoruz & Konaklıyoruz</p>
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16 opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
-            {/* Sadece sembolik logolar tekst ile verildi, normalde SVG/PNG konur */}
-            <span className="text-xl font-black text-slate-800 flex items-center gap-2"><svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M2.5 19h19v2h-19v-2zm16.84-3.15c.52.26.74.89.47 1.41-.26.52-.89.74-1.41.47L2.4 9.77c-.52-.26-.74-.89-.47-1.41.26-.52.89-.74 1.41-.47l16.01 7.96zM15 11l-3-6-2 1 1 5-4.5 2L5 9l-1 .5 2 5.5-3 1.5v2l18-9-3 2z" /></svg> Turkish Airlines</span>
-            <span className="text-xl font-black text-slate-800 tracking-[-1px]">HILTON</span>
-            <span className="text-xl font-bold text-slate-800 tracking-wider">Qatar Airways</span>
-            <span className="text-xl font-black text-slate-800 uppercase text-blue-900 border-2 border-slate-800 px-2 leading-none py-1">Booking.com</span>
-            <span className="text-xl font-black text-[#FFCC00] flex items-center gap-1.5"><span className="text-red-500 text-2xl">Я</span>Yandex</span>
-            <span className="text-xl font-black text-[#2932E1] tracking-wider flex items-center gap-1">Baidu<span className="text-[#E10602] font-serif text-2xl"> 百度</span></span>
-          </div>
-        </div>
-      </div >
 
       {/* 9. Bülten / İletişim */}
       < div className="w-full bg-slate-100 py-16 border-t border-gray-200" >
@@ -1207,7 +1126,8 @@ export default function Home() {
                     e.preventDefault();
                     if (agencyTab === 'login') {
                       setShowAgencyModal(false);
-                      router.push('/login'); // Sadece Login sayfasına yönlendir, login sayfası rol kontrolü yapar
+                      // Role bilgisini URL'e ekleyerek login sayfasına pasla
+                      router.push(`/login?role=${agencyBusinessType}`); 
                     } else {
                       alert('Acentelik başvurunuz alınmıştır.');
                       setShowAgencyModal(false);
@@ -1245,6 +1165,17 @@ export default function Home() {
                         )}
                       </>
                     )}
+                    <div>
+                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme Türü</label>
+                      <select 
+                        value={agencyBusinessType}
+                        onChange={(e) => setAgencyBusinessType(e.target.value)}
+                        className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-bold text-slate-700"
+                      >
+                        <option value="acenta">Tur Acentası</option>
+                        <option value="restoran">Restoran / Kafe</option>
+                      </select>
+                    </div>
                     <div>
                       <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Kurumsal E-Posta</label>
                       <input type="email" placeholder="iletisim@firmaniz.com" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" />

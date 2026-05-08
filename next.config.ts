@@ -52,7 +52,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com",
               "img-src 'self' data: blob: https: http://127.0.0.1:8000 http://localhost:8000",
-              "connect-src 'self' https://*.tourkia.com http://127.0.0.1:8000 http://localhost:8000 https://www.google-analytics.com",
+              "connect-src 'self' https://*.tourkia.com http://127.0.0.1:8000 http://localhost:8000 https://www.google-analytics.com https://api.exchangerate-api.com",
               "frame-src 'self' https://challenges.cloudflare.com https://www.google.com",
               "frame-ancestors 'none'", // Clickjacking 2. katman koruma
               "object-src 'none'",

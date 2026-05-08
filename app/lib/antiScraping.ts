@@ -16,7 +16,7 @@ interface ScraperData {
 }
 
 // Client-side state (Memory-based tracking per session)
-let scraperState: ScraperData = {
+const scraperState: ScraperData = {
     count: 0,
     startTime: Date.now(),
     isFlagged: false

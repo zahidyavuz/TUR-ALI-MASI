@@ -99,13 +99,10 @@ export default function FloatingContactMenu() {
 
                     {/* Mesaj (Chat) İkonu (Kapalıyken) */}
                     <svg
-                        width="26" height="26" fill="currentColor" viewBox="0 0 24 24"
+                        width="26" height="26" viewBox="0 0 24 24" fill="currentColor"
                         className={`absolute transition-all duration-300 ${!isOpen ? 'rotate-0 opacity-100 scale-100' : 'rotate-90 opacity-0 scale-50'}`}
                     >
-                        <path d="M12 2C6.48 2 2 5.96 2 10.85c0 2.82 1.5 5.34 3.84 7.03-.23 1.63-1 3.23-1.07 3.39-.08.19-.04.42.11.55.15.13.36.14.53.03 2.15-1.39 4-2.22 4.96-2.5 1.5.85 5.16 2.35 11.63 2.35 5.52 0 10-3.96 10-8.85S17.52 2 12 2zm0 15.7c-4.8 0-7.22-1-8.15-1.5l-.26-.14-1.28.84.4-1.42.13-.53-.42-.36C1.48 13.5 1 12.24 1 10.85 1 6.51 5.93 3 12 3s11 3.51 11 7.85-4.93 7.85-11 7.85z" />
-                        <circle cx="7" cy="11" r="1.5" />
-                        <circle cx="12" cy="11" r="1.5" />
-                        <circle cx="17" cy="11" r="1.5" />
+                        <path d="M12 2C6.477 2 2 6.477 2 12c0 1.821.487 3.53 1.338 5L2.5 21.5l4.5-.838A9.955 9.955 0 0012 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm5 11h-2v-2h2v2zm-4 0h-2v-2h2v2zm-4 0H7v-2h2v2z"/>
                     </svg>
                 </div>
 
