@@ -197,7 +197,9 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
               });
               if (res.ok) {
                   const data = await res.json();
+                  if (!data) return;
                   const serverNotifs = data.results || data;
+                  if (!Array.isArray(serverNotifs)) return;
                   const mappedServer = serverNotifs.map((sn: any) => ({
                       id: String(sn.id),
                       title: sn.title,

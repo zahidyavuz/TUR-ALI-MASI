@@ -76,6 +76,10 @@ export default function AgenciesPage() {
 
       if (res.ok) {
         const json = await res.json();
+        if (!json) {
+          setAgencies(DEMO_AGENCIES);
+          return;
+        }
         setAgencies(json.results || json);
       } else {
         setAgencies(DEMO_AGENCIES);

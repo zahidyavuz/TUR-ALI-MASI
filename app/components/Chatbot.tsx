@@ -2,6 +2,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { fetchAPI } from '../lib/api';
 import { useRouter, usePathname } from 'next/navigation';
 import { useLocale } from '../context/LocaleContext';
 
@@ -311,17 +312,22 @@ export default function Chatbot() {
                                                     btn.innerHTML = 'Kaydediliyor...';
                                                     btn.disabled = true;
                                                     
-                                                    fetch('http://localhost:8000/api/v1/leads/', {
+                                                    fetchAPI('/leads/', {
                                                         method: 'POST',
                                                         headers: { 'Content-Type': 'application/json' },
                                                         body: JSON.stringify({
                                                             email: email,
                                                             tour_interest: msg.leadData?.title || 'Bilinmiyor'
                                                         })
-                                                    }).then(() => {
-                                                        btn.innerHTML = '✓ Kaydedildi, teşekkürler!';
-                                                        btn.className = "w-full text-xs font-bold text-white bg-green-500 rounded-lg py-2 cursor-default";
-                                                        inp.disabled = true;
+                                                    }).then((res) => {
+                                                        if (res) {
+                                                            btn.innerHTML = '✓ Kaydedildi, teşekkürler!';
+                                                            btn.className = "w-full text-xs font-bold text-white bg-green-500 rounded-lg py-2 cursor-default";
+                                                            inp.disabled = true;
+                                                        } else {
+                                                            btn.innerHTML = 'Sunucuya bağlanılamadı';
+                                                            btn.disabled = false;
+                                                        }
                                                     }).catch(() => {
                                                         btn.innerHTML = 'Hata Oluştu';
                                                         btn.disabled = false;

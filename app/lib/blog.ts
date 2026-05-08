@@ -39,8 +39,9 @@ export async function fetchBlogs(): Promise<BlogPost[]> {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/blogs/`, { cache: 'no-store' });
         if (!res.ok) return [];
         const data = await res.json();
-        const results = data.results || data;
-        return results.map(mapDjangoBlog);
+        if (!data) return [];
+        const results = data?.results || data;
+        return Array.isArray(results) ? results.map(mapDjangoBlog) : [];
     } catch {
         return [];
     }

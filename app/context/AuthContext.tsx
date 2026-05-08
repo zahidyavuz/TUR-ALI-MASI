@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     email: token === 'admin_demo_token' ? 'admin@tourkia.com' : 'demo@tourkia.com',
                     first_name: token === 'admin_demo_token' ? 'Admin' : 'Demo',
                     last_name: token === 'admin_demo_token' ? 'Yavuz' : 'User',
-                    is_agency: token === 'mock_token', // Let demo user be agency, admin be admin
+                    is_agency: false, // Set demo user as a regular customer by default
                     is_staff: token === 'admin_demo_token',
                     role: token === 'admin_demo_token' ? 'SuperAdmin' : 'Customer'
                 };

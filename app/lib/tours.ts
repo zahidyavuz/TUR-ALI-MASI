@@ -41,7 +41,8 @@ export async function fetchTours(params: Record<string, string> = {}) {
         const tours = response.results ? response.results : response;
 
         // Formatted array for frontend consumption
-        const formattedTours = tours.map((t: any) => ({
+        const resultsArray = Array.isArray(tours) ? tours : [];
+        const formattedTours = resultsArray.map((t: any) => ({
             ...t,
             // Ensure properties match the expected frontend structure
             fomoCount: t.fomo_count || Math.floor(Math.random() * 50) + 10,

@@ -52,6 +52,7 @@ export default function MyBookingsPage() {
                 const past: any[] = [];
                 const now = new Date();
 
+                if (!data) return;
                 (Array.isArray(data) ? data : data.results || []).forEach((b: any) => {
                     // Adapt Django backend fields to the frontend expected format
                     const ticketStr = b.id ? `TKT-${b.id.toString().padStart(5, '0')}A` : 'TKT-PENDING';

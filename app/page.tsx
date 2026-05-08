@@ -981,7 +981,7 @@ export default function Home() {
       {
         showLoginModal && (
           <div
-            className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center backdrop-blur-sm px-4"
+            className="fixed inset-0 bg-slate-900/60 z-[100] flex items-start justify-center backdrop-blur-sm px-4 overflow-y-auto pt-20 md:pt-32 pb-10"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowLoginModal(false);
@@ -993,9 +993,9 @@ export default function Home() {
               {/* Kapat Butonu */}
               <button
                 onClick={() => { setShowLoginModal(false); setIsVerifyingEmail(false); }}
-                className="absolute top-5 right-5 text-gray-400 hover:text-red-500 transition-colors bg-gray-50 hover:bg-red-50 p-2.5 rounded-full z-10"
+                className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-all bg-gray-100/50 hover:bg-red-50 p-3.5 rounded-full z-20 shadow-sm active:scale-90"
               >
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
 
               {/* Sekmeler (Tabs) Sadece Doğrulama Aşamasında Değilse Göster */}
@@ -1148,7 +1148,7 @@ export default function Home() {
       {
         showAgencyModal && (
           <div
-            className="fixed inset-0 bg-slate-900/60 z-[100] flex items-center justify-center backdrop-blur-sm px-4"
+            className="fixed inset-0 bg-slate-900/60 z-[100] flex items-start justify-center backdrop-blur-sm px-4 overflow-y-auto pt-20 md:pt-32 pb-10"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowAgencyModal(false);
@@ -1159,9 +1159,9 @@ export default function Home() {
               {/* Kapat Butonu */}
               <button
                 onClick={() => setShowAgencyModal(false)}
-                className="absolute top-5 right-5 text-gray-300 hover:text-white transition-colors bg-black/20 hover:bg-black/40 p-2.5 rounded-full z-10 backdrop-blur-sm"
+                className="absolute top-4 right-4 text-white/80 hover:text-white transition-all bg-black/30 hover:bg-black/50 p-3.5 rounded-full z-20 backdrop-blur-md shadow-lg active:scale-90"
               >
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
 
               {/* Şık Acenta Banner */}
@@ -1197,7 +1197,7 @@ export default function Home() {
               </div>
 
               {/* Form İçeriği */}
-              <div className="p-7 max-h-[60vh] overflow-y-auto no-scrollbar">
+              <div className="p-7">
 
                 {/* Login & Register Sekmeleri */}
                 {(agencyTab === 'login' || agencyTab === 'register') && (
@@ -1205,8 +1205,7 @@ export default function Home() {
                     e.preventDefault();
                     if (agencyTab === 'login') {
                       setShowAgencyModal(false);
-                      window.location.href = '/login'; // Forward to the real login page
-                      window.location.href = '/agency/dashboard'; // Acenta Dashboard Yönlendirmesi
+                      router.push('/login'); // Sadece Login sayfasına yönlendir, login sayfası rol kontrolü yapar
                     } else {
                       alert('Acentelik başvurunuz alınmıştır.');
                       setShowAgencyModal(false);
@@ -1316,7 +1315,7 @@ export default function Home() {
       {
         showPaymentModal && (
           <div
-            className="fixed inset-0 bg-slate-900/70 z-[120] flex items-center justify-center backdrop-blur-md px-4"
+            className="fixed inset-0 bg-slate-900/70 z-[120] flex items-start justify-center backdrop-blur-md px-4 overflow-y-auto pt-20 md:pt-32 pb-10"
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowPaymentModal(false);
@@ -1328,9 +1327,9 @@ export default function Home() {
               {/* Kapat Butonu */}
               <button
                 onClick={() => setShowPaymentModal(false)}
-                className="absolute top-5 right-5 text-gray-400 hover:text-red-500 transition-colors bg-white hover:bg-red-50 p-2.5 rounded-full z-20 shadow-sm"
+                className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-all bg-slate-100/50 hover:bg-red-50 p-3.5 rounded-full z-20 shadow-sm active:scale-90"
               >
-                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
 
               {/* Fiş/Özet Header */}

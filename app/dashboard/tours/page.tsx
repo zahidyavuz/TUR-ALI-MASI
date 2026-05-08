@@ -52,7 +52,15 @@ export default function ToursPage() {
 
         if (res.ok) {
           const json = await res.json();
+          if (!json) {
+            setTours(DEMO_TOURS);
+            return;
+          }
           const results = json.results || json;
+          if (!Array.isArray(results)) {
+            setTours(DEMO_TOURS);
+            return;
+          }
           // Map API tours to our interface
           const mapped = results.map((t: Record<string, unknown>) => ({
             id: t.id,

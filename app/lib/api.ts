@@ -62,7 +62,8 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
             return null;
         }
 
-        // Re-throw API errors (non-network)
-        throw error;
+        // For other errors, we still return null to avoid breaking components,
+        // but you might want to log them in a real production app.
+        return null;
     }
 }

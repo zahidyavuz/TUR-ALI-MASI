@@ -110,8 +110,7 @@ export default function AgencyDashboard() {
                     setTours(fallbackData.tours);
                 }
             } catch (err: any) {
-                console.error('Failed to fetch agency dashboard:', err);
-                // Do not set error, just let it use the fallback mock data so the panel stays visible.
+                // Silently fallback to mock data
             } finally {
                 setIsLoading(false);
             }
