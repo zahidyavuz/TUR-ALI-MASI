@@ -140,16 +140,18 @@ function LoginContent() {
                     const isActuallyAgency = userData.is_agency || actualRole.includes('agency');
                     const isActuallyRestaurant = actualRole.includes('restaurant') || actualRole.includes('cafe');
 
-                    if (businessType === 'agency' && !isActuallyAgency) {
-                        setError('Hesabınız bir Tur Acentası profili değildir. Lütfen doğru işletme türünü seçerek tekrar deneyin.');
-                        setLoading(false);
-                        return;
-                    }
+                    if (businessType && searchParams.get('role')) {
+                        if (businessType === 'agency' && !isActuallyAgency) {
+                            setError('Hesabınız bir Tur Acentası profili değildir. Lütfen doğru işletme türünü seçerek tekrar deneyin.');
+                            setLoading(false);
+                            return;
+                        }
 
-                    if (businessType === 'restaurant' && !isActuallyRestaurant) {
-                        setError('Hesabınız bir Restoran / Kafe profili değildir. Lütfen doğru işletme türünü seçerek tekrar deneyin.');
-                        setLoading(false);
-                        return;
+                        if (businessType === 'restaurant' && !isActuallyRestaurant) {
+                            setError('Hesabınız bir Restoran / Kafe profili değildir. Lütfen doğru işletme türünü seçerek tekrar deneyin.');
+                            setLoading(false);
+                            return;
+                        }
                     }
                 }
 
@@ -214,19 +216,21 @@ function LoginContent() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-5">
-                    <div>
-                        <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">İşletme Türü</label>
-                        <select
-                            value={businessType}
-                            onChange={(e) => setBusinessType(e.target.value)}
-                            required
-                            className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold appearance-none cursor-pointer"
-                        >
-                            <option value="" disabled>Lütfen seçiniz...</option>
-                            <option value="agency">Tur Acentası</option>
-                            <option value="restaurant">Restoran / Kafe</option>
-                        </select>
-                    </div>
+                    {searchParams.get('role') && (
+                        <div>
+                            <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">İşletme Türü</label>
+                            <select
+                                value={businessType}
+                                onChange={(e) => setBusinessType(e.target.value)}
+                                required
+                                className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold appearance-none cursor-pointer"
+                            >
+                                <option value="" disabled>Lütfen seçiniz...</option>
+                                <option value="agency">Tur Acentası</option>
+                                <option value="restaurant">Restoran / Kafe</option>
+                            </select>
+                        </div>
+                    )}
                     <div>
                         <label className="block text-xs font-black text-gray-400 uppercase tracking-widest mb-2">Kullanıcı Adı veya E-Posta</label>
                         <input

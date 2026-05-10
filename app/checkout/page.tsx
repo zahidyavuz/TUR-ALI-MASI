@@ -6,6 +6,24 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { fetchTour } from '../lib/tours';
 import { useLocale } from '../context/LocaleContext';
 import { checkRateLimit, recordFailedAttempt } from '../lib/rateLimit';
+import { auth } from '../lib/auth';
+
+// --- MOCK DATA FOR SAVED CARDS ---
+const MOCK_SAVED_CARDS = [
+    { id: 'card_1', brand: 'mastercard', last4: '4242', expiry: '12/28', holder: 'AHMET YILMAZ' },
+    { id: 'card_2', brand: 'visa', last4: '8812', expiry: '06/26', holder: 'AHMET YILMAZ' }
+];
+
+const getCardType = (number: string) => {
+    const cleanNumber = number.replace(/\s+/g, '');
+    if (/^4/.test(cleanNumber)) return 'visa';
+    if (/^(5[1-5]|2[2-7])/.test(cleanNumber)) return 'mastercard';
+    if (/^3[47]/.test(cleanNumber)) return 'amex';
+    if (/^6(?:011|5)/.test(cleanNumber)) return 'discover';
+    if (/^3(?:0[0-5]|[68])/.test(cleanNumber)) return 'diners';
+    if (/^(?:2131|1800|35)/.test(cleanNumber)) return 'jcb';
+    return 'generic';
+};
 
 function CheckoutLogic() {
     const searchParams = useSearchParams();
@@ -35,10 +53,32 @@ function CheckoutLogic() {
         hotelName: ''
     });
 
+    const [cardForm, setCardForm] = useState({
+        number: '',
+        expiry: '',
+        cvc: '',
+        holderName: '',
+        saveCard: false
+    });
+
+    const [selectedSavedCard, setSelectedSavedCard] = useState<string | null>(null);
+    const isLoggedIn = auth.isAuthenticated();
+
+    const handleSelectSavedCard = (card: any) => {
+        setSelectedSavedCard(card.id);
+        setCardForm({
+            ...cardForm,
+            number: `**** **** **** ${card.last4}`,
+            expiry: card.expiry,
+            holderName: card.holder
+        });
+    };
+
     useEffect(() => {
         if (!tourId) return;
         fetchTour(tourId).then(t => setTour(t)).catch(() => {});
     }, [tourId]);
+
 
     // --- AKILLI KOMBO EŞLEŞTİRME MANTIĞI (Intelligent-Combo-Matching) ---
     const getSuggestedCombo = () => {
@@ -108,6 +148,17 @@ function CheckoutLogic() {
 
     const suggestedCombo = getSuggestedCombo();
 
+    // Reklam (Upsell) Tetikleyici: Kart bilgileri girilirken (Step 2) 1.5 sn sonra çıksın
+    useEffect(() => {
+        if (step === 2 && !menuId && suggestedCombo && !upsellShown) {
+            const timer = setTimeout(() => {
+                setShowUpsellModal(true);
+                setUpsellShown(true);
+            }, 1500);
+            return () => clearTimeout(timer);
+        }
+    }, [step, menuId, suggestedCombo, upsellShown]);
+
 
     const handleProceedToPayment = (e: React.FormEvent) => {
         e.preventDefault();
@@ -126,12 +177,7 @@ function CheckoutLogic() {
             return;
         }
 
-        // Upsell Logic: Akıllı Eşleştirme Motoru
-        if (!menuId && suggestedCombo && !upsellShown) {
-            setShowUpsellModal(true);
-            setUpsellShown(true);
-            return;
-        }
+        // Upsell Logic: Artik useEffect ile otomatik tetikleniyor
 
         setIsSimulatingPayment(true);
         setTimeout(() => {
@@ -231,122 +277,389 @@ function CheckoutLogic() {
 
 
     return (
-        <div className="w-full max-w-6xl mx-auto mt-8 flex flex-col lg:flex-row gap-8">
+        <div className="w-full max-w-6xl mx-auto mt-4 mb-12 flex flex-col lg:flex-row gap-8 relative z-10">
             
             {/* Sol: Akış Ekranları */}
             <div className="w-full lg:w-2/3">
                 {step === 1 && (
-                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-white/10 flex flex-col">
-                        <h2 className="text-2xl font-black text-slate-800 dark:text-white mb-2">1. Müşteri Bilgileri</h2>
-                        <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8">Rezervasyon konfirmasyonuz ve buluşma detayları için bilgilerinizi eksiksiz girin.</p>
+                    <div className="bg-white rounded-[32px] p-8 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] flex flex-col border border-white/20">
+                        <div className="flex justify-between items-center mb-8">
+                            <div>
+                                <h2 className="text-3xl font-black text-[#0B132B]">1. Müşteri Bilgileri</h2>
+                                <p className="text-sm font-bold text-slate-400 mt-1 uppercase tracking-widest">Kişisel Bilgiler & Transfer</p>
+                            </div>
+                            <div className="hidden md:flex gap-4">
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span> SSL SECURED
+                                </div>
+                                <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
+                                    <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span> PCI-DSS
+                                </div>
+                            </div>
+                        </div>
                         
                         <form onSubmit={handleProceedToPayment} className="space-y-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">İsim <span className="text-red-500">*</span></label>
-                                    <input required type="text" value={formData.firstName} onChange={e=>setFormData({...formData, firstName: e.target.value})} className="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition" placeholder="Ahmet" />
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">İsim</label>
+                                    <input required type="text" value={formData.firstName} onChange={e=>setFormData({...formData, firstName: e.target.value})} className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold" placeholder="Ahmet" />
                                 </div>
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Soyisim <span className="text-red-500">*</span></label>
-                                    <input required type="text" value={formData.lastName} onChange={e=>setFormData({...formData, lastName: e.target.value})} className="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition" placeholder="Yılmaz" />
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Soyisim</label>
+                                    <input required type="text" value={formData.lastName} onChange={e=>setFormData({...formData, lastName: e.target.value})} className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold" placeholder="Yılmaz" />
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Telefon (WhatsApp)</label>
+                                    <input required type="tel" value={formData.phone} onChange={e=>setFormData({...formData, phone: e.target.value})} className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold" placeholder="+90 5XX XXX XX XX" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">E-posta</label>
+                                    <input required type="email" value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold" placeholder="ahmet@example.com" />
                                 </div>
                             </div>
 
                             <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">WhatsApp Uyumlu Telefon Numarası <span className="text-red-500">*</span></label>
-                                <input required type="tel" value={formData.phone} onChange={e=>setFormData({...formData, phone: e.target.value})} className="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition" placeholder="+90 5XX XXX XX XX" />
+                                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">Konakladığınız Otel (Transfer Bilgisi İçin)</label>
+                                <input required type="text" value={formData.hotelName} onChange={e=>setFormData({...formData, hotelName: e.target.value})} className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold" placeholder="Örn: Museum Hotel Kapadokya" />
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">E-posta Adresi <span className="text-red-500">*</span></label>
-                                <input required type="email" value={formData.email} onChange={e=>setFormData({...formData, email: e.target.value})} className="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition" placeholder="ahmet@example.com" />
-                            </div>
-
-                            <div>
-                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Otel Adı (Transfer İçin) <span className="text-red-500">*</span></label>
-                                <input required type="text" value={formData.hotelName} onChange={e=>setFormData({...formData, hotelName: e.target.value})} className="w-full border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-white focus:border-blue-500 focus:bg-white dark:focus:bg-slate-800 outline-none transition" placeholder="Örn: Museum Hotel Kapadokya" />
-                            </div>
-
-                            <button type="submit" className="w-full bg-[#008cb3] hover:bg-[#005e85] text-white font-black text-lg py-4 rounded-xl shadow-lg shadow-blue-500/30 transition">
-                                Ödemeye Geç (Payment Gateway)
+                            <button type="submit" className="w-full bg-[#0B132B] hover:bg-[#005e85] text-white font-black text-xl py-6 rounded-2xl shadow-xl transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-3">
+                                <span>İlerle ve Ödeme Yap</span>
+                                <span className="text-2xl">➔</span>
                             </button>
 
-                            <div className="flex items-start gap-3 bg-blue-50/50 dark:bg-blue-900/10 p-4 rounded-2xl border border-blue-100/50 dark:border-blue-900/30 mt-4">
-                                <div className="text-blue-500 dark:text-blue-400 mt-0.5">
-                                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <div className="flex items-center justify-center gap-6 pt-4 border-t border-slate-100">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png" alt="Visa" className="h-4 grayscale opacity-50" />
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6 grayscale opacity-50" />
+                                <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400">
+                                    🛡️ 256-BIT ENCRYPTION
                                 </div>
-                                <p className="text-[12px] font-medium text-blue-800 dark:text-blue-300 leading-relaxed italic">
-                                    {t.checkout.paymentDisclaimer}
-                                </p>
                             </div>
                         </form>
                     </div>
                 )}
 
                 {step === 2 && (
-                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl p-8 shadow-sm border border-gray-100 dark:border-white/10 flex flex-col items-center justify-center min-h-[400px]">
+                    <div className="bg-white rounded-[40px] p-8 md:p-14 shadow-[0_30px_70px_rgba(0,0,0,0.4)] flex flex-col items-center justify-center relative overflow-hidden animate-in slide-in-from-bottom-4 duration-700">
                         {!isSimulatingPayment ? (
                             <>
-                                <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-4 text-center">Ödeme Geçidi (Simülasyon)</h2>
-                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-8 text-center">Müşteri bilgileri onaylandı. Bu aşamada gerçek sistemde Stripe veya İyzico 3D Güvenli Ödeme Ekranı (iframe/popup) açılır.</p>
-                                
-                                <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-2xl border border-gray-200 dark:border-white/10 w-full max-w-sm mb-8 space-y-4">
-                                    <div className="flex justify-between font-bold text-slate-700 dark:text-slate-300">
-                                        <span>Ödenecek Tutar</span>
-                                        <span className="text-[#008cb3] dark:text-[#38bdf8]">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
+                                 <div className="w-full max-w-5xl">
+                                    <div className="flex justify-between items-center mb-10">
+                                        <div>
+                                            <h2 className="text-3xl font-black text-[#0B132B] tracking-tight">Ödeme Detayları</h2>
+                                            <p className="text-sm font-bold text-slate-400 uppercase tracking-widest mt-1">Hızlı ve Güvenli</p>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
+                                                <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
+                                                <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">SSL SECURED</span>
+                                            </div>
+                                            <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
+                                                <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
+                                                <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">3D SECURE</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="h-px bg-gray-200 dark:bg-white/10"></div>
-                                    <button onClick={handleSimulatePaymentProcess} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black py-4 rounded-xl shadow-lg shadow-emerald-500/30 transition flex items-center justify-center gap-2">
-                                        🔒 Güvenli Ödeme Yap
-                                    </button>
+
+                                    <div className="flex flex-col lg:flex-row gap-12 items-start">
+                                        {/* Sol Taraf: Form Alanı */}
+                                        <div className="w-full lg:w-3/5 order-2 lg:order-1">
+                                            {/* Kayıtlı Kartlar Bölümü */}
+                                            {isLoggedIn && (
+                                                <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                                                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
+                                                        KAYITLI KARTLARINIZ
+                                                    </h3>
+                                                    <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
+                                                        {MOCK_SAVED_CARDS.map(card => (
+                                                            <div 
+                                                                key={card.id}
+                                                                onClick={() => handleSelectSavedCard(card)}
+                                                                className={`min-w-[220px] p-5 rounded-[24px] border-2 cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedSavedCard === card.id ? 'border-[#008cb3] bg-blue-50/50 shadow-lg' : 'border-slate-100 bg-white hover:border-slate-300'}`}
+                                                            >
+                                                                <div className="flex justify-between items-start mb-6">
+                                                                    <div className="h-6 flex items-center">
+                                                                        {card.brand === 'visa' && <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png" alt="Visa" className="h-3 opacity-80" />}
+                                                                        {card.brand === 'mastercard' && <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-6 opacity-80" />}
+                                                                    </div>
+                                                                    {selectedSavedCard === card.id && (
+                                                                        <div className="w-6 h-6 bg-[#008cb3] rounded-full flex items-center justify-center shadow-md">
+                                                                            <svg width="14" height="14" fill="none" stroke="white" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                                <div className="text-base font-black text-[#0B132B] tracking-widest mb-1">•••• {card.last4}</div>
+                                                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{card.expiry}</div>
+                                                            </div>
+                                                        ))}
+                                                        <div className="min-w-[140px] p-5 rounded-[24px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 group hover:border-slate-400 cursor-pointer transition-all">
+                                                            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600 transition-colors">+</div>
+                                                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">YENİ KART<br/>EKLE</span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <form onSubmit={(e) => { e.preventDefault(); handleSimulatePaymentProcess(); }} className="space-y-8">
+                                                <div className="space-y-6 bg-slate-50/50 p-8 rounded-[32px] border border-slate-100 shadow-xl backdrop-blur-sm">
+                                                    <div>
+                                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Kart Üzerindeki İsim</label>
+                                                        <input 
+                                                            required 
+                                                            type="text" 
+                                                            placeholder="Örn: AHMET YILMAZ" 
+                                                            value={cardForm.holderName}
+                                                            onChange={e => setCardForm({...cardForm, holderName: e.target.value.toUpperCase()})}
+                                                            className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg focus:border-[#008cb3] focus:shadow-[0_0_20px_rgba(0,140,179,0.1)] outline-none transition-all placeholder:text-slate-300" 
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Kart Numarası</label>
+                                                        <div className="relative">
+                                                            <input 
+                                                                required 
+                                                                type="text" 
+                                                                maxLength={19} 
+                                                                placeholder="0000 0000 0000 0000" 
+                                                                value={cardForm.number}
+                                                                onChange={e => {
+                                                                    let val = e.target.value.replace(/\s+/g, '').replace(/[^0-9]/gi, '');
+                                                                    let matches = val.match(/\d{4,16}/g);
+                                                                    let match = matches && matches[0] || '';
+                                                                    let parts = [];
+                                                                    for (let i=0, len=match.length; i<len; i+=4) {
+                                                                        parts.push(match.substring(i, i+4));
+                                                                    }
+                                                                    if (parts.length) {
+                                                                        setCardForm({...cardForm, number: parts.join(' ')});
+                                                                    } else {
+                                                                        setCardForm({...cardForm, number: val});
+                                                                    }
+                                                                }}
+                                                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg tracking-wider focus:border-[#008cb3] focus:shadow-[0_0_20px_rgba(0,140,179,0.1)] outline-none transition-all placeholder:text-slate-300" 
+                                                            />
+                                                            <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                                                {getCardType(cardForm.number) === 'visa' && <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png" alt="Visa" className="h-3" />}
+                                                                {getCardType(cardForm.number) === 'mastercard' && <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-5" />}
+                                                                {getCardType(cardForm.number) === 'amex' && <span className="text-[10px] font-black italic text-blue-600">AMEX</span>}
+                                                                {getCardType(cardForm.number) === 'discover' && <span className="text-[10px] font-black text-orange-500">DISCOVER</span>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div className="grid grid-cols-2 gap-6">
+                                                        <div>
+                                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">Son Kullanma</label>
+                                                            <input 
+                                                                required 
+                                                                type="text" 
+                                                                maxLength={5} 
+                                                                placeholder="AA / YY" 
+                                                                value={cardForm.expiry}
+                                                                onChange={e => {
+                                                                    let val = e.target.value.replace(/[^0-9]/g, '');
+                                                                    if (val.length > 2) val = val.substring(0, 2) + '/' + val.substring(2, 4);
+                                                                    setCardForm({...cardForm, expiry: val});
+                                                                }}
+                                                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg tracking-wider focus:border-[#008cb3] outline-none transition-all placeholder:text-slate-300" 
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">CVC</label>
+                                                            <input 
+                                                                required 
+                                                                type="password" 
+                                                                maxLength={3} 
+                                                                placeholder="***" 
+                                                                value={cardForm.cvc}
+                                                                onChange={e => setCardForm({...cardForm, cvc: e.target.value.replace(/[^0-9]/g, '')})}
+                                                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg tracking-wider focus:border-[#008cb3] outline-none transition-all placeholder:text-slate-300" 
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center gap-4 px-4 py-4 bg-blue-50/30 rounded-2xl border border-blue-100/50">
+                                                    <label className="relative flex items-center cursor-pointer">
+                                                        <input 
+                                                            type="checkbox" 
+                                                            className="sr-only peer" 
+                                                            checked={cardForm.saveCard}
+                                                            onChange={e => setCardForm({...cardForm, saveCard: e.target.checked})}
+                                                        />
+                                                        <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#008cb3]"></div>
+                                                    </label>
+                                                    <div className="flex flex-col">
+                                                        <span className="text-sm font-black text-slate-700">Kartı Gelecek Alışverişlerim İçin Kaydet</span>
+                                                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Bir sonraki ödemenizde zaman kazanın</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-col gap-4">
+                                                    <button type="submit" className="w-full bg-[#0B132B] hover:bg-black text-white font-black py-8 rounded-[24px] shadow-[0_20px_60px_rgba(11,19,43,0.4)] transition-all hover:scale-[1.03] active:scale-[0.97] flex flex-col items-center justify-center gap-2 group text-2xl relative overflow-hidden">
+                                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                                        <span className="flex items-center gap-3">
+                                                            <span>{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})} Öde</span>
+                                                            <span className="text-3xl group-hover:translate-x-2 transition-transform duration-300">➔</span>
+                                                        </span>
+                                                        <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">GÜVENLİ ÖDEME PANELİNE GEÇ</span>
+                                                    </button>
+                                                    
+                                                    <p className="text-[10px] text-center font-bold text-slate-400 italic px-8 leading-relaxed">
+                                                        * Bu ödeme 256-bit SSL sertifikası ile korunmaktadır. Kart bilgileriniz PCI-DSS standartlarında işlenir.
+                                                    </p>
+                                                </div>
+                                            </form>
+                                        </div>
+
+                                        {/* Sağ Taraf: Live Card Preview (Desktop Sticky) */}
+                                        <div className="w-full lg:w-2/5 order-1 lg:order-2 lg:sticky lg:top-10">
+                                            <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                                CANLI KART ÖN İZLEME
+                                            </h3>
+                                            <div className="perspective-2000">
+                                                <div className={`relative w-full aspect-[1.6/1] rounded-[32px] p-8 text-white overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.3)] transition-all duration-700 transform hover:rotate-y-12 bg-gradient-to-br ${
+                                                    getCardType(cardForm.number) === 'visa' ? 'from-[#1A1F71] to-[#00579F]' : 
+                                                    getCardType(cardForm.number) === 'mastercard' ? 'from-[#EB001B] to-[#FF5F00]' : 
+                                                    getCardType(cardForm.number) === 'amex' ? 'from-[#2E77BB] to-[#016FD0]' : 
+                                                    getCardType(cardForm.number) === 'discover' ? 'from-[#F68121] to-[#FFC220]' :
+                                                    'from-[#1e293b] to-[#0f172a]'
+                                                }`}>
+                                                    {/* Premium Patterns */}
+                                                    <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none mix-blend-overlay">
+                                                        <div className="absolute top-[-50%] left-[-20%] w-[150%] h-[150%] border-[60px] border-white/20 rounded-full"></div>
+                                                        <div className="absolute bottom-[-40%] right-[-10%] w-[80%] h-[80%] border-[30px] border-white/20 rounded-full"></div>
+                                                    </div>
+
+                                                    {/* Chip & Logos */}
+                                                    <div className="relative h-full flex flex-col justify-between z-10">
+                                                        <div className="flex justify-between items-start">
+                                                            <div className="w-14 h-10 bg-gradient-to-br from-amber-200 via-amber-400 to-amber-100 rounded-lg shadow-xl flex flex-col gap-1 p-2 border border-white/20 overflow-hidden">
+                                                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
+                                                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
+                                                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
+                                                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
+                                                            </div>
+                                                            <div className="h-10 flex items-center">
+                                                                {getCardType(cardForm.number) === 'visa' && <img src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png" alt="Visa" className="h-5 brightness-0 invert" />}
+                                                                {getCardType(cardForm.number) === 'mastercard' && <img src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg" alt="Mastercard" className="h-10" />}
+                                                                {getCardType(cardForm.number) === 'amex' && <div className="text-lg font-black italic tracking-tighter">AMEX</div>}
+                                                                {getCardType(cardForm.number) === 'discover' && <div className="text-lg font-black italic">Discover</div>}
+                                                            </div>
+                                                        </div>
+
+                                                        <div className="text-xl md:text-2xl font-mono tracking-[0.25em] drop-shadow-2xl text-center my-4 font-bold">
+                                                            {cardForm.number || '•••• •••• •••• ••••'}
+                                                        </div>
+
+                                                        <div className="flex justify-between items-end">
+                                                            <div className="flex-1">
+                                                                <div className="text-[9px] uppercase tracking-[0.2em] opacity-60 mb-1.5 font-black">Kart Sahibi</div>
+                                                                <div className="text-sm font-black tracking-widest uppercase truncate max-w-[200px]">
+                                                                    {cardForm.holderName || 'AD SOYAD'}
+                                                                </div>
+                                                            </div>
+                                                            <div className="text-right">
+                                                                <div className="text-[9px] uppercase tracking-[0.2em] opacity-60 mb-1.5 font-black">SKT</div>
+                                                                <div className="text-sm font-black tracking-widest">
+                                                                    {cardForm.expiry || 'MM/YY'}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* Premium Glass Effect */}
+                                                    <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none"></div>
+                                                    <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/10 to-transparent rotate-45 animate-[shimmer_5s_infinite] pointer-events-none"></div>
+                                                </div>
+                                            </div>
+                                            
+                                            <div className="mt-8 p-6 bg-slate-50 rounded-[24px] border border-slate-100 flex items-start gap-4">
+                                                <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center shrink-0">
+                                                    <span className="text-xl">💡</span>
+                                                </div>
+                                                <p className="text-[11px] font-bold text-slate-500 leading-relaxed italic">
+                                                    "Kart numaranızı girerken sistemimiz kart tipini otomatik olarak algılar ve güvenlik protokollerini buna göre optimize eder."
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="mt-16 pt-8 border-t border-slate-100 flex flex-wrap justify-center gap-12 opacity-50 grayscale hover:opacity-100 transition-opacity duration-500">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🛡️</div>
+                                            <div>
+                                                <div className="text-[9px] font-black tracking-widest uppercase text-slate-400">Security</div>
+                                                <div className="text-xs font-black text-slate-600">SSL SECURED</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">✅</div>
+                                            <div>
+                                                <div className="text-[9px] font-black tracking-widest uppercase text-slate-400">Compliant</div>
+                                                <div className="text-xs font-black text-slate-600">PCI-DSS LEVEL 1</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">🔒</div>
+                                            <div>
+                                                <div className="text-[9px] font-black tracking-widest uppercase text-slate-400">Authentic</div>
+                                                <div className="text-xs font-black text-slate-600">3D SECURE 2.0</div>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 max-w-sm text-center italic mt-2">
-                                    {t.checkout.paymentDisclaimer}
-                                </p>
                             </>
                         ) : (
-                            <div className="flex flex-col items-center justify-center gap-4">
-                                <div className="w-16 h-16 border-4 border-slate-200 dark:border-slate-800 border-t-[#008cb3] dark:border-t-[#38bdf8] rounded-full animate-spin"></div>
-                                <h3 className="text-xl font-bold text-slate-800 dark:text-white">Bankayla İletişime Geçiliyor...</h3>
-                                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Lütfen bekleyin, sayfayı kapatmayın.</p>
+                            <div className="flex flex-col items-center justify-center gap-8 p-10">
+                                <div className="relative w-24 h-24">
+                                    <div className="absolute inset-0 border-8 border-slate-100 rounded-full"></div>
+                                    <div className="absolute inset-0 border-8 border-t-[#0B132B] rounded-full animate-spin"></div>
+                                </div>
+                                <div className="text-center">
+                                    <h3 className="text-2xl font-black text-[#0B132B] mb-2 uppercase tracking-tighter">İşleminiz Onaylanıyor...</h3>
+                                    <p className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em]">İşleminiz güvenli bir şekilde bankanıza yönlendiriliyor...</p>
+                                </div>
                             </div>
                         )}
                     </div>
                 )}
 
                 {step === 3 && (
-                    <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl p-8 shadow-sm border border-emerald-500 dark:border-emerald-500/50 flex flex-col items-center text-center relative overflow-hidden">
-                        <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500"></div>
-                        <div className="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-500 rounded-full flex items-center justify-center mb-6">
-                            <svg width="40" height="40" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                    <div className="bg-white/10 backdrop-blur-2xl rounded-[40px] p-8 md:p-14 shadow-2xl border border-emerald-500/30 flex flex-col items-center text-center relative overflow-hidden animate-in zoom-in-95 duration-700">
+                        <div className="absolute top-0 left-0 w-full h-2 bg-emerald-500/50"></div>
+                        <div className="w-24 h-24 bg-emerald-500 text-white rounded-full flex items-center justify-center mb-8 shadow-[0_0_50px_rgba(16,185,129,0.4)]">
+                            <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                         </div>
-                        <h2 className="text-3xl font-black text-slate-800 dark:text-white mb-2">Rezervasyon Başarılı!</h2>
-                        <p className="text-lg font-medium text-slate-600 dark:text-slate-400 mb-8">Ödeme başarılı bir şekilde tamamlandı. Kapadokya biletiniz ayrıldı.</p>
+                        <h2 className="text-4xl font-black text-white mb-4 tracking-tight">Rezervasyon Başarılı!</h2>
+                        <p className="text-lg font-bold text-slate-400 mb-12 max-w-md mx-auto">Ödemeniz onaylandı. Tatil planınız başarıyla oluşturuldu.</p>
                         
-                        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col gap-2">
-                                <span className="text-lg">📧</span>
-                                <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Müşteri Çıktısı (Mail)</h4>
-                                <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400">{formData.email} adresine PDF formatında Rezervasyon Belgesi (Voucher) ve Buluşma detayları otomatik gönderildi.</p>
+                        <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-12">
+                            <div className="bg-white/5 p-6 rounded-3xl border border-white/5 flex flex-col gap-3">
+                                <span className="text-2xl">📧</span>
+                                <h4 className="font-black text-xs text-white uppercase tracking-widest">E-Bilet (Voucher)</h4>
+                                <p className="text-xs font-bold text-slate-400 leading-relaxed">{formData.email} adresine PDF biletiniz ve detaylı rehberiniz gönderildi.</p>
                             </div>
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col gap-2">
-                                <span className="text-lg">🔔</span>
-                                <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Acenta Bildirimi</h4>
-                                <p className="text-xs font-semibold text-blue-600 dark:text-blue-400">Admin paneline rezervasyon düştü. Acenta operasyon ekibine SMS ve Mail ile "Yeni Rezervasyon" uyarısı iletildi.</p>
+                            <div className="bg-white/5 p-6 rounded-3xl border border-white/5 flex flex-col gap-3">
+                                <span className="text-2xl">⚡</span>
+                                <h4 className="font-black text-xs text-white uppercase tracking-widest">Anında Onay</h4>
+                                <p className="text-xs font-bold text-slate-400 leading-relaxed">Rezervasyonunuz acenta sistemine düştü. Operasyon ekibimiz hazırlıklara başladı.</p>
                             </div>
-                            <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-gray-100 dark:border-white/10 flex flex-col gap-2">
-                                <span className="text-lg">📦</span>
-                                <h4 className="font-bold text-sm text-slate-800 dark:text-slate-200">Stok Güncelleme</h4>
-                                <p className="text-xs font-semibold text-purple-600 dark:text-purple-400">{new Date(String(date)).toLocaleDateString('tr-TR')} tarihi için {tour?.title} kontenjanı sistemden otomatik olarak {guests} kişi düşüldü.</p>
+                            <div className="bg-white/5 p-6 rounded-3xl border border-white/5 flex flex-col gap-3">
+                                <span className="text-2xl">🔒</span>
+                                <h4 className="font-black text-xs text-white uppercase tracking-widest">Güvenli İşlem</h4>
+                                <p className="text-xs font-bold text-slate-400 leading-relaxed">Ödemeniz PCI-DSS uyumlu altyapı ile %100 güvenli olarak tamamlanmıştır.</p>
                             </div>
                         </div>
 
-                        <div className="mt-8 flex flex-col sm:flex-row gap-4 w-full">
-                            <button onClick={()=>router.push('/')} className="flex-1 bg-white dark:bg-slate-800 border-2 border-[#008cb3] dark:border-[#38bdf8] text-[#008cb3] dark:text-[#38bdf8] font-bold py-3 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/20 transition">
+                        <div className="flex flex-col sm:flex-row gap-4 w-full max-w-2xl">
+                            <button onClick={()=>router.push('/')} className="flex-1 bg-white/5 hover:bg-white/10 text-white font-black py-4 rounded-2xl border border-white/10 transition-all text-sm uppercase tracking-widest">
                                 Ana Sayfaya Dön
                             </button>
-                            <button onClick={()=>router.push('/agency/dashboard')} className="flex-1 bg-[#008cb3] dark:bg-[#0ea5e9] text-white font-bold py-3 rounded-xl shadow-md hover:bg-[#005e85] dark:hover:bg-[#0284c7] transition">
-                                Acenta Panelini Kontrol Et
+                            <button onClick={()=>router.push('/agency/dashboard')} className="flex-1 bg-[#38bdf8] hover:bg-[#0ea5e9] text-white font-black py-4 rounded-2xl shadow-xl transition-all text-sm uppercase tracking-widest">
+                                Panelini Kontrol Et
                             </button>
                         </div>
                     </div>
@@ -354,42 +667,38 @@ function CheckoutLogic() {
             </div>
 
             <div className="w-full lg:w-1/3">
-                <div className="bg-white dark:bg-slate-900/50 backdrop-blur-xl rounded-3xl p-6 shadow-sm border border-gray-100 dark:border-white/10 sticky top-8">
-                    <h3 className="text-lg font-black text-slate-800 dark:text-white mb-4 border-b border-gray-100 dark:border-white/10 pb-4">Sepet Özeti</h3>
+                <div className="bg-white/10 backdrop-blur-xl rounded-[32px] p-8 shadow-2xl border border-white/10 sticky top-8">
+                    <h3 className="text-xl font-black text-white mb-6 border-b border-white/10 pb-4 flex items-center gap-3">
+                        <span className="text-2xl">📋</span> Sipariş Özeti
+                    </h3>
                     
                     {tour ? (
                         <>
-                            <div className="flex gap-4 mb-6">
-                                <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-slate-800 overflow-hidden relative shrink-0">
+                            <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
+                                <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10">
                                     <img src={tour.image_main || tour.imageMain} alt={tour.title} className="object-cover w-full h-full" />
                                 </div>
-                                <div>
-                                    <h4 className="font-bold text-slate-800 dark:text-white text-sm leading-tight">{tour.title}</h4>
-                                    <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1">⏱️ {tour.duration}</p>
+                                <div className="flex flex-col justify-center">
+                                    <h4 className="font-bold text-white text-base leading-tight">{tour.title}</h4>
+                                    <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-1.5">
+                                        <span className="w-1.5 h-1.5 bg-[#38bdf8] rounded-full"></span> {tour.duration}
+                                    </p>
                                 </div>
                             </div>
 
-                            <div className="space-y-3 text-sm font-medium text-slate-600 dark:text-slate-400 mb-6 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500 dark:text-slate-500">📅 Tarih:</span>
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">{new Date(String(date)).toLocaleDateString('tr-TR', {day: 'numeric', month: 'long', year: 'numeric'})}</span>
+                            <div className="space-y-4 text-sm font-bold text-slate-300 mb-8 bg-white/5 p-6 rounded-[24px] border border-white/5">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">📅 Tarih</span>
+                                    <span className="text-white">{new Date(String(date)).toLocaleDateString('tr-TR', {day: 'numeric', month: 'long', year: 'numeric'})}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500 dark:text-slate-500">👥 Kişi Sayısı:</span>
-                                    <span className="font-bold text-slate-800 dark:text-slate-200">{guests} Yetişkin</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500 dark:text-slate-500">🏨 Otel & Transfer:</span>
-                                    <span className="font-bold text-green-600 dark:text-green-400">Ücretsiz Dahil</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-500 dark:text-slate-500">🗣️ Rehberlik:</span>
-                                    <span className="font-bold text-green-600 dark:text-green-400">Profesyonel Tur Rehberi Dahil</span>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">👥 Misafir</span>
+                                    <span className="text-white">{guests} Yetişkin</span>
                                 </div>
                                 {menuId && tour?.linked_restaurant && (
-                                    <div className="flex justify-between border-t border-emerald-100 dark:border-emerald-900/30 pt-2 mt-2">
-                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">🍽️ Yemek Paketi:</span>
-                                        <span className="font-bold text-slate-800 dark:text-slate-200">{tour.linked_restaurant.special_menu_name}</span>
+                                    <div className="flex justify-between items-center border-t border-white/5 pt-4">
+                                        <span className="text-emerald-400 font-black text-[10px] uppercase tracking-widest">🍽️ Yemek</span>
+                                        <span className="text-emerald-400">{tour.linked_restaurant.special_menu_name}</span>
                                     </div>
                                 )}
                             </div>
@@ -409,15 +718,15 @@ function CheckoutLogic() {
                              )}
 
 
-                            <div className="border-t border-gray-100 dark:border-white/10 pt-4 flex justify-between items-center">
-                                <span className="font-black text-slate-800 dark:text-white">Toplam Tutur:</span>
+                            <div className="pt-6 border-t border-white/10 flex justify-between items-center">
+                                <span className="font-black text-white text-lg">Toplam Tutar:</span>
                                 <div className="text-right">
                                     {bundleLogic.isBundle && (
-                                        <div className="text-xs text-gray-400 dark:text-slate-600 line-through font-bold mb-1 opacity-60">
+                                        <div className="text-xs text-slate-500 line-through font-bold mb-1">
                                             {(tourPrice + mealPrice).toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}
                                         </div>
                                     )}
-                                    <span className="text-2xl font-black text-[#008cb3] dark:text-[#38bdf8]">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
+                                    <span className="text-3xl font-black text-[#38bdf8] tracking-tighter">{totalPrice.toLocaleString('tr-TR', {style: 'currency', currency: 'TRY'})}</span>
                                 </div>
                             </div>
 
@@ -460,70 +769,67 @@ function CheckoutLogic() {
 
             {/* UPSELL MODAL: Glassmorphism Akıllı Kombo Teklifi */}
             {showUpsellModal && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-500">
-                    <div className="bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl rounded-[48px] max-w-3xl w-full overflow-hidden shadow-[0_0_80px_rgba(249,115,22,0.25)] relative animate-in zoom-in-95 duration-700 border border-white/40 dark:border-white/10">
+                <div className="fixed inset-0 z-[200] flex items-center justify-center p-6 bg-black/50 backdrop-blur-sm animate-in fade-in duration-500">
+                    <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-[32px] max-w-2xl w-full max-h-[85vh] overflow-y-auto scrollbar-hide shadow-[0_0_60px_rgba(249,115,22,0.2)] relative animate-in zoom-in-95 duration-700 border border-white/40 dark:border-white/10">
                         {/* Parlama Efekti (Glow Decor) */}
                         <div className="absolute -top-24 -left-24 w-64 h-64 bg-orange-500/20 rounded-full blur-[100px] animate-pulse"></div>
                         <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-blue-500/20 rounded-full blur-[100px] animate-pulse delay-700"></div>
 
                         <div className="flex flex-col md:flex-row relative z-10">
                             {/* Sol: Görsel (Geniş ve Estetik) */}
-                            <div className="w-full md:w-5/12 h-64 md:h-auto relative">
+                            <div className="w-full md:w-5/12 h-48 md:h-auto relative">
                                 <img 
                                     src={suggestedCombo?.image} 
                                     className="w-full h-full object-cover" 
                                     alt={suggestedCombo?.name} 
                                 />
-                                <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-transparent to-orange-500/20"></div>
+                                <div className="absolute inset-0 bg-gradient-to-tr from-black/60 via-transparent to-orange-500/10"></div>
                                 
                                 {/* Discount Badge */}
-                                <div className="absolute top-8 left-8">
-                                    <div className="bg-orange-600 text-white text-[11px] font-black px-5 py-2.5 rounded-2xl uppercase tracking-widest shadow-2xl border border-orange-400/30 animate-bounce">
-                                        -%15 PAKET İNDİRİMİ
+                                <div className="absolute top-4 left-4">
+                                    <div className="bg-orange-600 text-white text-[9px] font-black px-3 py-1.5 rounded-xl uppercase tracking-widest shadow-xl border border-orange-400/30">
+                                        -%15 İNDİRİM
                                     </div>
                                 </div>
                             </div>
 
                             {/* Sağ: İçerik */}
-                            <div className="w-full md:w-7/12 p-10 md:p-14 flex flex-col justify-center">
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="w-10 h-10 bg-orange-100 dark:bg-orange-950/30 rounded-2xl flex items-center justify-center text-xl shadow-inner">💎</div>
-                                    <h4 className="text-[11px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-[0.4em]">Özel Paket Teklifi</h4>
+                            <div className="w-full md:w-7/12 p-6 md:p-10 flex flex-col justify-center">
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div className="w-8 h-8 bg-orange-100 dark:bg-orange-950/30 rounded-xl flex items-center justify-center text-lg shadow-inner">💎</div>
+                                    <h4 className="text-[9px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-[0.3em]">Özel Paket Teklifi</h4>
                                 </div>
 
-                                <h2 className="text-3xl md:text-4xl font-black text-orange-500 dark:text-orange-400 leading-[1.1] mb-6 tracking-tight">
-                                    WAIT! WANT TO MAKE <br/> IT A <span className="text-slate-900 dark:text-white underline decoration-orange-500/30 underline-offset-8">VIP COMBO</span>?
+                                <h2 className="text-xl md:text-2xl font-black text-orange-500 dark:text-orange-400 leading-tight mb-4 tracking-tight">
+                                    WAIT! WANT TO MAKE <br/> IT A <span className="text-slate-900 dark:text-white underline decoration-orange-500/30 underline-offset-4">VIP COMBO</span>?
                                 </h2>
 
-                                <div className="space-y-4 mb-10">
-                                        <p className="text-sm font-bold text-slate-700 dark:text-slate-300">
-                                            Seçtiğiniz tura <b>{suggestedCombo?.name}</b> paketi ekleyin.
-                                        </p>
-                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed px-2">
-                                        Bu teklif sadece şu anki rezervasyonunuza özeldir. Ayrı ayrı alımlarda geçerli olmayan <b>VIP Paket Fiyatı</b> avantajını kaçırmayın.
+                                <div className="space-y-3 mb-6">
+                                    <p className="text-[13px] font-bold text-slate-700 dark:text-slate-300 leading-tight">
+                                        Seçtiğiniz tura <b>{suggestedCombo?.name}</b> paketi ekleyin.
+                                    </p>
+                                    <p className="text-[12px] font-medium text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                                        Bu teklif şu anki rezervasyonunuza özel VIP fiyatıdır.
                                     </p>
 
-                                    <div className="flex items-center gap-4 py-4 px-2">
-                                        <div className="flex-1 bg-white/30 dark:bg-white/5 border border-white/50 dark:border-white/10 p-4 rounded-3xl text-center">
-                                            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Normal</p>
-                                            <p className="text-xl font-bold text-slate-500 dark:text-slate-400 line-through">₺{suggestedCombo?.originalPrice}</p>
+                                    <div className="flex items-center gap-3 py-2">
+                                        <div className="flex-1 bg-white/30 dark:bg-white/5 border border-white/50 dark:border-white/10 p-2.5 rounded-2xl text-center">
+                                            <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Normal</p>
+                                            <p className="text-sm font-bold text-slate-500 dark:text-slate-400 line-through">₺{suggestedCombo?.originalPrice}</p>
                                         </div>
-                                        <div className="text-2xl font-black text-orange-500">➔</div>
-                                        <div className="flex-1 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/50 p-4 rounded-3xl text-center relative overflow-hidden">
-                                            <div className="absolute top-0 right-0 bg-emerald-500 text-white text-[9px] font-black px-2 py-1 rounded-bl-xl shadow-sm">
-                                                SAVE BIG!
-                                            </div>
-                                            <p className="text-[10px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-1">VIP Kombo</p>
-                                            <p className="text-2xl font-black text-slate-900 dark:text-white">₺{suggestedCombo?.price}</p>
+                                        <div className="text-lg font-black text-orange-500">➔</div>
+                                        <div className="flex-1 bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-900/50 p-2.5 rounded-2xl text-center relative overflow-hidden">
+                                            <p className="text-[8px] font-black text-orange-600 dark:text-orange-400 uppercase tracking-widest mb-0.5">VIP</p>
+                                            <p className="text-lg font-black text-slate-900 dark:text-white">₺{suggestedCombo?.price}</p>
                                         </div>
                                     </div>
 
-                                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl flex items-center gap-3">
-                                        <div className="w-8 h-8 bg-emerald-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/20">
-                                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                    <div className="bg-emerald-50/50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-3 rounded-xl flex items-center gap-2">
+                                        <div className="w-6 h-6 bg-emerald-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-md">
+                                            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="4" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
                                         </div>
-                                        <p className="text-[11px] font-black text-emerald-800 dark:text-emerald-300 leading-tight">
-                                            Upgrade now and get a VIP reserved table <br/> + Dual QR ticket instantly!
+                                        <p className="text-[10px] font-black text-emerald-800 dark:text-emerald-300 leading-tight uppercase tracking-tighter">
+                                            Upgrade now & get VIP perks!
                                         </p>
                                     </div>
                                 </div>
@@ -542,7 +848,7 @@ function CheckoutLogic() {
                                                 setStep(3);
                                             }, 2500);
                                         }}
-                                        className="w-full bg-orange-600 hover:bg-slate-900 dark:hover:bg-black text-white font-black py-5 rounded-[24px] shadow-[0_15px_40px_rgba(249,115,22,0.4)] transition-all transform active:scale-95 text-lg"
+                                        className="w-full bg-orange-600 hover:bg-orange-700 text-white font-black py-4 rounded-2xl shadow-[0_15px_35px_rgba(249,115,22,0.4)] transition-all transform active:scale-95 text-lg"
                                     >
                                         YES, UPGRADE TO VIP COMBO! ➔
                                     </button>
@@ -571,11 +877,23 @@ function CheckoutLogic() {
 
 export default function CheckoutPage() {
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col py-8 px-4 sm:px-6 lg:px-8 relative transition-colors duration-500">
-            <div className="max-w-6xl mx-auto w-full mb-4">
-                <Link href="/" className="text-[#008cb3] dark:text-[#38bdf8] font-bold text-sm tracking-tight hover:underline flex items-center gap-2 group w-max">
+        <div className="min-h-screen bg-[#0B132B] flex flex-col py-8 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+            {/* Arka Plan Dekorasyonu */}
+            <div className="absolute top-0 left-0 w-full h-full pointer-events-none overflow-hidden">
+                <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]"></div>
+                <div className="absolute top-1/2 -left-40 w-80 h-80 bg-purple-500/10 rounded-full blur-[100px]"></div>
+            </div>
+
+            <div className="max-w-6xl mx-auto w-full mb-8 relative z-10">
+                <Link href="/" className="text-slate-400 font-bold text-sm tracking-tight hover:text-white flex items-center gap-2 group w-max transition-colors">
                     <span className="group-hover:-translate-x-1 transition-transform">←</span> Geri Dön
                 </Link>
+                <div className="mt-8">
+                    <h1 className="text-4xl font-black text-white tracking-tight">Güvenli Rezervasyon</h1>
+                    <p className="text-slate-400 font-bold text-sm mt-2 uppercase tracking-widest flex items-center gap-2">
+                        <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span> Son Adım: Ödeme ve Onay
+                    </p>
+                </div>
             </div>
 
             <Suspense fallback={<div className="text-center py-20 font-bold text-slate-400">Ödeme Altyapısı Yükleniyor...</div>}>

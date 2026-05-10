@@ -221,10 +221,19 @@ export default function MyBookingsPage() {
                                     <div>
                                         <div className="flex justify-between items-start gap-2 mb-1">
                                             <span className="text-[10px] font-black tracking-widest text-[#008cb3] dark:text-blue-400 uppercase">{ticket.id}</span>
-                                            {/* Durum (Onaylandı / Beklemede) */}
-                                            <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-md border ${ticket.statusColor} uppercase tracking-wider`}>
-                                                {ticket.status}
-                                            </span>
+                                            {/* 89. BÖLÜM: Offline-Ready-Badge-UI */}
+                                            <div className="flex items-center gap-3">
+                                                <div className="flex items-center gap-1.5 bg-emerald-50 dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded-md border border-emerald-100 dark:border-emerald-900/50 shadow-sm animate-pulse-slow">
+                                                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M9.172 9.172a4 4 0 015.656 5.656m2.828-8.486a9 9 0 011.272 1.272M7.071 7.071a9 9 0 00-1.272 1.272M10 10l4 4" />
+                                                    </svg>
+                                                    <span className="text-[9px] font-black uppercase tracking-tighter whitespace-nowrap">Çevrimdışı Hazır</span>
+                                                </div>
+                                                {/* Durum (Onaylandı / Beklemede) */}
+                                                <span className={`text-[9px] sm:text-[10px] font-bold px-2 py-1 rounded-md border ${ticket.statusColor} uppercase tracking-wider`}>
+                                                    {ticket.status}
+                                                </span>
+                                            </div>
                                         </div>
                                         <h3 className="font-bold text-slate-800 dark:text-white text-sm sm:text-base leading-snug line-clamp-2 max-w-[90%]">
                                             {ticket.title}

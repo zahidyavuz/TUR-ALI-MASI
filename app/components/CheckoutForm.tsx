@@ -74,7 +74,7 @@ export default function CheckoutForm() {
             elements,
             confirmParams: {
                 // Enforce strong 3D Secure / PSD2 auth via redirect URL to complete verification
-                return_url: `${window.location.origin}/checkout-success`,
+                return_url: `${window.location.origin}/checkout-success${window.location.search}`,
             },
         });
 

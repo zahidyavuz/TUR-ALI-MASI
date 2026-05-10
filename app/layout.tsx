@@ -38,6 +38,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import GeofenceBanner from "./components/GeofenceBanner";
 import HoneypotTraps from "./components/HoneypotTraps";
 import BehavioralTracker from "./components/BehavioralTracker";
+import OfflineGuard from "./components/OfflineGuard";
 
 export default function RootLayout({
   children,
@@ -77,7 +78,9 @@ export default function RootLayout({
               <ThemeProvider>
                 <NotificationProvider>
                   <GeofenceProvider>
-                    {children}
+                    <OfflineGuard>
+                      {children}
+                    </OfflineGuard>
                     <GeofenceBanner />
                     <HoneypotTraps />
                     <BehavioralTracker />
@@ -183,6 +186,23 @@ export default function RootLayout({
             `}
           </Script>
         )}
+        {/* Service Worker Registration (Offline Caching) */}
+        <Script id="register-sw" strategy="afterInteractive">
+          {`
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js').then(
+                  function(registration) {
+                    console.log('[SW] Registration successful with scope: ', registration.scope);
+                  },
+                  function(err) {
+                    console.log('[SW] Registration failed: ', err);
+                  }
+                );
+              });
+            }
+          `}
+        </Script>
       </body>
     </html>
   );
