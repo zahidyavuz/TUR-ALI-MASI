@@ -93,7 +93,16 @@ export default function OfflineTicketsPage() {
                   className={`w-full text-left bg-white rounded-2xl p-4 shadow-sm border-2 transition ${selected?.id === t.id ? 'border-[#008cb3] bg-blue-50/50' : 'border-gray-100 hover:border-gray-200'
                     }`}
                 >
-                  <div className="font-bold text-slate-800 truncate">{t.tourTitle}</div>
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="font-bold text-slate-800 truncate">{t.tourTitle}</div>
+                    {/* 89. BÖLÜM: Offline-Ready-Badge-UI (Consistent across views) */}
+                    <div className="flex items-center gap-1 bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded border border-emerald-100 shadow-sm animate-pulse-slow shrink-0">
+                      <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18M9.172 9.172a4 4 0 015.656 5.656m2.828-8.486a9 9 0 011.272 1.272M7.071 7.071a9 9 0 00-1.272 1.272M10 10l4 4" />
+                      </svg>
+                      <span className="text-[8px] font-black uppercase tracking-tighter">Hazır</span>
+                    </div>
+                  </div>
                   <div className="text-xs text-gray-500 mt-1">
                     {t.location} · {t.savedAt ? new Date(t.savedAt).toLocaleDateString('tr-TR') : ''}
                   </div>

@@ -16,7 +16,7 @@ import { useAuth } from './context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 // --- YENİ BİLEŞEN: ComboCard (Geniş / Wide Format) ---
-const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice }: { id: string, tour: any, restaurant: any, discountRate: number, formatPrice: (p: number) => string }) => {
+const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice, router }: { id: string, tour: any, restaurant: any, discountRate: number, formatPrice: (p: number) => string, router: any }) => {
 
   // Bundle_Pricing Logic
   const originalTotal = tour.price + restaurant.price;
@@ -24,10 +24,16 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice }: { id: st
   const bundlePrice = originalTotal - discountAmount;
   const savings = Math.round(discountAmount);
 
+  const handleCheckout = () => {
+    router.push(`/tour/${id}`);
+  };
+
   return (
-    <div className="relative bg-white rounded-[24px] overflow-hidden shadow-xl hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-700 group cursor-pointer border border-gray-100 dark:border-none flex flex-col md:flex-row w-full mb-6"> 
+    <div 
+      onClick={handleCheckout}
+      className="relative bg-white rounded-[20px] overflow-hidden shadow-xl hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-700 group cursor-pointer border border-gray-100 dark:border-none flex flex-col md:flex-row w-full mb-4"> 
       {/* Görsel Alanı (Geniş Split) */}
-      <div className="relative h-56 md:h-auto md:w-[40%] overflow-hidden flex">
+      <div className="relative h-44 md:h-auto md:w-[35%] overflow-hidden flex">
         <div className="w-1/2 h-full relative border-r-2 border-white z-10 shrink-0">
           <Image src={tour.image} alt={tour.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
@@ -49,7 +55,7 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice }: { id: st
       </div>
 
       {/* İçerik Alanı (Geniş Segment) */}
-      <div className="p-6 md:p-8 flex flex-col flex-1 justify-center bg-gradient-to-br from-white to-slate-50">
+      <div className="p-4 md:p-6 flex flex-col flex-1 justify-center bg-gradient-to-br from-white to-slate-50">
         <div className="flex items-center gap-3 mb-3">
           <div className="flex -space-x-3">
             <div className="w-8 h-8 rounded-full border-2 border-white bg-blue-500 flex items-center justify-center text-sm shadow-md z-10">🎒</div>
@@ -59,8 +65,7 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice }: { id: st
         </div>
         
         <h3 
-          onClick={() => window.location.href = `/tour/${id}`}
-          className="text-xl md:text-2xl font-black text-slate-900 leading-tight mb-2 group-hover:text-[#008cb3] transition-colors cursor-pointer"
+          className="text-lg md:text-xl font-black text-slate-900 leading-tight mb-2 group-hover:text-[#008cb3] transition-colors cursor-pointer"
         >
           {tour.name} <span className="text-gray-300 font-light mx-1">&</span> {restaurant.name}
         </h3>
@@ -70,16 +75,16 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice }: { id: st
           Eşsiz bir gezi ve gurme akşam yemeği tek pakette! Birlikte alın, <b>{formatPrice(savings)}</b> kazançlı çıkın.
         </p>
         
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-6 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-gray-100">
           <div>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1">Paket Fiyatı</p>
             <div className="flex items-baseline gap-2">
               <span className="text-base text-gray-400 line-through font-bold">{formatPrice(originalTotal)}</span>
-              <span className="text-3xl font-black text-slate-900 tracking-tighter">{formatPrice(bundlePrice)}</span>
+              <span className="text-2xl font-black text-slate-900 tracking-tighter">{formatPrice(bundlePrice)}</span>
             </div>
           </div>
-          <button className="bg-[#008cb3] text-white font-black px-8 py-3.5 rounded-xl hover:bg-slate-900 transition-all shadow-[0_10px_25px_rgba(0,140,179,0.2)] hover:shadow-lg active:scale-95 text-[15px]">
-            Hemen Al ➔
+          <button className="bg-[#008cb3] text-white font-black px-6 py-2.5 rounded-xl hover:bg-slate-900 transition-all shadow-[0_10px_25px_rgba(0,140,179,0.2)] hover:shadow-lg active:scale-95 text-[14px]">
+            İncele ve Al ➔
           </button>
         </div>
       </div>
@@ -265,15 +270,15 @@ export default function Home() {
             </p>
 
             {/* Gelişmiş Filtre Çubuğu */}
-            <div className="dropdown-container bg-white dark:bg-slate-900/80 backdrop-blur-xl p-4 md:p-2 rounded-2xl md:rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col md:flex-row w-full max-w-4xl items-stretch md:items-center justify-between relative z-50 gap-0 border border-transparent dark:border-white/10" data-dropdown="searchBar">
+            <div className="dropdown-container bg-white backdrop-blur-xl p-4 md:p-2 rounded-2xl md:rounded-[20px] shadow-[0_8px_30px_rgb(0,0,0,0.12)] flex flex-col md:flex-row w-full max-w-4xl items-stretch md:items-center justify-between relative z-50 gap-0 border border-transparent" data-dropdown="searchBar">
 
               {/* 1. Yer Seçimi */}
-              <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 dark:border-slate-800 md:border-none">
+              <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 md:border-none">
                 <div
                   onClick={() => { if (activeDropdown !== 'location') toggleDropdown('location'); }}
-                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-text hover:bg-gray-50 dark:hover:bg-slate-800 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
+                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-text hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
                 >
-                  <span className="text-[10px] md:text-xs font-black text-gray-700 dark:text-slate-400 md:text-gray-900 uppercase tracking-wider">{t.hero.searchLocationLabel}</span>
+                  <span className="text-[10px] md:text-xs font-black text-gray-700 md:text-gray-900 uppercase tracking-wider">{t.hero.searchLocationLabel}</span>
                   <input
                     type="text"
                     value={selectedLocation === 'Nereye gitmek istersin?' ? '' : selectedLocation}
@@ -283,19 +288,19 @@ export default function Home() {
                     }}
                     onFocus={() => setActiveDropdown('location')}
                     placeholder={t.hero.searchLocationPlaceholder}
-                    className="w-full bg-transparent outline-none text-sm text-blue-900 dark:text-blue-400 font-extrabold placeholder-gray-400 truncate mt-0.5"
+                    className="w-full bg-transparent outline-none text-sm text-blue-900 font-extrabold placeholder-gray-400 truncate mt-0.5"
                   />
                 </div>
 
                 {activeDropdown === 'location' && (
-                  <div className="absolute top-[105%] md:top-[120%] left-0 w-[calc(100vw-40px)] md:w-64 max-w-[400px] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 p-4 z-50 text-left animate-in fade-in zoom-in duration-200">
+                  <div className="absolute top-[105%] md:top-[120%] left-0 w-[calc(100vw-40px)] md:w-64 max-w-[400px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 z-50 text-left animate-in fade-in zoom-in duration-200">
                     <h4 className="text-xs font-bold text-gray-400 mb-3 uppercase">Rota Önerileri</h4>
                     <ul className="flex flex-col gap-1 max-h-[220px] overflow-y-auto pr-1">
                       {POPULAR_LOCATIONS.filter(loc => loc.toLowerCase().includes((selectedLocation === 'Nereye gitmek istersin?' ? '' : selectedLocation).toLowerCase())).map((loc) => (
                         <li
                           key={loc}
                           onClick={() => { setSelectedLocation(loc); setActiveDropdown(null); }}
-                          className="text-sm font-semibold text-gray-700 dark:text-slate-300 hover:text-[#008cb3] hover:bg-blue-50 dark:hover:bg-slate-800 cursor-pointer p-2.5 rounded-xl transition-colors flex items-center gap-2"
+                          className="text-sm font-semibold text-gray-700 hover:text-[#008cb3] hover:bg-blue-50 cursor-pointer p-2.5 rounded-xl transition-colors flex items-center gap-2"
                         >
                           <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                           {loc}
@@ -496,14 +501,16 @@ export default function Home() {
           ].map((tur: any, i: number) => (
             <div 
               key={`pop-h-${tur.id || i}`}
-              className="min-w-[280px] sm:min-w-[320px] md:min-w-[380px] snap-center group cursor-pointer"
-              onClick={() => window.location.href = `/tour/${tur.id}`}
+              className="min-w-[240px] sm:min-w-[280px] md:min-w-[340px] snap-center group cursor-pointer"
+              onClick={() => {
+                router.push(`/tour/${tur.id}`);
+              }}
 
             >
-              <div className="bg-white rounded-[24px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_60px_rgba(212,175,55,0.2)] transition-all duration-500 border border-amber-100/50 dark:border-none flex flex-col h-full group-hover:-translate-y-2 relative group">
+              <div className="bg-white rounded-[20px] overflow-hidden shadow-[0_10px_40px_rgba(0,0,0,0.03)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_60px_rgba(212,175,55,0.2)] transition-all duration-500 border border-amber-100/50 dark:border-none flex flex-col h-full group-hover:-translate-y-2 relative group">
                 {/* Premium Glow Effect */}
                 <div className="absolute inset-0 rounded-[24px] ring-1 ring-amber-400/10 group-hover:ring-amber-400/30 transition-all duration-500 pointer-events-none"></div>
-                <div className="relative h-60 overflow-hidden">
+                <div className="relative h-48 overflow-hidden">
                   <Image 
                     src={tur.image} 
                     alt={tur.title} 
@@ -519,8 +526,8 @@ export default function Home() {
                     {tur.location}
                   </div>
                 </div>
-                <div className="p-6 flex flex-col flex-1">
-                  <h3 className="text-xl font-bold text-slate-800 line-clamp-2 mb-4 leading-tight group-hover:text-[#008cb3] transition-colors">
+                <div className="p-4 flex flex-col flex-1">
+                  <h3 className="text-lg font-bold text-slate-800 line-clamp-2 mb-4 leading-tight group-hover:text-[#008cb3] transition-colors">
                     {tur.title}
                   </h3>
                   <div className="mt-auto flex items-center justify-between gap-2">
@@ -535,23 +542,16 @@ export default function Home() {
                               {formatPrice(tur.oldPrice)}
                             </span>
                           )}
-                          <div className="text-xl font-black text-[#008cb3] tracking-tighter flex items-baseline gap-1">
+                          <div className="text-lg font-black text-[#008cb3] tracking-tighter flex items-baseline gap-1">
                             {formatPrice(tur.price)}
                             <span className="text-[9px] font-bold text-gray-400 uppercase">/pp</span>
                           </div>
                         </div>
                     </div>
                     <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const tomorrow = new Date();
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        const dateStr = tomorrow.toISOString().split('T')[0];
-                        window.location.href = `/checkout?tourId=${tur.id}&date=${dateStr}&guests=1`;
-                      }}
                       className="bg-[#008cb3] text-white text-[10px] font-black px-4 py-3 rounded-xl hover:bg-slate-900 transition-all active:scale-95 shadow-lg shadow-blue-500/20 uppercase tracking-widest whitespace-nowrap"
                     >
-                      Hemen Al
+                      İncele ve Al
                     </button>
                   </div>
                 </div>
@@ -656,11 +656,13 @@ export default function Home() {
           ].map((tur: any, i: number) => (
             <div 
               key={tur.id}
-              className="min-w-[300px] sm:min-w-[360px] md:min-w-[400px] snap-center group cursor-pointer"
-              onClick={() => window.location.href = `/tour/${tur.id}`}
+              className="min-w-[260px] sm:min-w-[320px] md:min-w-[360px] snap-center group cursor-pointer"
+              onClick={() => {
+                router.push(`/tour/${tur.id}`);
+              }}
 
             >
-              <div className="bg-white rounded-[16px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.12)] hover:-translate-y-4 transition-all duration-500 border border-gray-100 dark:border-none flex flex-col h-[480px] md:h-[520px]">
+              <div className="bg-white rounded-[16px] overflow-hidden shadow-[0_10px_30px_rgba(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_25px_60px_rgba(0,0,0,0.12)] hover:-translate-y-4 transition-all duration-500 border border-gray-100 dark:border-none flex flex-col h-[400px] md:h-[440px]">
                 {/* Üst Yarı: Görsel */}
                 <div className="relative h-1/2 w-full overflow-hidden">
                   <Image 
@@ -678,13 +680,13 @@ export default function Home() {
                 </div>
 
                 {/* Alt Yarı: İçerik */}
-                <div className="p-8 flex flex-col justify-between flex-1">
+                <div className="p-5 flex flex-col justify-between flex-1">
                   <div>
                     <div className="flex items-center gap-2 text-[#008cb3] text-[11px] font-black uppercase tracking-[0.2em] mb-4">
                       <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                       {tur.location}
                     </div>
-                    <h3 className="text-xl md:text-2xl font-black text-slate-800 leading-tight group-hover:text-[#008cb3] transition-colors duration-300">
+                    <h3 className="text-lg md:text-xl font-black text-slate-800 leading-tight group-hover:text-[#008cb3] transition-colors duration-300">
                       {tur.title}
                     </h3>
                   </div>
@@ -696,22 +698,15 @@ export default function Home() {
                           {formatPrice(tur.oldPrice)}
                         </span>
                       )}
-                      <div className="text-3xl md:text-4xl font-black text-[#008cb3] tracking-tighter flex items-baseline gap-1">
+                      <div className="text-2xl md:text-3xl font-black text-[#008cb3] tracking-tighter flex items-baseline gap-1">
                         {formatPrice(tur.price)}
                         <span className="text-[10px] font-bold text-gray-400 uppercase">/pp</span>
                       </div>
                     </div>
                     <button 
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const tomorrow = new Date();
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        const dateStr = tomorrow.toISOString().split('T')[0];
-                        window.location.href = `/checkout?tourId=${tur.id}&date=${dateStr}&guests=1`;
-                      }}
                       className="bg-[#008cb3] text-white text-[11px] font-black px-6 py-3.5 rounded-xl hover:bg-slate-900 transition-all duration-300 active:scale-95 shadow-lg shadow-blue-500/20 uppercase tracking-widest whitespace-nowrap"
                     >
-                      Hemen Al
+                      İncele ve Al
                     </button>
                   </div>
                 </div>
@@ -762,8 +757,11 @@ export default function Home() {
               { ad: "Museum Terrace", kategori: "Fine Dining & Manzara", puan: "4.8", image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80", tag: "Eşsiz Manzara" },
               { ad: "Seki Restaurant", kategori: "Kaya Oyma & Gurme", puan: "4.7", image: "https://images.unsplash.com/photo-1514362545857-3bc16c4c7d1b?w=800&q=80", tag: "Tarihi Doku" }
             ].map((rest, i) => (
-              <div key={i} className="group cursor-pointer bg-white p-3 rounded-[2.5rem] shadow-sm hover:shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-50 dark:border-none transition-all duration-500">
-                <div className="relative h-64 rounded-[2rem] overflow-hidden mb-4 shadow-md group-hover:shadow-xl transition-all duration-500">
+              <div 
+                key={i} 
+                onClick={() => router.push('/taste')}
+                className="group cursor-pointer bg-white p-2 rounded-[2rem] shadow-sm hover:shadow-xl dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-50 dark:border-none transition-all duration-500">
+                <div className="relative h-48 rounded-[1.5rem] overflow-hidden mb-4 shadow-md group-hover:shadow-xl transition-all duration-500">
                   <Image src={rest.image} alt={rest.ad} fill className="object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
                   <div className="absolute top-4 left-4">
@@ -773,7 +771,7 @@ export default function Home() {
                     <div className="flex items-center gap-1 text-yellow-400 text-xs mb-1">
                       {'★'.repeat(5)} <span className="text-white ml-1 font-bold">{rest.puan}</span>
                     </div>
-                    <h4 className="text-xl font-black">{rest.ad}</h4>
+                    <h4 className="text-lg font-black">{rest.ad}</h4>
                   </div>
                 </div>
                 <div className="px-3 pb-2">
@@ -802,6 +800,7 @@ export default function Home() {
               id="vip-1"
               formatPrice={formatPrice}
               discountRate={25}
+              router={router}
 
               tour={{
                 name: "VIP Gün Batımı ATV Safari",
@@ -819,6 +818,7 @@ export default function Home() {
               id="vip-2"
               formatPrice={formatPrice}
               discountRate={20}
+              router={router}
 
               tour={{
                 name: "Özel Rehberli Tarihi Yarımada Turu",

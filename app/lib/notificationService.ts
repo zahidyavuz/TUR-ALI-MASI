@@ -33,5 +33,20 @@ export const NotificationService = {
     trackAbandonedCart: async (userId: string, cartId: string, tourName: string) => {
         // await BullMQ.add('abandonedCart', { userId, cartId }, { delay: 60 * 60 * 1000 }); // 1 Hour delay
         // console.log(`[Event Tracker] Abandoned cart logged for User:${userId}. Queuing email 1 hour later: 'Sepetinizde ${tourName} turunu unuttunuz!' 🛒`);
+    },
+
+    /**
+     * 4. Deneyim Sonrası Otomatik Değerlendirme (Nasıl Geçti?)
+     * 91. BÖLÜM: Post-Experience-Trigger-Notification
+     * Etkinlik bittikten 3 saat sonra WhatsApp & Email üzerinden tetiklenir.
+     */
+    triggerPostExperienceReview: async (userName: string, tourName: string, bookingId: string) => {
+        const reviewUrl = `http://localhost:3000/post-tour-review?bookingId=${bookingId}&tourTitle=${encodeURIComponent(tourName)}`;
+        
+        // WhatsApp Simülasyonu
+        console.log(`[WhatsApp API] Mesaj Gönderildi -> ${userName}: "Merhaba ${userName}, bugün ${tourName} deneyimini tamamladığını gördük. Umarız her şey harikaydı! Deneyimini puanlamak ve diğer gezginlere ilham vermek ister misin? Puanla: ${reviewUrl}"`);
+        
+        // Email Simülasyonu
+        console.log(`[Email Service] Gönderen: feedback@tourkia.com -> Alıcı: ${userName}. Konu: Deneyimin nasıldı? İçerik: Bir tıkla puanla: ${reviewUrl}`);
     }
 };

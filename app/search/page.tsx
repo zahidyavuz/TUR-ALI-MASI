@@ -101,7 +101,7 @@ function SearchResultsContent() {
       <Navbar />
 
       {/* Arama Özeti Çubuğu */}
-      <div className="bg-white dark:bg-[#101935] border-b border-gray-200 dark:border-white/5 py-4 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm mb-8 transition-colors duration-500">
+      <div className="bg-white border-b border-gray-200 py-4 px-4 md:px-8 flex flex-col md:flex-row justify-between items-center shadow-sm mb-8 transition-colors duration-500">
         <div className="text-sm font-semibold text-gray-600 flex items-center gap-2">
           <span>📍 {location || 'Tüm Lokasyonlar'}</span>
           <span className="text-gray-300">|</span>
@@ -250,9 +250,14 @@ function SearchResultsContent() {
                 const citySign = getCitySignature(tour.location);
                 
                 return (
-                  <div key={tour.id} className="bg-white rounded-[2rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_50px_rgb(0,0,0,0.1)] transition-all duration-500 border border-gray-100 dark:border-none flex flex-col md:flex-row group mb-2">
+                  <div 
+                    key={tour.id} 
+                    onClick={() => {
+                      router.push(`/tour/${tour.id}`);
+                    }}
+                    className="bg-white rounded-[1.5rem] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_50px_rgb(0,0,0,0.1)] transition-all duration-500 border border-gray-100 dark:border-none flex flex-col md:flex-row group mb-2 cursor-pointer">
                     {/* Resim Bölümü */}
-                    <div className="relative w-full md:w-[360px] h-[240px] md:h-auto overflow-hidden shrink-0">
+                    <div className="relative w-full md:w-[300px] h-[200px] md:h-auto overflow-hidden shrink-0">
                       <Image 
                         src={tour.image_main || tour.imageMain} 
                         alt={tour.title} 
@@ -288,13 +293,13 @@ function SearchResultsContent() {
                     </div>
 
                     {/* İçerik Bölümü */}
-                    <div className="p-6 md:p-8 flex flex-col flex-1 bg-white relative">
+                    <div className="p-4 md:p-6 flex flex-col flex-1 bg-white relative">
                       <div className="flex flex-col mb-4">
                         <span className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em] mb-1.5">
                           {tour.category || '✨ Genel Deneyim'}
                         </span>
                         
-                        <h3 className="text-2xl font-black text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight mb-2 line-clamp-1">
+                        <h3 className="text-xl font-black text-slate-800 group-hover:text-[#008cb3] transition-colors leading-tight mb-2 line-clamp-1">
                           {tour.title}
                         </h3>
 
@@ -340,16 +345,16 @@ function SearchResultsContent() {
                             </span>
                           )}
                           <div className="flex items-baseline gap-1">
-                            <span className="text-3xl font-black text-[#008cb3]">{formatPrice(tour.price)}</span>
+                            <span className="text-2xl font-black text-[#008cb3]">{formatPrice(tour.price)}</span>
                             <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">/ Kişi Başı</span>
                           </div>
                         </div>
-                        <Link href={`/tour/${tour.id}`} className="w-full md:w-auto">
+                        <div className="w-full md:w-auto">
                           <button className="w-full md:w-auto bg-[#008cb3] text-white font-bold px-8 py-4 rounded-2xl hover:bg-slate-900 transition-all shadow-lg active:scale-95 flex items-center justify-center gap-2">
-                            <span>Hemen İncele</span>
+                            <span>Detayları Gör</span>
                             <span className="text-lg">→</span>
                           </button>
-                        </Link>
+                        </div>
                       </div>
                     </div>
                   </div>

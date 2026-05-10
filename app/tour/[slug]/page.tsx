@@ -46,6 +46,7 @@ export default function DynamicTourPage() {
     const [hasVipTransfer, setHasVipTransfer] = useState(false);
     const [isMealAdded, setIsMealAdded] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'eft' | 'cash'>('eft'); // Yeni ödeme yöntemleri
+    const [isDateError, setIsDateError] = useState(false);
 
     useEffect(() => {
         async function loadTour() {
@@ -388,13 +389,16 @@ export default function DynamicTourPage() {
 
                         {/* Tarih ve Kişi Seçimi */}
                         <div className="space-y-4 mb-6 relative z-10">
-                            <div className="border border-gray-200 dark:border-white/10 rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/50 relative group">
-                                <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block mb-1">Tarih Seçin</label>
+                            <div className={`border rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/50 relative group transition-all duration-300 ${isDateError ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake' : 'border-gray-200 dark:border-white/10'}`}>
+                                <label className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${isDateError ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'}`}>{isDateError ? 'LÜTFEN TARİH SEÇİN!' : 'Tarih Seçin'}</label>
                                 <select 
                                     className="w-full bg-transparent font-bold text-slate-800 dark:text-white outline-none appearance-none cursor-pointer"
                                     value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
                                     onChange={(e) => {
-                                        if (e.target.value) setSelectedDate(new Date(e.target.value));
+                                        if (e.target.value) {
+                                            setSelectedDate(new Date(e.target.value));
+                                            setIsDateError(false);
+                                        }
                                         else setSelectedDate(null);
                                     }}
                                 >
@@ -504,23 +508,31 @@ export default function DynamicTourPage() {
                             <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold mt-3 text-center italic">Yemek ücretleri restoranda ödenecektir. Ön provizyon alınmaz.</p>
                         </div>
 
-                        {/* CTA Butonu */}
-                        <div className="flex flex-col gap-2 mb-4">
+                        {/* CTA Butonu - Sticky Checkout CTA */}
+                        <div className="flex flex-col gap-2 mb-4 mt-6">
                             <button
-                    onClick={(e) => {
-                        e.preventDefault();
-                        if (!selectedDate) {
-                            alert("Lütfen önce bir tarih seçin.");
-                            return;
-                        }
-                        const formattedDate = selectedDate.toISOString().split('T')[0];
-                        const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
-                        router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
-                    }}
-                                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-lg py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2"
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    if (!selectedDate) {
+                                        setIsDateError(true);
+                                        setTimeout(() => setIsDateError(false), 1000);
+                                        return;
+                                    }
+                                    const formattedDate = selectedDate.toISOString().split('T')[0];
+                                    const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
+                                    router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
+                                }}
+                                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-2xl py-6 rounded-[24px] shadow-[0_15px_35px_-5px_rgba(249,115,22,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-4 group"
                             >
-                                {locale === 'en-US' ? 'Secure Your Spot' : marketing.ctaText}
-                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                <div className="flex items-center gap-3">
+                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:rotate-12 transition-transform">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                        <circle cx="12" cy="16" r="1.5" fill="currentColor" />
+                                    </svg>
+                                    <span>{locale === 'en-US' ? 'Secure Checkout' : 'Güvenli Ödemeye Geç'}</span>
+                                </div>
+                                <span className="text-3xl group-hover:translate-x-2 transition-transform">➔</span>
                             </button>
                         </div>
 
@@ -674,26 +686,37 @@ export default function DynamicTourPage() {
                <TourReviews tourId={tour.id || slug} />
             </div>
 
-            {/* Mobile Sticky Booking Bar */}
-            <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-white/10 px-6 py-4 shadow-[0_-10px_30px_rgba(0,0,0,0.06)] z-[60] flex items-center justify-between pb-[calc(1rem+env(safe-area-inset-bottom))]">
-                <div>
-                    <p className="text-[10px] font-bold text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Toplam ({guests} Kişi)</p>
-                    <p className="text-2xl font-black text-slate-800 dark:text-white leading-none">{formatPrice(totalPriceAmount)}</p>
+            {/* Mobile Sticky Booking Bar - Always Visible Pay Bar */}
+            <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200 dark:border-white/10 px-5 py-4 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] z-[100] flex items-center justify-between pb-[calc(1.2rem+env(safe-area-inset-bottom))] transition-all duration-500">
+                <div className="flex flex-col">
+                    <p className="text-[11px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                        {locale === 'en-US' ? 'Total' : 'Toplam'}
+                    </p>
+                    <p className="text-2xl font-black text-[#008cb3] dark:text-[#38bdf8] tracking-tighter leading-none">{formatPrice(totalPriceAmount)}</p>
                 </div>
                 <button
                     onClick={(e) => {
                         e.preventDefault();
                         if (!selectedDate) {
-                            alert("Lütfen rezervasyon için tarih seçiniz.");
+                            setIsDateError(true);
+                            setTimeout(() => setIsDateError(false), 1000);
                             return;
                         }
                         const formattedDate = selectedDate.toISOString().split('T')[0];
                         const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
                         router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
                     }}
-                    className="bg-orange-500 hover:bg-orange-600 text-white font-black px-8 py-4 rounded-2xl shadow-lg shadow-orange-500/30 transition-transform active:scale-95 text-sm"
+                    className="bg-orange-500 active:scale-95 text-white font-black px-6 py-4 rounded-xl shadow-[0_10px_25px_-5px_rgba(249,115,22,0.4)] flex items-center gap-2 text-sm transition-all"
                 >
-                    Hemen Ayır
+                    <div className="flex items-center gap-1.5">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                        </svg>
+                        <span>{locale === 'en-US' ? 'Checkout' : 'Ödemeye Geç'}</span>
+                    </div>
+                    <span className="text-lg">➔</span>
                 </button>
             </div>
 

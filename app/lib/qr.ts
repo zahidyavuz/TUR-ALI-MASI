@@ -1,8 +1,11 @@
 /**
- * Bilet doğrulama için QR kod üretir (Data URL).
- * Sadece tarayıcıda kullanın (Offline indir butonu).
+ * SECURE-STATIC-QR-GENERATOR
+ * 
+ * 88. BÖLÜM: Static-Base64-QR-Rendering
+ * ÖNEMLİ: QR kodları oluştururken dış API (Google Chart vb.) KULLANILMAZ.
+ * Kodlar doğrudan saf Base64 Data URL olarak bu kütüphane üzerinden üretilir.
+ * Bu sayede biletler uçak modunda/çevrimdışı saniyeler içinde görüntülenebilir.
  */
-
 import QRCode from 'qrcode';
 
 export interface QrPayload {
