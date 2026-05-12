@@ -714,9 +714,8 @@ export default function DynamicTourPage() {
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20">
                 <hr className="mb-12 border-gray-100 dark:border-white/10" />
             </div>
 
