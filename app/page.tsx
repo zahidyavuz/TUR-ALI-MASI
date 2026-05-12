@@ -890,7 +890,7 @@ export default function Home() {
       </div>
 
       {/* 9. Bülten / İletişim */}
-      < div className="w-full bg-slate-100 py-16 border-t border-gray-200" >
+      <div className="w-full bg-slate-100 py-16 border-t border-gray-200">
         <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
           <h2 className="text-[28px] font-black text-slate-800 mb-4">Macerayı E-Posta Kutunuza Taşıyın</h2>
           <p className="text-gray-600 mb-8 font-medium">Bültenimize kaydolun, en yeni tur fırsatlarından ve promosyonlardan ilk siz haberdar olun!</p>
@@ -899,11 +899,11 @@ export default function Home() {
             <button className="bg-orange-500 text-white font-bold px-10 py-4 rounded-full hover:bg-orange-600 transition-colors shadow-md">Abone Ol</button>
           </div>
         </div>
-      </div >
+      </div>
 
 
       {/* Yüzen Çoklu Mesajlaşma (Contact) Menüsü */}
-      < FloatingContactMenu />
+      <FloatingContactMenu />
 
       {/* Müşteri Giriş Yap / Üye Ol Modalı */}
       {
