@@ -1,4 +1,6 @@
 import { sanitizePayload } from './sanitizer';
+import { auth } from './auth';
+
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
@@ -20,11 +22,19 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         'Content-Type': 'application/json',
     };
 
+    // KOMUT 143: Interceptor (Token Enjeksiyonu)
+    // Eğer token varsa (auth.getAuthHeaders) otomatik olarak header'a Bearer token ekler
+    let authHeaders = {};
+    if (typeof window !== 'undefined') {
+        authHeaders = auth.getAuthHeaders();
+    }
+
     const config = {
         ...options,
         body: bodyObj,
         headers: {
             ...defaultHeaders,
+            ...authHeaders,
             ...options.headers,
         },
     };

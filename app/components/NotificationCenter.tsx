@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
 import { useNotifications } from '../context/NotificationContext';
-import type { AppNotification, NotificationType } from '../lib/notification-types';
+import type { AppNotification, NotificationType } from '@/app/lib/notification-types';
 
 const TYPE_LABELS: Record<NotificationType, string> = {
   tour_reminder: 'Tur hatırlatması',

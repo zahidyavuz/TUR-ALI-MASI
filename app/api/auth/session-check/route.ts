@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { validateSessionIntegrity } from '../../../lib/sessionGuard';
+import { validateSessionIntegrity } from '@/app/lib/sessionGuard';
 
 export async function POST(req: NextRequest) {
     try {

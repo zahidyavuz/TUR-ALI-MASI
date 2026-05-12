@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { runSecurityAudit } from '../../../lib/securityScanner';
+import { runSecurityAudit } from '@/app/lib/securityScanner';
 
 export async function GET(req: NextRequest) {
     const adminToken = req.headers.get('x-admin-token');

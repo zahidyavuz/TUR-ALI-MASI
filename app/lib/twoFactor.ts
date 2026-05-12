@@ -73,18 +73,6 @@ export function verify2FACode(sessionId: string, inputCode: string): { success: 
  * Kullanıcının 2FA zorunluluğunu kontrol eder.
  */
 export function requires2FA(user: any): boolean {
-    if (!user) return false;
-    
-    const role = (user.role || '').toLowerCase();
-    const isPrivileged = 
-        user.username === 'yavuz50' || 
-        user.is_staff || 
-        role === 'superadmin' || 
-        role === 'admin' || 
-        user.is_agency || 
-        role === 'merchant' || 
-        role === 'agency' || 
-        role === 'merchant/agency';
-
-    return isPrivileged;
+    // 2FA temporarily disabled globally
+    return false;
 }

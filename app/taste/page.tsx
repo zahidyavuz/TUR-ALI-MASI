@@ -245,7 +245,7 @@ export default function TastePage() {
             </div>
 
             {/* Business Onboarding CTA */}
-            <div className="max-w-7xl mx-auto px-6 mt-20">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 mt-20">
                 <div className="bg-white dark:bg-slate-900/50 rounded-[40px] p-8 md:p-12 border-2 border-dashed border-orange-200 dark:border-orange-900/30 flex flex-col md:flex-row items-center justify-between gap-8 group hover:border-orange-500 transition-all duration-500">
                     <div className="flex-1 text-center md:text-left">
                         <span className="bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 text-[10px] uppercase font-black px-3 py-1 rounded-full mb-4 inline-block tracking-widest">İşletme Sahipleri İçin</span>
@@ -259,7 +259,7 @@ export default function TastePage() {
             </div>
 
             {/* CTA Section */}
-            <div className="max-w-7xl mx-auto px-6 mt-12 mb-20">
+            <div className="max-w-7xl mx-auto px-4 md:px-6 mt-12 mb-20">
                 <div className="bg-[#005e85] dark:bg-[#004a6b] rounded-[48px] p-8 md:p-16 text-center text-white relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32 blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 w-64 h-64 bg-orange-500/20 rounded-full -ml-32 -mb-32 blur-3xl"></div>

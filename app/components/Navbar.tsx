@@ -186,91 +186,63 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
           </div>
 
           <div className="hidden md:flex relative dropdown-container items-center justify-center" data-dropdown="userMenu">
-            <button
-              onClick={() => toggleDropdown('userMenu')}
-              aria-label="Kullanıcı Menüsü"
-              className={`transition rounded-full border-[1.5px] w-10 h-10 flex items-center justify-center bg-white cursor-pointer relative z-10 ${activeDropdown === 'userMenu' ? 'border-[#008cb3] text-[#008cb3] bg-blue-50' : 'border-gray-300 text-gray-600 hover:text-blue-500 hover:border-[#008cb3] hover:bg-gray-50'}`}
-            >
-              <svg className="pointer-events-none w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" /></svg>
-            </button>
+            {isLoggedIn ? (
+              <button
+                onClick={() => toggleDropdown('userMenu')}
+                aria-label="Profil Menüsü"
+                className={`transition rounded-full w-10 h-10 flex items-center justify-center bg-gradient-to-tr from-[#008cb3] to-blue-400 text-white font-black text-sm shadow-md cursor-pointer relative z-10 hover:shadow-lg hover:scale-105 ${activeDropdown === 'userMenu' ? 'ring-2 ring-offset-2 ring-[#008cb3]' : ''}`}
+              >
+                {user?.username ? user.username.substring(0, 2).toUpperCase() : 'ME'}
+              </button>
+            ) : (
+              <button
+                onClick={() => toggleDropdown('userMenu')}
+                aria-label="Kullanıcı Menüsü"
+                className={`transition rounded-full border-[1.5px] w-10 h-10 flex items-center justify-center bg-white cursor-pointer relative z-10 ${activeDropdown === 'userMenu' ? 'border-[#008cb3] text-[#008cb3] bg-blue-50' : 'border-gray-300 text-gray-600 hover:text-blue-500 hover:border-[#008cb3] hover:bg-gray-50'}`}
+              >
+                <svg className="pointer-events-none w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2M12 11a4 4 0 100-8 4 4 0 000 8z" /></svg>
+              </button>
+            )}
 
             {/* Kullanıcı / Acenta Girişi Dropdown */}
             {activeDropdown === 'userMenu' && (
               <div className="absolute right-0 top-[120%] w-64 bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-gray-100 dark:border-slate-800 py-3 z-[60] flex flex-col overflow-hidden animate-in fade-in slide-in-from-top-2 duration-200 origin-top-right">
-
-                {/* Müşteri Araçları */}
-                {isLoggedIn && userRole === 'customer' && (
-                  <div className="flex flex-col">
-                    <button
-                      onClick={() => { window.location.href = '/profile'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zm-4 7a4 4 0 00-8 0v3h8v-3z" /></svg>
-                        Profilim ve Ayarlar
-                      </span>
+                
+                {isLoggedIn ? (
+                  <div className="flex flex-col py-1">
+                    <div className="px-5 py-3 border-b border-gray-100 dark:border-slate-800 mb-2">
+                      <p className="font-black text-slate-800 dark:text-white text-[15px]">{user?.username || 'Kullanıcı'}</p>
+                      <p className="text-xs font-semibold text-gray-500">
+                        {userRole === 'admin' ? 'Sistem Yöneticisi' : userRole === 'agency' ? 'İşletme Hesabı' : 'Müşteri Hesabı'}
+                      </p>
+                    </div>
+                    
+                    <button onClick={() => { router.push('/profile'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
+                      <span className="text-lg">👤</span> Profilim
+                    </button>
+                    <button onClick={() => { router.push('/tickets'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
+                      <span className="text-lg">🎟️</span> Biletlerim & QR Cüzdan
+                    </button>
+                    <button onClick={() => { router.push('/favorites'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
+                      <span className="text-lg">❤️</span> Favorilerim
+                    </button>
+                    <button onClick={() => { router.push('/profile'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
+                      <span className="text-lg">💳</span> Kayıtlı Kartlarım
+                    </button>
+                    <button onClick={() => { router.push('/profile'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
+                      <span className="text-lg">⚙️</span> Ayarlar
                     </button>
 
+                    <div className="border-t border-gray-100 dark:border-slate-800 my-1.5"></div>
+                    
                     <button
-                      onClick={() => { window.location.href = '/bookings'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
+                      onClick={() => { logout(); setActiveDropdown(null); window.location.href = '/'; }}
+                      className="w-full px-5 py-2.5 text-[14px] font-black text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 text-left flex items-center gap-3 transition-colors cursor-pointer group"
                     >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 12V7a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v11a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-2"></path><path d="M18 12h4"></path></svg>
-                        Biletlerim ve QR Cüzdan
-                      </span>
-                    </button>
-
-                    <button
-                      onClick={() => { setActiveDropdown(null); toggleDropdown('favorites'); }}
-                      className="w-full px-5 py-3 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                        Favori Turlarım
-                      </span>
+                      <span className="text-lg">🚪</span> Çıkış Yap
                     </button>
                   </div>
-                )}
-
-                {/* Sadece Acentalar İçin */}
-                {isLoggedIn && userRole === 'agency' && (
-                  <>
-                    <div className="px-5 py-2">
-                      <h4 className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-1">Acenta İşlemleri</h4>
-                    </div>
-                    <button
-                      onClick={() => { window.location.href = '/agency/dashboard'; setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-500 dark:hover:text-orange-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
-                        Panelim
-                      </span>
-                    </button>
-                    <button 
-                      onClick={() => { setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-500 dark:hover:text-orange-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        Yüklediğim Turlar
-                      </span>
-                    </button>
-                    <button 
-                      onClick={() => { setActiveDropdown(null); }}
-                      className="w-full px-5 py-2.5 text-[13px] font-bold text-gray-700 dark:text-slate-300 hover:bg-orange-50 dark:hover:bg-orange-900/30 hover:text-orange-500 dark:hover:text-orange-400 text-left flex items-center gap-3 transition-colors cursor-pointer group"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                        Kazançlarım ve Cüzdan
-                      </span>
-                    </button>
-                  </>
-                )}
-
-                {/* Giriş Linkleri Sadece Giriş Yapılmamışsa Gözüksün */}
-                {!isLoggedIn && (
+                ) : (
                   <div className="flex flex-col py-1">
                     <button
                       onClick={() => { window.location.href = '/login'; setActiveDropdown(null); }}
@@ -292,25 +264,6 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                     </button>
                   </div>
                 )}
-
-                {/* Çıkış Yap Butonu (Sadece Giriş Yapılıysa) */}
-                {isLoggedIn && (
-                  <>
-                    <div className="border-t border-gray-100/50 dark:border-slate-800 my-1.5"></div>
-                    <button
-                      onClick={() => {
-                        logout();
-                        setActiveDropdown(null);
-                      }}
-                      className="w-full px-5 py-3 text-[13px] font-bold text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 text-left flex items-center gap-3 transition-colors cursor-pointer group mb-1"
-                    >
-                      <span className="flex-1 flex items-center gap-3 pointer-events-none">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
-                        Güvenli Çıkış
-                      </span>
-                    </button>
-                  </>
-                )}
               </div>
             )}
           </div>
@@ -329,46 +282,15 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
               </button>
             </div>
             <div className="flex-1 overflow-y-auto p-6 flex flex-col gap-2">
-                {/* Giriş Yapmış Kullanıcı İçin Özel Menü */}
-                {isLoggedIn && userRole === 'customer' && (
-                  <>
-                    <div className="mb-2">
-                      <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Hesabım</p>
-                      <div className="flex flex-col gap-2">
-                        <Link href="/profile" className="px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">👤</span> Profilimi Düzenle
-                        </Link>
-                        <Link href="/bookings" className="px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">🎫</span> Biletlerim & Siparişler
-                        </Link>
-                        <Link href="/profile/cards" className="px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">💳</span> Ödeme Kartlarım
-                        </Link>
-                        <Link href="/profile/reviews" className="px-4 py-3 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">💬</span> Yorumlarım
-                        </Link>
-                      </div>
+                {/* GLOBAL CLEANUP: Eski paneller silindi. Sadece Ana Sayfa linki bırakıldı. */}
+                {isLoggedIn && (
+                  <div className="mb-4">
+                    <div className="bg-slate-50 dark:bg-slate-800 p-4 rounded-2xl flex flex-col gap-2">
+                       <span className="text-xs font-bold text-gray-500 text-center">Hesabınıza giriş yapıldı.</span>
                     </div>
-
-                    <div className="mb-2">
-                      <p className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-2">Müşteri Paneli</p>
-                      <div className="flex flex-col gap-2">
-                        <Link href="/profile/goals" className="px-4 py-3 rounded-2xl bg-blue-50 dark:bg-blue-500/10 text-[#008cb3] dark:text-blue-400 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">📍</span> {t.nav.destinations}
-                        </Link>
-                        <Link href="/taste" className="px-4 py-3 rounded-2xl bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">🍽️</span> {t.nav.taste}
-                        </Link>
-                        <Link href="/profile/styles" className="px-4 py-3 rounded-2xl bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">🎨</span> {t.nav.styles}
-                        </Link>
-                        <Link href="/profile/memories" className="px-4 py-3 rounded-2xl bg-pink-50 dark:bg-pink-500/10 text-pink-600 dark:text-pink-400 font-bold flex items-center gap-3 transition-colors" onClick={() => setIsMobileMenuOpen(false)}>
-                          <span className="text-xl">✨</span> {t.nav.memories}
-                        </Link>
-                      </div>
-                    </div>
-                  </>
+                  </div>
                 )}
+
 
                 {!isLoggedIn && (
                   <>
@@ -398,11 +320,11 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                     </div>
                 </div>
             </div>
-            <div className="p-6 border-t border-gray-100">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">Uygulamalarımızı İndirin</p>
+            <div className="p-6 border-t border-gray-100 dark:border-slate-800 dark:bg-slate-900">
+                <p className="text-[10px] font-black text-gray-400 dark:text-slate-400 uppercase tracking-widest mb-4">Uygulamalarımızı İndirin</p>
                 <div className="flex gap-3">
-                    <div className="flex-1 h-10 bg-black rounded-lg flex items-center justify-center text-white text-[10px] font-bold">App Store</div>
-                    <div className="flex-1 h-10 bg-black rounded-lg flex items-center justify-center text-white text-[10px] font-bold">Play Store</div>
+                    <div className="flex-1 h-10 bg-black dark:bg-slate-800 rounded-lg flex items-center justify-center text-white text-[10px] font-bold border border-slate-700/0 dark:border-slate-700">App Store</div>
+                    <div className="flex-1 h-10 bg-black dark:bg-slate-800 rounded-lg flex items-center justify-center text-white text-[10px] font-bold border border-slate-700/0 dark:border-slate-700">Play Store</div>
                 </div>
             </div>
           </div>

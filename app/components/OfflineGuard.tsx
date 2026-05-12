@@ -1,7 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { getAllOfflineTickets } from '../lib/offline-db';
-import { OfflineTicket } from '../lib/offline-types';
+import { getAllOfflineTickets } from '@/app/lib/offline-db';
+import { OfflineTicket } from '@/app/lib/offline-types';
 import Navbar from './Navbar';
 
 export default function OfflineGuard({ children }: { children: React.ReactNode }) {

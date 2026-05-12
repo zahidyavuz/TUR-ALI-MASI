@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
-import { fetchBlogs } from '../lib/blog';
+import { fetchBlogs } from '@/app/lib/blog';
 
 export const metadata = {
     title: 'Seyahat Blogu & Rehberler | Tourkia',

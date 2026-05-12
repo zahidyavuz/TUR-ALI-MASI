@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { getAllOfflineTickets, deleteOfflineTicket } from '../lib/offline-db';
+import { getAllOfflineTickets, deleteOfflineTicket } from '@/app/lib/offline-db';
 import Navbar from '../components/Navbar';
-import type { OfflineTicket } from '../lib/offline-types';
-import { verifyLocalBookingOwnership } from '../lib/idor';
+import type { OfflineTicket } from '@/app/lib/offline-types';
+import { verifyLocalBookingOwnership } from '@/app/lib/idor';
 import ForbiddenPage from '../components/ForbiddenPage';
 
 export default function OfflineTicketsPage() {

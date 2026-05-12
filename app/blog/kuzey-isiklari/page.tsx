@@ -85,7 +85,7 @@ export default function BlogKuzeyIsiklari() {
                         <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500 rounded-full blur-[100px] opacity-20 -translate-y-1/2 translate-x-1/2"></div>
                         <h4 className="text-2xl font-black mb-3">Sıra Sende: Bu Kış Kuzey Işıkları Macerasına Katıl!</h4>
                         <p className="text-slate-300 mb-6 text-sm">Hayatınızda unutamayacağınız bir anı mı biriktirmek istiyorsunuz? Çarpıcı Norveç Fiyortları ve garanti kuzey ışığı avımızla İskandinavya Turu sizleri bekliyor.</p>
-                        <Link href="/tour/iskandinav-fiyortlari" className="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg">
+                        <Link href="/search" className="inline-flex items-center gap-2 bg-white text-slate-900 px-6 py-3 rounded-xl font-bold hover:bg-indigo-50 transition-colors shadow-lg">
                             İskandinav Fiyortları Turunu İncele ➔
                         </Link>
                     </div>

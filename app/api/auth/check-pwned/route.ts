@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isPasswordPwned } from '../../../lib/passwordShield';
+import { isPasswordPwned } from '@/app/lib/passwordShield';
 
 export async function POST(req: NextRequest) {
     try {

@@ -22,7 +22,7 @@ import {
   logFraudAlert,
   sendFraudAlertEmail,
   getFraudLog,
-} from '../../lib/webhookArmor';
+} from '@/app/lib/webhookArmor';
 
 // ─── Yardımcı: IP Tespiti ─────────────────────────────────────────────────────
 const getClientIp = (req: NextRequest): string => {

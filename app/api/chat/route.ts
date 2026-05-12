@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { fetchTours } from '../../lib/tours';
+import { fetchTours } from '@/app/lib/tours';
 
 export async function POST(req: NextRequest) {
     try {

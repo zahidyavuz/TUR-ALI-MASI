@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { saveOfflineTicket } from '../lib/offline-db';
-import { generateTicketQrDataUrl } from '../lib/qr';
-import { createPlaceholderMapDataUrl } from '../lib/offline-map';
-import type { OfflineTicket, ItineraryStep } from '../lib/offline-types';
+import { saveOfflineTicket } from '@/app/lib/offline-db';
+import { generateTicketQrDataUrl } from '@/app/lib/qr';
+import { createPlaceholderMapDataUrl } from '@/app/lib/offline-map';
+import type { OfflineTicket, ItineraryStep } from '@/app/lib/offline-types';
 
 interface TourSnapshot {
   id: string;

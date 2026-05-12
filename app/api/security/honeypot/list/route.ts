@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getHoneypotIncidents } from '../../../../lib/honeypot';
+import { getHoneypotIncidents } from '@/app/lib/honeypot';
 
 export async function GET(req: NextRequest) {
     const adminToken = req.headers.get('x-admin-token');

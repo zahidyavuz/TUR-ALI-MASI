@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { initiate2FA, verify2FACode } from '../../../lib/twoFactor';
+import { initiate2FA, verify2FACode } from '@/app/lib/twoFactor';
 
 export async function POST(req: NextRequest) {
     try {

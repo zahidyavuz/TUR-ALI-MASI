@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeBehavior } from '../../../../lib/behavioralAI';
+import { analyzeBehavior } from '@/app/lib/behavioralAI';
 
 export async function POST(req: NextRequest) {
     try {

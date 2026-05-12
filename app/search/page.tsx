@@ -4,7 +4,7 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { fetchTours } from '../lib/tours';
+import { fetchTours } from '@/app/lib/tours';
 import CurrencySelector from '../components/CurrencySelector';
 import Navbar from '../components/Navbar';
 import { useLocale } from '../context/LocaleContext';

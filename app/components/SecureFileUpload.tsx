@@ -6,7 +6,7 @@ import {
   renameToSecure,
   MAX_FILE_SIZE_MB,
   ALLOWED_MIME_TYPES,
-} from '../lib/fileValidator';
+} from '@/app/lib/fileValidator';
 
 interface SecureFileUploadProps {
   /** Doğrulama geçince çağrılır. Güvenli File nesnesi ve önizleme URL'si döner. */

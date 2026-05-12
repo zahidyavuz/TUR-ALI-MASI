@@ -10,9 +10,9 @@
 }
 
 .dark {
-  --background: #0B132B; /* Lüks Lacivert */
-  --foreground: #ffffff; /* Ana başlıklar beyaz */
-  --card-bg: #ffffff; /* Kartların iç kısımları her iki modda sabit bembeyaz */
+  --background: #0B132B; /* LÃ¼ks Lacivert */
+  --foreground: #ffffff; /* Ana baÅlÄ±klar beyaz */
+  --card-bg: #ffffff; /* KartlarÄ±n iÃ§ kÄ±sÄ±mlarÄ± her iki modda sabit bembeyaz */
   --nav-bg: #0B132B;
 }
 
@@ -46,7 +46,7 @@ body {
   pointer-events: none !important;
 }
 
-/* React Calendar Custom Styles (Siyah Beyaz Teması) */
+/* React Calendar Custom Styles (Siyah Beyaz TemasÄ±) */
 .react-calendar {
   width: 100% !important;
   border: none !important;
@@ -172,5 +172,37 @@ body {
   .no-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+}
+
+/* Bottom Tab Bar spacing  prevents content from hiding under the bar on mobile */
+@media (max-width: 1023px) {
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
+  }
+}
+
+/* KOMUT 145: Touch-Target-Optimization */
+@media (max-width: 768px) { button, input, select, textarea { min-height: 48px; } }
+
+/* ============================================================
+   KOMUT 148: Keyboard-Aware Input Fields
+   Mobil klavye acildiktan sonra aktif input gorunumde kalsin.
+   ============================================================ */
+
+/* Input focus aninda yumuþak scroll */
+input:focus,
+select:focus,
+textarea:focus {
+  scroll-margin-top: 80px;
+  scroll-margin-bottom: 120px;
+}
+
+/* Prevent iOS zoom on inputs (min font-size 16px) */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
   }
 }

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { fetchTours } from './lib/tours';
+import { fetchTours } from '@/app/lib/tours';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import Link from 'next/link';
@@ -35,11 +35,11 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice, router }: 
       {/* Görsel Alanı (Geniş Split) */}
       <div className="relative h-44 md:h-auto md:w-[35%] overflow-hidden flex">
         <div className="w-1/2 h-full relative border-r-2 border-white z-10 shrink-0">
-          <Image src={tour.image} alt={tour.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+          <Image src={tour.image} alt={tour.name} fill priority={true} className="object-cover group-hover:scale-110 transition-transform duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
         </div>
         <div className="w-1/2 h-full relative shrink-0">
-          <Image src={restaurant.image} alt={restaurant.name} fill className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+          <Image src={restaurant.image} alt={restaurant.name} fill priority={true} className="object-cover group-hover:scale-110 transition-transform duration-1000" />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
         </div>
         
@@ -83,7 +83,7 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice, router }: 
               <span className="text-2xl font-black text-slate-900 tracking-tighter">{formatPrice(bundlePrice)}</span>
             </div>
           </div>
-          <button className="bg-[#008cb3] text-white font-black px-6 py-2.5 rounded-xl hover:bg-slate-900 transition-all shadow-[0_10px_25px_rgba(0,140,179,0.2)] hover:shadow-lg active:scale-95 text-[14px]">
+          <button className="bg-[#008cb3] text-white font-black px-4 md:px-6 py-2.5 rounded-xl hover:bg-slate-900 transition-all shadow-[0_10px_25px_rgba(0,140,179,0.2)] hover:shadow-lg active:scale-95 text-[14px]">
             İncele ve Al ➔
           </button>
         </div>
@@ -146,9 +146,16 @@ export default function Home() {
   const [showAgencyModal, setShowAgencyModal] = useState(false);
   const [agencyTab, setAgencyTab] = useState<'login' | 'register' | 'pricing'>('login');
   const [agencyBusinessType, setAgencyBusinessType] = useState('acenta');
+  
+  // Agency Form States
+  const [agencyEmail, setAgencyEmail] = useState('');
+  const [agencyPassword, setAgencyPassword] = useState('');
+  const [agencyBusinessName, setAgencyBusinessName] = useState('');
+  const [agencyTursabNo, setAgencyTursabNo] = useState('');
+  const [agencyAddress, setAgencyAddress] = useState('');
 
   // Sourced from Auth context
-  const { user, logout } = useAuth();
+  const { user, login, logout } = useAuth();
   const isLoggedIn = !!user;
   
   const role = user?.role?.toLowerCase() || '';
@@ -276,7 +283,7 @@ export default function Home() {
               <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 md:border-none">
                 <div
                   onClick={() => { if (activeDropdown !== 'location') toggleDropdown('location'); }}
-                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-text hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
+                  className="flex flex-col items-start px-2 md:px-4 md:px-6 py-3 md:py-2 cursor-text hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
                 >
                   <span className="text-[10px] md:text-xs font-black text-gray-700 md:text-gray-900 uppercase tracking-wider">{t.hero.searchLocationLabel}</span>
                   <input
@@ -322,7 +329,7 @@ export default function Home() {
               <div className="relative w-full md:w-1/3 h-auto md:h-full border-b border-gray-100 md:border-none">
                 <div
                   onClick={() => toggleDropdown('date')}
-                  className="flex flex-col items-start px-2 md:px-6 py-3 md:py-2 cursor-pointer hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
+                  className="flex flex-col items-start px-2 md:px-4 md:px-6 py-3 md:py-2 cursor-pointer hover:bg-gray-50 md:hover:bg-gray-100 md:rounded-full transition-all h-full justify-center w-full"
                 >
                   <span className="text-[10px] md:text-xs font-black text-gray-700 md:text-gray-900 uppercase tracking-wider">{t.hero.searchDateLabel}</span>
                   <span className={`text-sm ${!selectedDate ? 'text-gray-400' : 'text-blue-900 font-extrabold'} truncate w-full text-left mt-0.5`}>
@@ -456,14 +463,14 @@ export default function Home() {
 
       {/* 1. Türkiye'deki Popüler Turlar (Horizontal Carousel) */}
       <div className="w-full bg-white dark:bg-transparent pt-12 pb-2 overflow-hidden transition-colors duration-500">
-        <div className="max-w-7xl mx-auto px-6 mb-10">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 mb-10">
           <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tracking-tighter uppercase leading-none transition-colors duration-500">
             Türkiye'deki <span className="text-[#008cb3]">Popüler Turlar</span>
           </h2>
           <div className="w-24 h-1.5 bg-[#008cb3] mt-6 rounded-full"></div>
         </div>
         
-        <div className="flex overflow-x-auto pb-6 px-6 md:px-[calc((100vw-1280px)/2+24px)] gap-6 md:gap-8 scrollbar-hide snap-x snap-mandatory">
+        <div className="flex overflow-x-auto pb-6 px-4 md:px-6 md:px-[calc((100vw-1280px)/2+24px)] gap-6 md:gap-8 scrollbar-hide snap-x snap-mandatory">
           {[
             {
               id: 'vip-1',
@@ -563,8 +570,8 @@ export default function Home() {
 
       {/* Neden Tourkia? (Compact Middle Bar) */}
       <div className="w-full bg-slate-50/50 dark:bg-[#060c1d]/60 py-8 border-y border-gray-100 dark:border-white/5 transition-colors duration-500 backdrop-blur-sm">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12">
             {t.whyUs.items.map((item: any, idx: number) => (
               <div key={idx} className="flex items-center gap-4 group">
                 <div className="w-12 h-12 bg-white dark:bg-white/10 text-[#008cb3] dark:text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm dark:shadow-none group-hover:bg-[#008cb3] dark:group-hover:bg-white/20 group-hover:text-white transition-all duration-300">
@@ -585,7 +592,7 @@ export default function Home() {
 
       {/* --- National Showcase Grid (Ulusal Vitrin Dizilimi) --- */}
       <div className="w-full bg-white dark:bg-transparent py-12 md:py-16 overflow-hidden border-b border-gray-100 transition-colors duration-500">
-        <div className="max-w-7xl mx-auto px-6 mb-12">
+        <div className="max-w-7xl mx-auto px-4 md:px-6 mb-12">
           <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
             <div className="max-w-2xl">
               <div className="flex items-center gap-3 mb-4 animate-in fade-in slide-in-from-left-4 duration-700">
@@ -612,7 +619,7 @@ export default function Home() {
         </div>
 
         {/* Yatay Kaydırma Alanı */}
-        <div className="flex overflow-x-auto pb-12 px-6 md:px-[calc((100vw-1280px)/2+24px)] gap-8 md:gap-12 scrollbar-hide snap-x snap-mandatory">
+        <div className="flex overflow-x-auto pb-12 px-4 md:px-6 md:px-[calc((100vw-1280px)/2+24px)] gap-8 md:gap-12 scrollbar-hide snap-x snap-mandatory">
           {[
             {
               id: 'kirmizi-tur-kuzey',
@@ -704,7 +711,7 @@ export default function Home() {
                       </div>
                     </div>
                     <button 
-                      className="bg-[#008cb3] text-white text-[11px] font-black px-6 py-3.5 rounded-xl hover:bg-slate-900 transition-all duration-300 active:scale-95 shadow-lg shadow-blue-500/20 uppercase tracking-widest whitespace-nowrap"
+                      className="bg-[#008cb3] text-white text-[11px] font-black px-4 md:px-6 py-3.5 rounded-xl hover:bg-slate-900 transition-all duration-300 active:scale-95 shadow-lg shadow-blue-500/20 uppercase tracking-widest whitespace-nowrap"
                     >
                       İncele ve Al
                     </button>
@@ -722,7 +729,7 @@ export default function Home() {
               </div>
               <h3 className="text-2xl font-black text-white mb-4">Daha Fazlasını Keşfet</h3>
               <p className="text-slate-500 font-medium mb-8">Türkiye'nin her köşesinden 500'den fazla özel tur seni bekliyor.</p>
-              <button onClick={() => window.location.href = '/search'} className="bg-[#008cb3] text-white font-black px-8 py-4 rounded-xl hover:bg-white hover:text-[#008cb3] transition-all active:scale-95">
+              <button onClick={() => window.location.href = '/search'} className="bg-[#008cb3] text-white font-black px-4 md:px-8 py-4 rounded-xl hover:bg-white hover:text-[#008cb3] transition-all active:scale-95">
                 TÜM TURLARI GÖR
               </button>
             </div>
@@ -736,7 +743,7 @@ export default function Home() {
 
       {/* 4. Lezzet Durakları (Taste Hub - Yeni) */}
       <div className="w-full bg-white dark:bg-transparent py-24 border-t border-gray-100 transition-colors duration-500">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex flex-col md:flex-row md:items-end justify-between mb-12 gap-6">
             <div className="max-w-2xl">
               <span className="text-[10px] font-black text-orange-500 uppercase tracking-[0.3em] mb-3 block">Gastronomi Keşfi</span>
@@ -786,7 +793,7 @@ export default function Home() {
     
       {/* 4.5. Tur + VIP Menü Komboları (Combo Showcase - Yeni) */}
       <div className="w-full bg-[#f9f8f4] dark:bg-transparent py-16 border-t border-gray-200/50 transition-colors duration-500">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="text-center mb-10">
             <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-3 block">Ayrıcalıklı Paketler</span>
             <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-4 italic italic-font-fix transition-colors duration-500">Tur + VIP Menü <span className="text-orange-500 underline decoration-indigo-200 underline-offset-8 italic">Komboları</span></h2>
@@ -834,9 +841,9 @@ export default function Home() {
           </div>
 
           <div className="mt-12 flex justify-center">
-            <button className="text-sm font-black text-slate-800 hover:text-orange-500 flex items-center gap-2 group transition-all">
+            <button className="text-sm font-black text-slate-800 dark:text-white hover:text-orange-500 dark:hover:text-orange-400 flex items-center gap-2 group transition-all">
               TÜM KOMBO PAKETLERİ LİSTELE
-              <span className="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all">➔</span>
+              <span className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all">➔</span>
             </button>
           </div>
         </div>
@@ -848,7 +855,7 @@ export default function Home() {
         <div className="absolute top-0 right-0 w-96 h-96 bg-[#008cb3] blur-[150px] opacity-20 -translate-y-1/2 translate-x-1/2"></div>
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-orange-500 blur-[150px] opacity-10 translate-y-1/2 -translate-x-1/2"></div>
 
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 relative z-10">
           <div className="text-center mb-6">
             <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-2 block">Gezginlerin Gözünden</span>
             <h2 className="text-xl md:text-3xl font-black text-white tracking-tight mb-2">Ölümsüz Anılar</h2>
@@ -874,7 +881,7 @@ export default function Home() {
           </div>
 
           <div className="mt-8 text-center">
-            <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-white font-black px-6 py-3 rounded-xl transition-all active:scale-95 flex items-center gap-2 mx-auto text-xs">
+            <button className="bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 text-white font-black px-4 md:px-6 py-3 rounded-xl transition-all active:scale-95 flex items-center gap-2 mx-auto text-xs">
               <span className="text-lg">📸</span>
               KENDİ ANINI PAYLAŞ
             </button>
@@ -884,11 +891,11 @@ export default function Home() {
 
       {/* 9. Bülten / İletişim */}
       < div className="w-full bg-slate-100 py-16 border-t border-gray-200" >
-        <div className="max-w-4xl mx-auto px-6 text-center">
+        <div className="max-w-4xl mx-auto px-4 md:px-6 text-center">
           <h2 className="text-[28px] font-black text-slate-800 mb-4">Macerayı E-Posta Kutunuza Taşıyın</h2>
           <p className="text-gray-600 mb-8 font-medium">Bültenimize kaydolun, en yeni tur fırsatlarından ve promosyonlardan ilk siz haberdar olun!</p>
           <div className="flex flex-col md:flex-row gap-3 justify-center max-w-2xl mx-auto">
-            <input type="email" placeholder="E-posta adresinizi girin" className="flex-1 px-6 py-4 rounded-full border border-gray-300 outline-none focus:border-[#008cb3] shadow-sm" />
+            <input type="email" placeholder="E-posta adresinizi girin" className="flex-1 px-4 md:px-6 py-4 rounded-full border border-gray-300 outline-none focus:border-[#008cb3] shadow-sm" />
             <button className="bg-orange-500 text-white font-bold px-10 py-4 rounded-full hover:bg-orange-600 transition-colors shadow-md">Abone Ol</button>
           </div>
         </div>
@@ -921,7 +928,7 @@ export default function Home() {
 
               {/* Sekmeler (Tabs) Sadece Doğrulama Aşamasında Değilse Göster */}
               {!isVerifyingEmail && (
-                <div className="flex w-full bg-slate-50 pt-2 px-6">
+                <div className="flex w-full bg-slate-50 pt-2 px-4 md:px-6">
                   <button
                     onClick={() => setLoginTab('login')}
                     className={`flex-1 py-5 text-[15px] font-black cursor-pointer transition-colors border-b-[3px] ${loginTab === 'login' ? 'text-[#008cb3] border-[#008cb3]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
@@ -954,6 +961,8 @@ export default function Home() {
                         }
 
                         setIsLoading(true);
+                        // --- EMAIL VERIFICATION ARCHIVED (TEMPORARILY DISABLED) ---
+                        /*
                         try {
                           const response = await fetch('/api/verify-email', {
                             method: 'POST',
@@ -974,11 +983,19 @@ export default function Home() {
                         } finally {
                           setIsLoading(false);
                         }
+                        */
+                        
+                        // Direct Success Simulation
+                        setTimeout(() => {
+                          setIsLoading(false);
+                          alert('Üyeliğiniz başarıyla tamamlandı! Hoş geldiniz.');
+                          setShowLoginModal(false);
+                          router.push('/'); // Kayıt sonrası ana sayfada bırak
+                        }, 1000);
 
                       } else {
-                        alert('Giriş yapmak için üst menüdeki Giriş Yap butonuna basınız.');
                         setShowLoginModal(false);
-                        setShowLoginModal(false);
+                        router.push('/login'); // Giriş için login sayfasına yönlendir
                       }
                     }}>
                       {loginTab === 'register' && (
@@ -1009,7 +1026,7 @@ export default function Home() {
                         disabled={isLoading}
                         className="w-full bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-2xl mt-3 hover:bg-[#005e85] transition-colors shadow-lg hover:shadow-xl active:scale-[0.98] duration-200 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed"
                       >
-                        {loginTab === 'login' ? 'Giriş Yap' : (isLoading ? 'Kod Gönderiliyor...' : <>Üye Ol ve Doğrula <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></>)}
+                        {loginTab === 'login' ? 'Giriş Yap' : (isLoading ? 'Kayıt Yapılıyor...' : <>Üye Ol <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg></>)}
                       </button>
 
                       <div className="relative flex items-center py-4">
@@ -1086,7 +1103,7 @@ export default function Home() {
               </button>
 
               {/* Şık Acenta Banner */}
-              <div className="bg-gradient-to-r from-orange-400 to-orange-500 pt-8 pb-6 px-8 text-white relative overflow-hidden">
+              <div className="bg-gradient-to-r from-orange-400 to-orange-500 pt-8 pb-6 px-4 md:px-8 text-white relative overflow-hidden">
                 <svg className="absolute right-0 bottom-0 opacity-20 transform translate-x-1/4 translate-y-1/4" width="120" height="120" fill="currentColor" viewBox="0 0 24 24"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>
                 <h2 className="text-2xl font-black relative z-10 leading-tight">
                   İşletmenizi Dünyayla <br /> Buluşturun!
@@ -1124,11 +1141,7 @@ export default function Home() {
                 {(agencyTab === 'login' || agencyTab === 'register') && (
                   <form className="flex flex-col gap-4" onSubmit={(e) => {
                     e.preventDefault();
-                    if (agencyTab === 'login') {
-                      setShowAgencyModal(false);
-                      // Role bilgisini URL'e ekleyerek login sayfasına pasla
-                      router.push(`/login?role=${agencyBusinessType}`); 
-                    } else {
+                    if (agencyTab === 'register') {
                       alert('Acentelik başvurunuz alınmıştır.');
                       setShowAgencyModal(false);
                     }
@@ -1136,31 +1149,37 @@ export default function Home() {
                     {agencyTab === 'register' && (
                       <>
                         <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme Türü</label>
-                          <select 
-                            value={agencyBusinessType}
-                            onChange={(e) => setAgencyBusinessType(e.target.value)}
-                            className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-bold text-slate-700"
-                          >
-                            <option value="acenta">Tur Acentası</option>
-                            <option value="restoran">Restoran</option>
-                            <option value="kafe">Kafe</option>
-                          </select>
-                        </div>
-                        <div>
                           <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme / Firma Adı</label>
-                          <input type="text" placeholder="Örn: Gurme Restoran veya X Turizm" className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
+                          <input 
+                            type="text" 
+                            value={agencyBusinessName}
+                            onChange={(e) => setAgencyBusinessName(e.target.value)}
+                            placeholder="Örn: Gurme Restoran veya X Turizm" 
+                            className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" 
+                          />
                         </div>
                         {agencyBusinessType === 'acenta' && (
                           <div className="animate-in slide-in-from-top-2 duration-300">
                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">TURSAB Belge No</label>
-                            <input type="text" placeholder="Örn: 12345" className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
+                            <input 
+                                type="text" 
+                                value={agencyTursabNo}
+                                onChange={(e) => setAgencyTursabNo(e.target.value)}
+                                placeholder="Örn: 12345" 
+                                className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" 
+                            />
                           </div>
                         )}
                         {(agencyBusinessType === 'restoran' || agencyBusinessType === 'kafe') && (
                           <div className="animate-in slide-in-from-top-2 duration-300">
                             <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme Adresi / Şehir</label>
-                            <input type="text" placeholder="Örn: Kapadokya, Nevşehir" className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" />
+                            <input 
+                                type="text" 
+                                value={agencyAddress}
+                                onChange={(e) => setAgencyAddress(e.target.value)}
+                                placeholder="Örn: Kapadokya, Nevşehir" 
+                                className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" 
+                            />
                           </div>
                         )}
                       </>
@@ -1178,17 +1197,51 @@ export default function Home() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Kurumsal E-Posta</label>
-                      <input type="email" placeholder="iletisim@firmaniz.com" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" />
+                      <input 
+                        type="email" 
+                        value={agencyEmail}
+                        onChange={(e) => setAgencyEmail(e.target.value)}
+                        placeholder="iletisim@firmaniz.com" 
+                        className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" 
+                      />
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1.5 ml-1">
                         <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">Şifre</label>
-                        {agencyTab === 'login' && <a href="#" className="text-xs text-orange-500 hover:underline font-bold mr-1">Şifremi Unuttum?</a>}
+                        {agencyTab === 'login' && <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="text-xs text-orange-500 hover:underline font-bold mr-1">Şifremi Unuttum?</button>}
                       </div>
-                      <input type="password" placeholder="••••••••" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" />
+                      <input 
+                        type="password" 
+                        value={agencyPassword}
+                        onChange={(e) => setAgencyPassword(e.target.value)}
+                        placeholder="••••••••" 
+                        className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" 
+                      />
                     </div>
 
-                    <button className="w-full bg-orange-500 text-white font-black text-[15px] py-4 rounded-2xl mt-4 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30 hover:shadow-xl active:scale-[0.98] duration-200">
+                    <button 
+                      type={agencyTab === 'login' ? 'button' : 'submit'}
+                      onClick={async () => {
+                        if (agencyTab === 'login') {
+                          // Login İşlemi: Mock Token oluşturup AuthContext'e veriyoruz
+                          const tokenStr = agencyBusinessType === 'restoran' ? 'mock_restaurant_token' : 'mock_agency_token';
+                          const mockTokens = { access: tokenStr, refresh: tokenStr };
+                          
+                          if (typeof window !== 'undefined') {
+                              localStorage.setItem('access_token', tokenStr);
+                          }
+                          
+                          setShowAgencyModal(false);
+                          
+                          // Doğrudan login foksiyonunu çağırıp başarılı olursa Business Hub'a gönder
+                          if (login) {
+                              await login(mockTokens);
+                              window.location.href = '/dashboard/business'; // Kesin ve net yönlendirme (hard redirect)
+                          }
+                        }
+                      }}
+                      className="w-full bg-orange-500 text-white font-black text-[15px] py-4 rounded-2xl mt-4 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30 hover:shadow-xl active:scale-[0.98] duration-200"
+                    >
                       {agencyTab === 'login' ? 'Yönetim Paneline Gir' : 'Hemen Başvuru Yap'}
                     </button>
                   </form>
@@ -1266,7 +1319,7 @@ export default function Home() {
               </button>
 
               {/* Fiş/Özet Header */}
-              <div className="bg-slate-50 pt-8 pb-6 px-8 relative border-b border-gray-100">
+              <div className="bg-slate-50 pt-8 pb-6 px-4 md:px-8 relative border-b border-gray-100">
                 <div className="flex items-center gap-3 mb-2">
                   <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
                     <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" /></svg>
@@ -1303,17 +1356,17 @@ export default function Home() {
 
                   <div>
                     <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Kart Numarası</label>
-                    <input type="text" maxLength={19} placeholder="0000 0000 0000 0000" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 tracking-wider" />
+                    <input type="text" inputMode="numeric" maxLength={19} placeholder="0000 0000 0000 0000" autoComplete="cc-number" onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 tracking-wider" />
                   </div>
 
                   <div className="flex gap-4">
                     <div className="flex-1">
                       <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Son KULL. TA.</label>
-                      <input type="text" maxLength={5} placeholder="AA/YY" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 text-center" />
+                      <input type="text" inputMode="numeric" maxLength={5} placeholder="AA/YY" autoComplete="cc-exp" onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 text-center" />
                     </div>
                     <div className="flex-1">
                       <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">CVV/CVC</label>
-                      <input type="password" maxLength={3} placeholder="•••" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 text-center tracking-widest" />
+                      <input type="password" inputMode="numeric" maxLength={3} placeholder="•••" autoComplete="cc-csc" onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 text-center tracking-widest" />
                     </div>
                   </div>
 

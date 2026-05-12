@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { fetchTour } from '../../lib/tours';
+import { fetchTour } from '@/app/lib/tours';
 
 type Props = {
     params: { slug: string };

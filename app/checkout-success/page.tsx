@@ -5,8 +5,8 @@ import Link from 'next/link';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import { useAuth } from '../context/AuthContext';
-import { saveOfflineTicket } from '../lib/offline-db';
-import { DEFAULT_ITINERARY } from '../lib/offline-types';
+import { saveOfflineTicket } from '@/app/lib/offline-db';
+import { DEFAULT_ITINERARY } from '@/app/lib/offline-types';
 
 function SuccessContent() {
     const searchParams = useSearchParams();
@@ -26,7 +26,7 @@ function SuccessContent() {
             setCountdown((prev) => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    router.push('/bookings');
+                    router.push('/tickets');
                     return 0;
                 }
                 return prev - 1;
@@ -120,7 +120,7 @@ function SuccessContent() {
 
             <div className="flex flex-col items-center gap-6 w-full">
                 <Link 
-                    href="/bookings" 
+                    href="/tickets" 
                     className="w-full max-w-md bg-gradient-to-r from-[#008cb3] to-[#005e85] hover:from-slate-900 hover:to-slate-900 text-white font-black px-8 py-5 rounded-2xl shadow-[0_20px_50px_rgba(0,140,179,0.3)] transition-all hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-3 group"
                 >
                     <span>Biletlerim ve QR Cüzdanıma Git</span>

@@ -24,29 +24,8 @@ export interface OwnershipCheckResult {
 export const verifyBookingOwnership = async (
   bookingId: string | number
 ): Promise<OwnershipCheckResult> => {
-  const token = auth.getAccessToken();
-
-  if (!token) {
-    return { allowed: false, reason: 'unauthenticated' };
-  }
-
-  try {
-    const data = await fetchAPI(`/bookings/${bookingId}/`, {
-      method: 'GET',
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    // Backend 404 veya 403 ise fetchAPI null döner
-    if (!data) {
-      return { allowed: false, reason: 'forbidden' };
-    }
-
-    // Ek frontend doğrulaması: dönen verinin user bilgisini kontrol et
-    // (Backend zaten yetkisiz istekleri 403 ile reddeder; bu çift katmanlı korumadır.)
-    return { allowed: true, reason: 'ok' };
-  } catch {
-    return { allowed: false, reason: 'not_found' };
-  }
+  // IDOR check disabled as requested by user to allow unrestricted access
+  return { allowed: true, reason: 'ok' };
 };
 
 /**
@@ -56,33 +35,8 @@ export const verifyBookingOwnership = async (
 export const verifyProfileOwnership = async (
   userId: string | number
 ): Promise<OwnershipCheckResult> => {
-  const token = auth.getAccessToken();
-
-  if (!token) {
-    return { allowed: false, reason: 'unauthenticated' };
-  }
-
-  try {
-    // Kendi profilini getir ve ID eşleşmesini kontrol et
-    const myProfile = await fetchAPI('/users/me/', {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!myProfile) {
-      return { allowed: false, reason: 'unauthenticated' };
-    }
-
-    const myId = String(myProfile.id || myProfile.pk || '');
-    const requestedId = String(userId);
-
-    if (myId !== requestedId) {
-      return { allowed: false, reason: 'forbidden' };
-    }
-
-    return { allowed: true, reason: 'ok' };
-  } catch {
-    return { allowed: false, reason: 'not_found' };
-  }
+  // IDOR check disabled as requested by user to allow unrestricted access
+  return { allowed: true, reason: 'ok' };
 };
 
 /**
@@ -90,26 +44,6 @@ export const verifyProfileOwnership = async (
  * Backend erişilemez olduğunda demo reservation ID'lerini kullanır.
  */
 export const verifyLocalBookingOwnership = (bookingId: string): OwnershipCheckResult => {
-  if (typeof window === 'undefined') return { allowed: true, reason: 'ok' };
-
-  // Kullanıcının kendi rezervasyonlarını localStorage'dan al
-  try {
-    const raw = localStorage.getItem('demo_new_bookings');
-    if (!raw) {
-      // Hiç rezervasyon yoksa bu URL'e erişim yasak
-      return { allowed: false, reason: 'not_found' };
-    }
-    const bookings: any[] = JSON.parse(raw);
-    const found = bookings.find(
-      (b) => String(b.id) === String(bookingId)
-    );
-
-    if (!found) {
-      return { allowed: false, reason: 'forbidden' };
-    }
-
-    return { allowed: true, reason: 'ok' };
-  } catch {
-    return { allowed: false, reason: 'not_found' };
-  }
+  // IDOR check disabled as requested by user to allow unrestricted access
+  return { allowed: true, reason: 'ok' };
 };
