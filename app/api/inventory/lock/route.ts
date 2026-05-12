@@ -15,7 +15,7 @@ import {
   listActiveHolds,
   acquirePromoLock,
   type InventoryHold,
-} from '../../lib/inventoryLock';
+} from '@/app/lib/inventoryLock';
 
 const getSessionId = (req: NextRequest): string => {
   // Gerçekte: JWT'den user ID veya session cookie'den

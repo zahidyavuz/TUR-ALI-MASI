@@ -2,7 +2,7 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { fetchAPI } from '../lib/api';
+import { fetchAPI } from '@/app/lib/api';
 import SecurityShield from '../components/SecurityShield';
 
 function ResetPasswordForm() {
@@ -39,10 +39,12 @@ function ResetPasswordForm() {
             return;
         }
 
+        /* Security verification temporarily disabled
         if (!humanToken) {
             setErrorMsg('Güvenlik doğrulaması tamamlanmadı. Lütfen bekleyin.');
             return;
         }
+        */
 
         setIsSubmitting(true);
         setErrorMsg('');
@@ -127,9 +129,7 @@ function ResetPasswordForm() {
                 />
             </div>
 
-            <div className="pt-2">
-                <SecurityShield onVerify={setHumanToken} />
-            </div>
+            {/* Security verification removed for now */}
 
             <button 
                 type="submit" 

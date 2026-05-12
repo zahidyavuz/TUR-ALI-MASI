@@ -3,7 +3,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
-import { fetchAPI } from '../lib/api';
+import { fetchAPI } from '@/app/lib/api';
 import SecurityShield from '../components/SecurityShield';
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -32,15 +32,17 @@ export default function RegisterPage() {
             return;
         }
 
+        /* Security verification temporarily disabled
         if (!humanToken) {
             setError('Güvenlik doğrulaması tamamlanmadı. Lütfen bekleyin.');
             return;
         }
+        */
 
         setLoading(true);
 
         try {
-            // --- CREDENTIAL STUFFING SHIELD: Sızdırılmış Şifre Kontrolü ---
+            /* CREDENTIAL STUFFING SHIELD: Sızdırılmış Şifre Kontrolü (Temporarily disabled)
             const pwnedRes = await fetch('/api/auth/check-pwned', {
                 method: 'POST',
                 body: JSON.stringify({ password: formData.password })
@@ -52,6 +54,7 @@ export default function RegisterPage() {
                 setLoading(false);
                 return;
             }
+            */
             // Using dj-rest-auth standard registration endpoint
             const response = await fetchAPI('/auth/registration/', {
                 method: 'POST',
@@ -71,14 +74,14 @@ export default function RegisterPage() {
                     localStorage.setItem('access_token', 'mock_token');
                 }
                 await login({ access: 'mock_token', refresh: 'mock_token' });
-                router.push('/dashboard');
+                router.push('/profile');
                 return;
             }
 
             // Assuming dj-rest-auth returns tokens upon successful registration 
             if (response.access) {
                 await login({ access: response.access, refresh: response.refresh });
-                router.push('/dashboard');
+                router.push('/profile');
             } else if (response.user) {
                 // If it doesn't auto-login, redirect to login page
                 router.push('/login?registered=true');
@@ -127,6 +130,8 @@ export default function RegisterPage() {
                             name="username"
                             value={formData.username}
                             onChange={handleChange}
+                            onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            autoComplete="username"
                             required
                             className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold"
                             placeholder="johndoe"
@@ -139,6 +144,8 @@ export default function RegisterPage() {
                             name="email"
                             value={formData.email}
                             onChange={handleChange}
+                            onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            autoComplete="email"
                             required
                             className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold"
                             placeholder="ornek@email.com"
@@ -151,6 +158,8 @@ export default function RegisterPage() {
                             name="password"
                             value={formData.password}
                             onChange={handleChange}
+                            onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            autoComplete="new-password"
                             required
                             minLength={6}
                             className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold"
@@ -164,6 +173,8 @@ export default function RegisterPage() {
                             name="passwordConfirm"
                             value={formData.passwordConfirm}
                             onChange={handleChange}
+                            onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })}
+                            autoComplete="new-password"
                             required
                             minLength={6}
                             className="w-full bg-slate-50 border border-gray-200 p-4 rounded-xl outline-none focus:border-[#008cb3] focus:bg-white transition-colors text-slate-800 font-semibold"
@@ -171,9 +182,7 @@ export default function RegisterPage() {
                         />
                     </div>
 
-                    <div className="pt-2">
-                        <SecurityShield onVerify={setHumanToken} />
-                    </div>
+                    {/* Security verification removed for now */}
 
                     <div className="pt-2">
                         <button

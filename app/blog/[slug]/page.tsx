@@ -2,8 +2,8 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import ReactMarkdown from 'react-markdown';
-import { fetchBlog } from '../../lib/blog';
-import { fetchTours } from '../../lib/tours';
+import { fetchBlog } from '@/app/lib/blog';
+import { fetchTours } from '@/app/lib/tours';
 import Navbar from '../../components/Navbar';
 import { Metadata } from 'next';
 

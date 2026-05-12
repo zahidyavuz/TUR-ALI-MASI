@@ -15,7 +15,7 @@ import {
   verifyLogIntegrity,
   type AuditAction,
   type AuditResource,
-} from '../../lib/auditLog';
+} from '@/app/lib/auditLog';
 
 const getClientIp = (req: NextRequest): string =>
   req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||

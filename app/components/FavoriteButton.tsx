@@ -1,8 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { auth as authHelper } from '../lib/auth';
-import { fetchAPI } from '../lib/api';
+import { auth as authHelper } from '@/app/lib/auth';
+import { fetchAPI } from '@/app/lib/api';
 
 interface FavoriteButtonProps {
     tourId: string;

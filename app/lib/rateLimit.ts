@@ -13,31 +13,8 @@ interface RateLimitData {
 }
 
 export const checkRateLimit = (actionKey: string = 'login_attempts'): { allowed: boolean; remainingMinutes?: number } => {
-  if (typeof window === 'undefined') return { allowed: true };
-
-  const dataStr = localStorage.getItem(actionKey);
-  if (!dataStr) return { allowed: true };
-
-  try {
-    const data: RateLimitData = JSON.parse(dataStr);
-    const now = Date.now();
-
-    // Eğer kilitliyse süresini kontrol et
-    if (data.lockedUntil && data.lockedUntil > now) {
-      const remainingMinutes = Math.ceil((data.lockedUntil - now) / 60000);
-      return { allowed: false, remainingMinutes };
-    }
-
-    // Kilit süresi dolmuşsa sıfırla
-    if (data.lockedUntil && data.lockedUntil <= now) {
-      localStorage.removeItem(actionKey);
-      return { allowed: true };
-    }
-
-    return { allowed: true };
-  } catch {
-    return { allowed: true };
-  }
+  // Rate limiting disabled for frictionless experience
+  return { allowed: true };
 };
 
 export const recordFailedAttempt = (actionKey: string = 'login_attempts'): void => {

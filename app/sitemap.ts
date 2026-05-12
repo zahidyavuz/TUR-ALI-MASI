@@ -1,6 +1,6 @@
 import { MetadataRoute } from 'next';
-import { fetchTours } from './lib/tours';
-import { fetchBlogs } from './lib/blog';
+import { fetchTours } from '@/app/lib/tours';
+import { fetchBlogs } from '@/app/lib/blog';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = 'https://tourkia.com';

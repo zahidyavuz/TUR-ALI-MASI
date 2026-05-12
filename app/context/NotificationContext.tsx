@@ -9,17 +9,17 @@ import React, {
   useRef,
   type ReactNode,
 } from 'react';
-import type { AppNotification, NotificationPrefs } from '../lib/notification-types';
-import { DEFAULT_PREFS, STORAGE_KEYS } from '../lib/notification-types';
+import type { AppNotification, NotificationPrefs } from '@/app/lib/notification-types';
+import { DEFAULT_PREFS, STORAGE_KEYS } from '@/app/lib/notification-types';
 import {
   shouldShowNotification,
   markNotificationShown,
   isOverDailyLimit,
-} from '../lib/notification-smart';
-import { checkTourReminders, checkWeatherAlerts, checkDiscountAlerts } from '../lib/notification-checks';
-import { getAllOfflineTickets } from '../lib/offline-db';
-import { fetchTours } from '../lib/tours';
-import { auth } from '../lib/auth'; // Using auth helper to fetch token
+} from '@/app/lib/notification-smart';
+import { checkTourReminders, checkWeatherAlerts, checkDiscountAlerts } from '@/app/lib/notification-checks';
+import { getAllOfflineTickets } from '@/app/lib/offline-db';
+import { fetchTours } from '@/app/lib/tours';
+import { auth } from '@/app/lib/auth'; // Using auth helper to fetch token
 
 function loadNotifications(): AppNotification[] {
   if (typeof window === 'undefined') return [];
@@ -200,15 +200,14 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                   if (!data) return;
                   const serverNotifs = data.results || data;
                   if (!Array.isArray(serverNotifs)) return;
-                  const mappedServer = serverNotifs.map((sn: any) => ({
+                  const mappedServer: AppNotification[] = serverNotifs.map((sn: any) => ({
                       id: String(sn.id),
                       title: sn.title,
-                      message: sn.message,
-                      type: sn.type,
-                      icon: sn.icon || '🔔',
+                      body: sn.message, // Map message to body
+                      type: sn.type as any,
                       actionUrl: sn.action_url,
                       read: sn.is_read,
-                      timestamp: new Date(sn.created_at).getTime()
+                      createdAt: sn.created_at
                   }));
 
                   // Merge with local ensuring no dupes and server state takes precedence
@@ -218,7 +217,7 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
                       prev.forEach(p => {
                           if (!serverIds.has(p.id)) merged.push(p);
                       });
-                      const final = merged.sort((a, b) => b.timestamp - a.timestamp);
+                      const final = merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
                       saveNotifications(final);
                       return final;
                   });

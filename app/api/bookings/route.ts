@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateTicketQrDataUrl } from '../../lib/qr';
+import { generateTicketQrDataUrl } from '@/app/lib/qr';
 
 export async function POST(req: Request) {
     try {

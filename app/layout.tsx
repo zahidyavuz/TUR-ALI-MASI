@@ -39,6 +39,9 @@ import GeofenceBanner from "./components/GeofenceBanner";
 import HoneypotTraps from "./components/HoneypotTraps";
 import BehavioralTracker from "./components/BehavioralTracker";
 import OfflineGuard from "./components/OfflineGuard";
+import RouteGuard from "./components/RouteGuard";
+import BottomTabBar from "./components/BottomTabBar";
+import GlobalImageFallback from "./components/GlobalImageFallback";
 
 export default function RootLayout({
   children,
@@ -77,14 +80,18 @@ export default function RootLayout({
             <AuthProvider>
               <ThemeProvider>
                 <NotificationProvider>
-                  <GeofenceProvider>
+                    <GeofenceProvider>
                     <OfflineGuard>
-                      {children}
+                      <RouteGuard>
+                        {children}
+                      </RouteGuard>
                     </OfflineGuard>
                     <GeofenceBanner />
                     <HoneypotTraps />
                     <BehavioralTracker />
                     <Chatbot />
+                    <BottomTabBar />
+                    <GlobalImageFallback />
                     <Footer />
                   </GeofenceProvider>
                 </NotificationProvider>

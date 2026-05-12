@@ -7,7 +7,7 @@ import {
   formatExpiryInput,
   maskCardNumber,
   storePaymentToken,
-} from '../lib/secureVault';
+} from '@/app/lib/secureVault';
 
 /**
  * SECURE-SESSION-AND-COOKIE-ARMOR: Güvenli Ödeme Formu

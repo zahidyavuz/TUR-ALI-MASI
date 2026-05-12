@@ -3,10 +3,10 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { fetchTour } from '../lib/tours';
+import { fetchTour } from '@/app/lib/tours';
 import { useLocale } from '../context/LocaleContext';
-import { checkRateLimit, recordFailedAttempt } from '../lib/rateLimit';
-import { auth } from '../lib/auth';
+import { checkRateLimit, recordFailedAttempt } from '@/app/lib/rateLimit';
+import { auth } from '@/app/lib/auth';
 
 // --- MOCK DATA FOR SAVED CARDS ---
 const MOCK_SAVED_CARDS = [

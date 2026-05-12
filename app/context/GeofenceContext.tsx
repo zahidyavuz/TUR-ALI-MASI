@@ -8,9 +8,9 @@ import React, {
   useRef,
   type ReactNode,
 } from 'react';
-import { findNearbyTour, getCurrentPosition, watchPosition, clearWatch } from '../lib/geofence';
-import type { NearbyResult } from '../lib/geofence';
-import { GEOFENCE_SPOTS } from '../lib/geofence-data';
+import { findNearbyTour, getCurrentPosition, watchPosition, clearWatch } from '@/app/lib/geofence';
+import type { NearbyResult } from '@/app/lib/geofence';
+import { GEOFENCE_SPOTS } from '@/app/lib/geofence-data';
 
 type PermissionStatus = 'prompt' | 'granted' | 'denied' | 'unsupported';
 

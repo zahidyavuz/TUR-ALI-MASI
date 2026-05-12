@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { fetchAPI } from '../lib/api';
+import { fetchAPI } from '@/app/lib/api';
 
 
 export default function ForgotPasswordPage() {

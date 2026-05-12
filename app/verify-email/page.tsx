@@ -3,7 +3,7 @@ import React, { useState, useEffect, Suspense, useCallback } from 'react';
 
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { fetchAPI } from '../lib/api';
+import { fetchAPI } from '@/app/lib/api';
 
 
 function VerifyEmailLogic() {

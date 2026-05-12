@@ -7,7 +7,7 @@ import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 
-import { fetchTours, fetchTour } from '../../lib/tours';
+import { fetchTours, fetchTour } from '@/app/lib/tours';
 import { useLocale } from '../../context/LocaleContext';
 import { DownloadOfflineButton } from '../../components/DownloadOfflineButton';
 import GeofenceTrigger from '../../components/GeofenceTrigger';
@@ -47,6 +47,7 @@ export default function DynamicTourPage() {
     const [isMealAdded, setIsMealAdded] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState<'eft' | 'cash'>('eft'); // Yeni ödeme yöntemleri
     const [isDateError, setIsDateError] = useState(false);
+    const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
 
     useEffect(() => {
         async function loadTour() {
@@ -261,6 +262,260 @@ export default function DynamicTourPage() {
 
     const marketing = getMarketingCopy();
 
+    const renderBookingWidget = () => (
+        <div className="w-full">
+            <div className={`bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-white/10 sticky top-24 transition-all duration-300 ${isSticky ? 'shadow-blue-900/10' : ''}`}>
+                {/* Fiyat Alanı */}
+                <div className="flex justify-between items-start mb-6">
+                    <div>
+                        {tour.originalPrice && (
+                            <p className="text-gray-400 dark:text-slate-500 text-sm font-bold line-through">{formatPrice(parseInt(String(tour.originalPrice).replace(/\./g, '')))}</p>
+                        )}
+                        <h3 className="text-3xl font-black text-slate-800 dark:text-white">{formatPrice(isVip ? tour.price * 0.95 : tour.price)} <span className="text-sm font-medium text-gray-500 dark:text-slate-400 tracking-normal">/{locale === 'en-US' ? 'per person' : locale === 'de-DE' ? 'pro person' : locale === 'zh-CN' ? '每人' : 'kişi başı'}</span></h3>
+                        
+                        {/* VIP Fiyat Etiketi */}
+                        <div className="mt-2 flex items-center gap-2">
+                            <div className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase flex items-center gap-1.5 transition-all ${isVip ? 'bg-yellow-50 dark:bg-yellow-950/20 text-orange-600 dark:text-orange-400 border border-yellow-200 dark:border-yellow-900/30' : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-white/5 opacity-60'}`}>
+                                <span className={isVip ? 'animate-pulse' : ''}>👑 VIP Fiyatı:</span>
+                                <span>{formatPrice(tour.price * 0.95)}</span>
+                                {!isVip && <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 5a3 3 0 016 0v3H9V7zm3 10a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" /></svg>}
+                            </div>
+                            {!isVip && (
+                                <Link href="/profile" className="text-[9px] font-bold text-[#008cb3] dark:text-[#38bdf8] hover:underline">VIP Ol, Bu Fiyattan Al</Link>
+                            )}
+                        </div>
+                    </div>
+                    {tour.discount && (
+                        <div className="bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-900/30 flex flex-col items-center">
+                            <span>{tour.discount}</span>
+                            <span>{locale === 'en-US' ? 'OFF' : locale === 'de-DE' ? 'RABATT' : locale === 'zh-CN' ? '折扣' : 'İNDİRİM'}</span>
+                        </div>
+                    )}
+                </div>
+
+                {/* Fomo Alert */}
+                {locale === 'en-US' ? (
+                    <div className="bg-orange-50/80 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 dark:text-orange-400 shrink-0">🔥</div>
+                        <div>
+                            <p className="text-orange-800 dark:text-orange-200 font-bold text-sm">Hurry Up!</p>
+                            <p className="text-orange-600 dark:text-orange-400 text-[11px] font-semibold">{tour.fomoCount} travelers are looking at this right now.</p>
+                        </div>
+                    </div>
+                ) : locale === 'de-DE' ? (
+                    <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">📊</div>
+                        <div>
+                            <p className="text-blue-800 dark:text-blue-200 font-bold text-sm">Statistik</p>
+                            <p className="text-blue-600 dark:text-blue-400 text-[11px] font-semibold">Derzeit prüfen {tour.fomoCount} weitere Personen dieses Angebot.</p>
+                        </div>
+                    </div>
+                ) : locale === 'zh-CN' ? (
+                    <div className="bg-red-50/80 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500 dark:text-red-400 shrink-0">💎</div>
+                        <div>
+                            <p className="text-red-800 dark:text-red-200 font-bold text-sm">尊贵提示</p>
+                            <p className="text-red-600 dark:text-red-400 text-[11px] font-semibold">目前有 {tour.fomoCount} 位贵宾正在浏览此行程。</p>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-orange-50/80 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 dark:text-orange-400 shrink-0">🔥</div>
+                        <div>
+                            <p className="text-orange-800 dark:text-orange-200 font-bold text-sm">Acele Edin!</p>
+                            <p className="text-orange-600 dark:text-orange-400 text-[11px] font-semibold">Şu an {tour.fomoCount} kişi bu turu inceliyor.</p>
+                        </div>
+                    </div>
+                )}
+
+                {/* Tarih ve Kişi Seçimi */}
+                <div className="space-y-4 mb-6 relative z-10">
+                    <div className={`border rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/50 relative group transition-all duration-300 ${isDateError ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake' : 'border-gray-200 dark:border-white/10'}`}>
+                        <label className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${isDateError ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'}`}>{isDateError ? 'LÜTFEN TARİH SEÇİN!' : 'Tarih Seçin'}</label>
+                        <select 
+                            className="w-full bg-transparent font-bold text-slate-800 dark:text-white outline-none appearance-none cursor-pointer"
+                            value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
+                            onChange={(e) => {
+                                if (e.target.value) {
+                                    setSelectedDate(new Date(e.target.value));
+                                    setIsDateError(false);
+                                }
+                                else setSelectedDate(null);
+                            }}
+                        >
+                            <option value="" disabled className="dark:bg-slate-900">Tarih Seçin</option>
+                            {tour.availabilitySlots && tour.availabilitySlots.filter((slot:any) => slot.is_available).map((slot: any) => (
+                                <option key={slot.id} value={slot.date} className="dark:bg-slate-900">
+                                    {new Date(slot.date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
+                                    {slot.remaining < 5 ? ` (Son ${slot.remaining} koltuk!)` : ` (${slot.remaining} Kişilik Yer Var)`}
+                                </option>
+                            ))}
+                            {(!tour.availabilitySlots || tour.availabilitySlots.filter((s:any) => s.is_available).length === 0) && (
+                                <option disabled className="dark:bg-slate-900">Şu an müsait tarih bulunmuyor</option>
+                            )}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-slate-500">▼</div>
+                    </div>
+
+                    <div className="border border-gray-200 dark:border-white/10 rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
+                        <div>
+                            <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">{t.hero.searchGuestsLabel}</label>
+                            <span className="text-[10px] font-bold text-red-500 dark:text-red-400">Maksimum {tour.maxCapacity} Kişi</span>
+                        </div>
+                        <div className="flex items-center gap-4">
+                            <button aria-label="Kişi Sayısını Azalt" onClick={() => setGuests(Math.max(1, guests - 1))} className="w-8 h-8 rounded-full bg-white dark:bg-slate-700 border border-gray-200 dark:border-white/10 flex items-center justify-center font-bold text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 transition">-</button>
+                            <span className="font-extrabold text-slate-800 dark:text-white w-4 text-center">{guests}</span>
+                            <button aria-label="Kişi Sayısını Artır" onClick={() => setGuests(Math.min(tour.maxCapacity || 15, guests + 1))} className="w-8 h-8 rounded-full bg-white dark:bg-slate-700 border border-gray-200 dark:border-white/10 flex items-center justify-center font-bold text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 transition" disabled={guests >= (tour.maxCapacity || 15)}>+</button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Toplam Fiyat Hesaplama */}
+                <div className="space-y-2 mb-6 pt-4 border-t border-gray-100 dark:border-white/10">
+                    <div className="flex justify-between items-center text-sm">
+                        <span className="font-bold text-gray-500 dark:text-slate-500 underline decoration-gray-300 dark:decoration-slate-700 underline-offset-4">{locale === 'en-US' ? 'Tour Subtotal' : 'Tur Bedeli'} ({guests})</span>
+                        <span className="font-bold text-slate-700 dark:text-slate-300">{formatPrice(tour.price * guests)}</span>
+                    </div>
+                    
+                    {extrasPrice > 0 && (
+                        <div className="flex justify-between items-center text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                            <span>{locale === 'en-US' ? 'Extra Services' : 'Ek Hizmetler'}</span>
+                            <span>+ {formatPrice(extrasPrice)}</span>
+                        </div>
+                    )}
+
+                    {bundleDiscount > 0 && (
+                        <div className="flex justify-between items-center text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 p-2 rounded-xl border border-orange-100 dark:border-orange-900/30 animate-in slide-in-from-top-1 duration-300">
+                            <span>Bundle Paket İndirimi (%15)</span>
+                            <span>- {formatPrice(bundleDiscount)}</span>
+                        </div>
+                    )}
+
+                    <div className="flex justify-between items-center pt-2">
+                        <span className="font-black text-slate-800 dark:text-white">{locale === 'en-US' ? 'Total' : 'Toplam Tutar'}</span>
+                        <div className="text-right">
+                            {bundleDiscount > 0 && (
+                                <div className="text-xs text-gray-400 dark:text-slate-600 line-through font-bold mb-1 opacity-60">
+                                    {formatPrice(subtotal + extrasPrice)}
+                                </div>
+                            )}
+                            <span className="text-2xl font-black text-[#008cb3] dark:text-[#38bdf8] tracking-tighter">{formatPrice(totalPriceAmount)}</span>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Deneyimini Tamamla (Dynamic Bundle Builder) */}
+                <div className="mb-6">
+                    <h4 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
+                        Deneyimini Tamamla
+                    </h4>
+                    <div className="space-y-3">
+                        {nearbyRestaurants.map((res: any) => (
+                            <div 
+                                key={res.id} 
+                                onClick={() => setSelectedMenuId(selectedMenuId === res.id ? null : res.id)}
+                                className={`group relative p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden ${selectedMenuId === res.id ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 shadow-md ring-1 ring-orange-200 dark:ring-orange-900/30' : 'bg-slate-50 dark:bg-slate-800/50 border-gray-100 dark:border-white/5 hover:border-orange-200 dark:hover:border-orange-900/50'}`}
+                            >
+                                <div className="flex gap-3 relative z-10">
+                                    <div className="w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-white dark:border-white/10">
+                                        <Image src={res.image} alt={res.name} width={64} height={64} className="object-cover w-full h-full group-hover:scale-110 transition-transform" />
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex justify-between items-start">
+                                            <h5 className="font-black text-[13px] text-slate-800 dark:text-white leading-tight truncate">{res.name}</h5>
+                                            <span className="text-[10px] text-yellow-500 font-bold">★ {res.rating}</span>
+                                        </div>
+                                        <p className="text-[11px] text-gray-500 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">{res.menu_name}</p>
+                                        <div className="mt-2 flex items-center justify-between">
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] text-gray-400 dark:text-slate-600 line-through font-bold leading-none">{formatPrice(res.original_price)}</span>
+                                                <span className="text-[13px] font-black text-orange-600 dark:text-orange-400">Birlikte {formatPrice(res.original_price * 0.85)}</span>
+                                            </div>
+                                            <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedMenuId === res.id ? 'bg-orange-500 border-orange-500 scale-110' : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-white/10 group-hover:border-orange-300'}`}>
+                                                {selectedMenuId === res.id && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {selectedMenuId === res.id && (
+                                    <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-bl-xl shadow-sm z-20">
+                                        PAKET SEÇİLDİ
+                                    </div>
+                                )}
+                            </div>
+                        ))}
+                    </div>
+                    <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold mt-3 text-center italic">Yemek ücretleri restoranda ödenecektir. Ön provizyon alınmaz.</p>
+                </div>
+
+                {/* CTA Butonu - Sticky Checkout CTA */}
+                <div className="flex flex-col gap-2 mb-4 mt-6">
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault();
+                            if (!selectedDate) {
+                                setIsDateError(true);
+                                setTimeout(() => setIsDateError(false), 1000);
+                                return;
+                            }
+                            const formattedDate = selectedDate.toISOString().split('T')[0];
+                            const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
+                            router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
+                        }}
+                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-2xl py-6 rounded-[24px] shadow-[0_15px_35px_-5px_rgba(249,115,22,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-4 group"
+                    >
+                        <div className="flex items-center gap-3">
+                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:rotate-12 transition-transform">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                                <circle cx="12" cy="16" r="1.5" fill="currentColor" />
+                            </svg>
+                            <span>{locale === 'en-US' ? 'Secure Checkout' : 'Güvenli Ödemeye Geç'}</span>
+                        </div>
+                        <span className="text-3xl group-hover:translate-x-2 transition-transform">➔</span>
+                    </button>
+                </div>
+
+                {/* Güven Rozetleri (Trust Badges) - Enriched UI */}
+                <div className="mt-2 border-t border-gray-100 dark:border-white/10 pt-5 flex flex-col sm:flex-row items-center gap-3">
+                    <div className="flex-1 w-full bg-green-50/70 dark:bg-green-950/20 border border-green-100 dark:border-green-900/30 rounded-2xl p-3.5 flex items-start gap-3 transition hover:bg-green-50 dark:hover:bg-green-950/30">
+                        <div className="text-green-600 dark:text-green-400 mt-0.5 bg-white dark:bg-slate-800 p-1 rounded-full shadow-sm"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                        <div>
+                            <h4 className="text-[12px] font-black text-green-800 dark:text-green-200 uppercase tracking-widest mb-0.5">Ücretsiz İptal</h4>
+                            <p className="text-[10px] text-green-700/80 dark:text-green-400/80 font-bold leading-tight">Son 24 saate kadar kesintisiz %100 iade hakkı.</p>
+                        </div>
+                    </div>
+                    <div className="flex-1 w-full bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-3.5 flex items-start gap-3 transition hover:bg-blue-50 dark:hover:bg-blue-950/30">
+                        <div className="text-blue-600 dark:text-blue-400 mt-0.5 bg-white dark:bg-slate-800 p-1 rounded-full shadow-sm"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
+                        <div>
+                            <h4 className="text-[12px] font-black text-blue-800 dark:text-blue-200 uppercase tracking-widest mb-0.5">Güvenli Ödeme</h4>
+                            <p className="text-[10px] text-blue-700/80 dark:text-blue-400/80 font-bold leading-tight">256-bit SSL & PCI-DSS korumalı altyapı.</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Offline indir — Müze, dağ vb. çevrimdışı QR ve harita için */}
+                <div className="mt-5 pt-5 border-t border-gray-100 dark:border-white/10">
+                    <DownloadOfflineButton
+                        tour={{
+                            id: tour.id,
+                            title: tour.title,
+                            location: tour.location,
+                            duration: tour.duration,
+                            included: tour.included,
+                            excluded: tour.excluded,
+                        }}
+                        dateLabel="15 Mart 2026 - 17 Mart 2026"
+                        guests={guests}
+                        locale={locale}
+                    />
+                </div>
+            </div>
+        </div>
+    );
+
+
 
     if (!tour) return <div className="min-h-screen flex items-center justify-center">Yükleniyor...</div>;
 
@@ -274,8 +529,8 @@ export default function DynamicTourPage() {
 
                 {/* Left: Gallery */}
                 <div className="w-full lg:w-2/3">
-                    <div className="flex flex-col md:flex-row gap-4 h-[400px] md:h-[500px] rounded-[32px] overflow-hidden shadow-2xl">
-                        <div className="w-full md:w-2/3 h-full relative group cursor-pointer">
+                    <div className="flex md:flex-row gap-4 h-[400px] md:h-[500px] rounded-[32px] overflow-x-auto md:overflow-hidden snap-x snap-mandatory scrollbar-hide shadow-2xl">
+                        <div className="w-full shrink-0 snap-center md:w-2/3 h-full relative group cursor-pointer">
                             <Image
                                 src={tour.imageMain}
                                 alt={tour.title}
@@ -307,6 +562,15 @@ export default function DynamicTourPage() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Mobile Swipeable Gallery Items */}
+                        <div className="w-full shrink-0 snap-center md:hidden h-full relative group cursor-pointer rounded-[32px] overflow-hidden">
+                            <Image src={tour.imageSub1} alt="Mobil Resim 2" fill sizes="100vw" className="object-cover" />
+                        </div>
+                        <div className="w-full shrink-0 snap-center md:hidden h-full relative group cursor-pointer rounded-[32px] overflow-hidden">
+                            <Image src={tour.imageSub2} alt="Mobil Resim 3" fill sizes="100vw" className="object-cover" />
+                        </div>
+
                         <div className="hidden md:flex w-1/3 flex-col gap-4">
                             <div className="h-1/2 rounded-[24px] overflow-hidden relative group cursor-pointer">
                                 <Image src={tour.imageSub1} alt="Resim 2" fill sizes="(max-width: 768px) 100vw, 33vw" className="object-cover group-hover:scale-110 transition-transform duration-700" />
@@ -322,259 +586,29 @@ export default function DynamicTourPage() {
                 </div>
 
                 {/* Right: Booking Area (Sticky on Desktop) */}
-                <div className="w-full lg:w-1/3 z-10">
-                    <div className={`bg-white dark:bg-slate-900/80 backdrop-blur-xl rounded-[32px] p-6 shadow-2xl border border-gray-100 dark:border-white/10 sticky top-24 transition-all duration-300 ${isSticky ? 'shadow-blue-900/10' : ''}`}>
-                        {/* Fiyat Alanı */}
-                        <div className="flex justify-between items-start mb-6">
-                            <div>
-                                {tour.originalPrice && (
-                                    <p className="text-gray-400 dark:text-slate-500 text-sm font-bold line-through">{formatPrice(parseInt(String(tour.originalPrice).replace(/\./g, '')))}</p>
-                                )}
-                                <h3 className="text-3xl font-black text-slate-800 dark:text-white">{formatPrice(isVip ? tour.price * 0.95 : tour.price)} <span className="text-sm font-medium text-gray-500 dark:text-slate-400 tracking-normal">/{locale === 'en-US' ? 'per person' : locale === 'de-DE' ? 'pro person' : locale === 'zh-CN' ? '每人' : 'kişi başı'}</span></h3>
-                                
-                                {/* VIP Fiyat Etiketi */}
-                                <div className="mt-2 flex items-center gap-2">
-                                    <div className={`px-2 py-0.5 rounded-md text-[10px] font-black uppercase flex items-center gap-1.5 transition-all ${isVip ? 'bg-yellow-50 dark:bg-yellow-950/20 text-orange-600 dark:text-orange-400 border border-yellow-200 dark:border-yellow-900/30' : 'bg-gray-100 dark:bg-slate-800 text-gray-400 dark:text-slate-500 border border-gray-200 dark:border-white/5 opacity-60'}`}>
-                                        <span className={isVip ? 'animate-pulse' : ''}>👑 VIP Fiyatı:</span>
-                                        <span>{formatPrice(tour.price * 0.95)}</span>
-                                        {!isVip && <svg width="10" height="10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V7a5 5 0 00-5-5zm-3 5a3 3 0 016 0v3H9V7zm3 10a1.5 1.5 0 110-3 1.5 1.5 0 010 3z" /></svg>}
-                                    </div>
-                                    {!isVip && (
-                                        <Link href="/profile" className="text-[9px] font-bold text-[#008cb3] dark:text-[#38bdf8] hover:underline">VIP Ol, Bu Fiyattan Al</Link>
-                                    )}
-                                </div>
-                            </div>
-                            {tour.discount && (
-                                <div className="bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 rounded-xl border border-red-100 dark:border-red-900/30 flex flex-col items-center">
-                                    <span>{tour.discount}</span>
-                                    <span>{locale === 'en-US' ? 'OFF' : locale === 'de-DE' ? 'RABATT' : locale === 'zh-CN' ? '折扣' : 'İNDİRİM'}</span>
-                                </div>
-                            )}
-                        </div>
+                <div className="w-full lg:w-1/3 z-10 hidden lg:block">
+                    {renderBookingWidget()}
+                </div>
 
-                        {/* Fomo Alert */}
-                        {locale === 'en-US' ? (
-                            <div className="bg-orange-50/80 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 dark:text-orange-400 shrink-0">🔥</div>
-                                <div>
-                                    <p className="text-orange-800 dark:text-orange-200 font-bold text-sm">Hurry Up!</p>
-                                    <p className="text-orange-600 dark:text-orange-400 text-[11px] font-semibold">{tour.fomoCount} travelers are looking at this right now.</p>
-                                </div>
-                            </div>
-                        ) : locale === 'de-DE' ? (
-                            <div className="bg-blue-50/80 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 dark:text-blue-400 shrink-0">📊</div>
-                                <div>
-                                    <p className="text-blue-800 dark:text-blue-200 font-bold text-sm">Statistik</p>
-                                    <p className="text-blue-600 dark:text-blue-400 text-[11px] font-semibold">Derzeit prüfen {tour.fomoCount} weitere Personen dieses Angebot.</p>
-                                </div>
-                            </div>
-                        ) : locale === 'zh-CN' ? (
-                            <div className="bg-red-50/80 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500 dark:text-red-400 shrink-0">💎</div>
-                                <div>
-                                    <p className="text-red-800 dark:text-red-200 font-bold text-sm">尊贵提示</p>
-                                    <p className="text-red-600 dark:text-red-400 text-[11px] font-semibold">目前有 {tour.fomoCount} 位贵宾正在浏览此行程。</p>
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="bg-orange-50/80 dark:bg-orange-900/10 border border-orange-200 dark:border-orange-900/30 rounded-2xl p-3 mb-6 flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 dark:text-orange-400 shrink-0">🔥</div>
-                                <div>
-                                    <p className="text-orange-800 dark:text-orange-200 font-bold text-sm">Acele Edin!</p>
-                                    <p className="text-orange-600 dark:text-orange-400 text-[11px] font-semibold">Şu an {tour.fomoCount} kişi bu turu inceliyor.</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Tarih ve Kişi Seçimi */}
-                        <div className="space-y-4 mb-6 relative z-10">
-                            <div className={`border rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/50 relative group transition-all duration-300 ${isDateError ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)] animate-shake' : 'border-gray-200 dark:border-white/10'}`}>
-                                <label className={`text-[10px] font-black uppercase tracking-widest block mb-1 ${isDateError ? 'text-red-500' : 'text-gray-400 dark:text-slate-500'}`}>{isDateError ? 'LÜTFEN TARİH SEÇİN!' : 'Tarih Seçin'}</label>
-                                <select 
-                                    className="w-full bg-transparent font-bold text-slate-800 dark:text-white outline-none appearance-none cursor-pointer"
-                                    value={selectedDate ? selectedDate.toISOString().split('T')[0] : ''}
-                                    onChange={(e) => {
-                                        if (e.target.value) {
-                                            setSelectedDate(new Date(e.target.value));
-                                            setIsDateError(false);
-                                        }
-                                        else setSelectedDate(null);
-                                    }}
-                                >
-                                    <option value="" disabled className="dark:bg-slate-900">Tarih Seçin</option>
-                                    {tour.availabilitySlots && tour.availabilitySlots.filter((slot:any) => slot.is_available).map((slot: any) => (
-                                        <option key={slot.id} value={slot.date} className="dark:bg-slate-900">
-                                            {new Date(slot.date).toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' })}
-                                            {slot.remaining < 5 ? ` (Son ${slot.remaining} koltuk!)` : ` (${slot.remaining} Kişilik Yer Var)`}
-                                        </option>
-                                    ))}
-                                    {(!tour.availabilitySlots || tour.availabilitySlots.filter((s:any) => s.is_available).length === 0) && (
-                                        <option disabled className="dark:bg-slate-900">Şu an müsait tarih bulunmuyor</option>
-                                    )}
-                                </select>
-                                <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400 dark:text-slate-500">▼</div>
-                            </div>
-
-                            <div className="border border-gray-200 dark:border-white/10 rounded-2xl p-4 bg-slate-50 dark:bg-slate-800/50 flex justify-between items-center">
-                                <div>
-                                    <label className="text-[10px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest block">{t.hero.searchGuestsLabel}</label>
-                                    <span className="text-[10px] font-bold text-red-500 dark:text-red-400">Maksimum {tour.maxCapacity} Kişi</span>
-                                </div>
-                                <div className="flex items-center gap-4">
-                                    <button aria-label="Kişi Sayısını Azalt" onClick={() => setGuests(Math.max(1, guests - 1))} className="w-8 h-8 rounded-full bg-white dark:bg-slate-700 border border-gray-200 dark:border-white/10 flex items-center justify-center font-bold text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 transition">-</button>
-                                    <span className="font-extrabold text-slate-800 dark:text-white w-4 text-center">{guests}</span>
-                                    <button aria-label="Kişi Sayısını Artır" onClick={() => setGuests(Math.min(tour.maxCapacity || 15, guests + 1))} className="w-8 h-8 rounded-full bg-white dark:bg-slate-700 border border-gray-200 dark:border-white/10 flex items-center justify-center font-bold text-gray-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 transition" disabled={guests >= (tour.maxCapacity || 15)}>+</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Toplam Fiyat Hesaplama */}
-                        <div className="space-y-2 mb-6 pt-4 border-t border-gray-100 dark:border-white/10">
-                            <div className="flex justify-between items-center text-sm">
-                                <span className="font-bold text-gray-500 dark:text-slate-500 underline decoration-gray-300 dark:decoration-slate-700 underline-offset-4">{locale === 'en-US' ? 'Tour Subtotal' : 'Tur Bedeli'} ({guests})</span>
-                                <span className="font-bold text-slate-700 dark:text-slate-300">{formatPrice(tour.price * guests)}</span>
-                            </div>
-                            
-                            {extrasPrice > 0 && (
-                                <div className="flex justify-between items-center text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                                    <span>{locale === 'en-US' ? 'Extra Services' : 'Ek Hizmetler'}</span>
-                                    <span>+ {formatPrice(extrasPrice)}</span>
-                                </div>
-                            )}
-
-                            {bundleDiscount > 0 && (
-                                <div className="flex justify-between items-center text-xs font-bold text-orange-600 dark:text-orange-400 bg-orange-50 dark:bg-orange-950/20 p-2 rounded-xl border border-orange-100 dark:border-orange-900/30 animate-in slide-in-from-top-1 duration-300">
-                                    <span>Bundle Paket İndirimi (%15)</span>
-                                    <span>- {formatPrice(bundleDiscount)}</span>
-                                </div>
-                            )}
-
-                            <div className="flex justify-between items-center pt-2">
-                                <span className="font-black text-slate-800 dark:text-white">{locale === 'en-US' ? 'Total' : 'Toplam Tutar'}</span>
-                                <div className="text-right">
-                                    {bundleDiscount > 0 && (
-                                        <div className="text-xs text-gray-400 dark:text-slate-600 line-through font-bold mb-1 opacity-60">
-                                            {formatPrice(subtotal + extrasPrice)}
-                                        </div>
-                                    )}
-                                    <span className="text-2xl font-black text-[#008cb3] dark:text-[#38bdf8] tracking-tighter">{formatPrice(totalPriceAmount)}</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Deneyimini Tamamla (Dynamic Bundle Builder) */}
-                        <div className="mb-6">
-                            <h4 className="text-[11px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
-                                <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>
-                                Deneyimini Tamamla
-                            </h4>
-                            <div className="space-y-3">
-                                {nearbyRestaurants.map((res: any) => (
-                                    <div 
-                                        key={res.id} 
-                                        onClick={() => setSelectedMenuId(selectedMenuId === res.id ? null : res.id)}
-                                        className={`group relative p-3 rounded-2xl border-2 transition-all duration-300 cursor-pointer overflow-hidden ${selectedMenuId === res.id ? 'bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-900/50 shadow-md ring-1 ring-orange-200 dark:ring-orange-900/30' : 'bg-slate-50 dark:bg-slate-800/50 border-gray-100 dark:border-white/5 hover:border-orange-200 dark:hover:border-orange-900/50'}`}
-                                    >
-                                        <div className="flex gap-3 relative z-10">
-                                            <div className="w-16 h-16 rounded-xl overflow-hidden shadow-sm shrink-0 border border-white dark:border-white/10">
-                                                <Image src={res.image} alt={res.name} width={64} height={64} className="object-cover w-full h-full group-hover:scale-110 transition-transform" />
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className="flex justify-between items-start">
-                                                    <h5 className="font-black text-[13px] text-slate-800 dark:text-white leading-tight truncate">{res.name}</h5>
-                                                    <span className="text-[10px] text-yellow-500 font-bold">★ {res.rating}</span>
-                                                </div>
-                                                <p className="text-[11px] text-gray-500 dark:text-slate-400 font-medium mt-0.5 line-clamp-1">{res.menu_name}</p>
-                                                <div className="mt-2 flex items-center justify-between">
-                                                    <div className="flex flex-col">
-                                                        <span className="text-[10px] text-gray-400 dark:text-slate-600 line-through font-bold leading-none">{formatPrice(res.original_price)}</span>
-                                                        <span className="text-[13px] font-black text-orange-600 dark:text-orange-400">Birlikte {formatPrice(res.original_price * 0.85)}</span>
-                                                    </div>
-                                                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${selectedMenuId === res.id ? 'bg-orange-500 border-orange-500 scale-110' : 'bg-white dark:bg-slate-800 border-gray-300 dark:border-white/10 group-hover:border-orange-300'}`}>
-                                                        {selectedMenuId === res.id && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="4"><path d="M5 13l4 4L19 7" /></svg>}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        {selectedMenuId === res.id && (
-                                            <div className="absolute top-0 right-0 bg-orange-500 text-white text-[9px] font-black px-2 py-1 rounded-bl-xl shadow-sm z-20">
-                                                PAKET SEÇİLDİ
-                                            </div>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-                            <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold mt-3 text-center italic">Yemek ücretleri restoranda ödenecektir. Ön provizyon alınmaz.</p>
-                        </div>
-
-                        {/* CTA Butonu - Sticky Checkout CTA */}
-                        <div className="flex flex-col gap-2 mb-4 mt-6">
-                            <button
-                                onClick={(e) => {
-                                    e.preventDefault();
-                                    if (!selectedDate) {
-                                        setIsDateError(true);
-                                        setTimeout(() => setIsDateError(false), 1000);
-                                        return;
-                                    }
-                                    const formattedDate = selectedDate.toISOString().split('T')[0];
-                                    const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
-                                    router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
-                                }}
-                                className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-2xl py-6 rounded-[24px] shadow-[0_15px_35px_-5px_rgba(249,115,22,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-4 group"
-                            >
-                                <div className="flex items-center gap-3">
-                                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:rotate-12 transition-transform">
-                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                        <circle cx="12" cy="16" r="1.5" fill="currentColor" />
-                                    </svg>
-                                    <span>{locale === 'en-US' ? 'Secure Checkout' : 'Güvenli Ödemeye Geç'}</span>
-                                </div>
-                                <span className="text-3xl group-hover:translate-x-2 transition-transform">➔</span>
-                            </button>
-                        </div>
-
-                        {/* Güven Rozetleri (Trust Badges) - Enriched UI */}
-                        <div className="mt-2 border-t border-gray-100 dark:border-white/10 pt-5 flex flex-col sm:flex-row items-center gap-3">
-                            <div className="flex-1 w-full bg-green-50/70 dark:bg-green-950/20 border border-green-100 dark:border-green-900/30 rounded-2xl p-3.5 flex items-start gap-3 transition hover:bg-green-50 dark:hover:bg-green-950/30">
-                                <div className="text-green-600 dark:text-green-400 mt-0.5 bg-white dark:bg-slate-800 p-1 rounded-full shadow-sm"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
-                                <div>
-                                    <h4 className="text-[12px] font-black text-green-800 dark:text-green-200 uppercase tracking-widest mb-0.5">Ücretsiz İptal</h4>
-                                    <p className="text-[10px] text-green-700/80 dark:text-green-400/80 font-bold leading-tight">Son 24 saate kadar kesintisiz %100 iade hakkı.</p>
-                                </div>
-                            </div>
-                            <div className="flex-1 w-full bg-blue-50/70 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl p-3.5 flex items-start gap-3 transition hover:bg-blue-50 dark:hover:bg-blue-950/30">
-                                <div className="text-blue-600 dark:text-blue-400 mt-0.5 bg-white dark:bg-slate-800 p-1 rounded-full shadow-sm"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
-                                <div>
-                                    <h4 className="text-[12px] font-black text-blue-800 dark:text-blue-200 uppercase tracking-widest mb-0.5">Güvenli Ödeme</h4>
-                                    <p className="text-[10px] text-blue-700/80 dark:text-blue-400/80 font-bold leading-tight">256-bit SSL & PCI-DSS korumalı altyapı.</p>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Offline indir — Müze, dağ vb. çevrimdışı QR ve harita için */}
-                        <div className="mt-5 pt-5 border-t border-gray-100 dark:border-white/10">
-                            <DownloadOfflineButton
-                                tour={{
-                                    id: tour.id,
-                                    title: tour.title,
-                                    location: tour.location,
-                                    duration: tour.duration,
-                                    included: tour.included,
-                                    excluded: tour.excluded,
-                                }}
-                                dateLabel="15 Mart 2026 - 17 Mart 2026"
-                                guests={guests}
-                                locale={locale}
-                            />
-                        </div>
+                {/* Mobile Bottom Sheet Overlay */}
+                <div 
+                    className={`fixed inset-0 z-[110] bg-black/60 backdrop-blur-sm transition-opacity duration-300 lg:hidden ${isMobileSheetOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+                    onClick={() => setIsMobileSheetOpen(false)}
+                ></div>
+                
+                {/* Mobile Bottom Sheet Content */}
+                <div 
+                    className={`fixed bottom-0 left-0 w-full bg-white dark:bg-slate-900 z-[120] rounded-t-[32px] shadow-[0_-15px_40px_rgba(0,0,0,0.2)] transition-transform duration-500 transform lg:hidden ${isMobileSheetOpen ? 'translate-y-0' : 'translate-y-full'} max-h-[85vh] overflow-y-auto`}
+                >
+                    <div className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
+                        <div className="w-12 h-1.5 bg-gray-300 dark:bg-slate-700 rounded-full mx-auto mb-6"></div>
+                        {renderBookingWidget()}
                     </div>
                 </div>
             </div>
-
+                
             {/* Bottom Section: Tur Detayları */}
+        
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
                 <div className="w-full lg:w-2/3 pr-0 lg:pr-8">
                     {/* Tour Highlights - Dynamic Technical Details */}

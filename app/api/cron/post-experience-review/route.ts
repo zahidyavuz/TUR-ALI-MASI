@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { NotificationService } from '../../../lib/notificationService';
+import { NotificationService } from '@/app/lib/notificationService';
 
 /**
  * 91. BÖLÜM: Post-Experience-Trigger-Notification

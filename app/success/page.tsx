@@ -53,7 +53,7 @@ export default function SuccessPage() {
                         WhatsApp Üzerinden Dekont İlet
                     </a>
 
-                    <button onClick={() => router.push('/bookings')} className="w-full bg-white border border-gray-200 text-slate-700 font-bold text-[15px] py-4 rounded-xl hover:bg-slate-50 transition-colors">
+                    <button onClick={() => router.push('/tickets')} className="w-full bg-white border border-gray-200 text-slate-700 font-bold text-[15px] py-4 rounded-xl hover:bg-slate-50 transition-colors">
                         Biletlerime Git ➔
                     </button>
                 </div>
