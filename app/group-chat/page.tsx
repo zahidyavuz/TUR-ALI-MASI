@@ -212,7 +212,7 @@ export default function GroupChatPage() {
                                         {msg.type === 'location' ? (
                                             <a href={msg.locationUrl} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-2">
                                                 <div className="w-full h-24 bg-gray-200 rounded-lg overflow-hidden relative">
-                                                    <img src="https://maps.googleapis.com/maps/api/staticmap?center=38.6431,34.8291&zoom=14&size=400x150&sensor=false" alt="Map" className="w-full h-full object-cover opacity-80" onError={(e) => { e.currentTarget.src='https://placehold.co/400x150/e2e8f0/475569.png?text=Harita+Görünümü' }} />
+                                                    <img src={`https://maps.googleapis.com/maps/api/staticmap?center=38.6431,34.8291&zoom=14&size=400x150&sensor=false&key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}`} alt="Map" className="w-full h-full object-cover opacity-80" onError={(e) => { e.currentTarget.src='https://placehold.co/400x150/e2e8f0/475569.png?text=Harita+Görünümü' }} />
                                                     <div className="absolute inset-0 flex items-center justify-center"><span className="text-red-500 text-3xl drop-shadow-md">📍</span></div>
                                                 </div>
                                                 <span className="font-bold underline text-sm">{msg.text} (Buluşma Noktası)</span>

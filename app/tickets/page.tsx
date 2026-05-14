@@ -20,31 +20,33 @@ export default function TicketsPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12">
             {tickets.map((ticket) => (
-              <div key={ticket.id} className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 flex gap-4">
-                {/* QR Placeholder */}
-                <div className="w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-600">
-                  <span className="text-4xl opacity-50">📱</span>
-                </div>
-                
-                <div className="flex flex-col justify-between flex-1 py-1">
-                  <div>
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-slate-800 dark:text-white text-[15px] leading-tight">{ticket.title}</h3>
-                    </div>
-                    <p className="text-[12px] font-bold text-gray-500 flex gap-2">
-                      <span>📅 {ticket.date}</span>
-                      <span>⏰ {ticket.time}</span>
-                    </p>
+              <Link href={`/tickets/${ticket.id}`} key={ticket.id} className="block group">
+                <div className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 dark:border-slate-700 flex gap-4 transition-all duration-300 group-hover:-translate-y-1 group-hover:shadow-lg group-hover:border-[#008cb3]/30">
+                  {/* QR Placeholder */}
+                  <div className="w-24 h-24 bg-slate-100 dark:bg-slate-700 rounded-2xl flex items-center justify-center shrink-0 border border-slate-200 dark:border-slate-600 transition-colors group-hover:bg-[#008cb3]/5 dark:group-hover:bg-[#008cb3]/10">
+                    <span className="text-4xl opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all">📱</span>
                   </div>
                   
-                  <div className="flex justify-between items-center mt-3">
-                    <span className="text-[11px] font-black tracking-widest text-gray-400 uppercase">{ticket.id}</span>
-                    <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-lg border ${ticket.color}`}>
-                      {ticket.status}
-                    </span>
+                  <div className="flex flex-col justify-between flex-1 py-1">
+                    <div>
+                      <div className="flex justify-between items-start mb-1">
+                        <h3 className="font-bold text-slate-800 dark:text-white text-[15px] leading-tight group-hover:text-[#008cb3] transition-colors">{ticket.title}</h3>
+                      </div>
+                      <p className="text-[12px] font-bold text-gray-500 flex gap-2">
+                        <span>📅 {ticket.date}</span>
+                        <span>⏰ {ticket.time}</span>
+                      </p>
+                    </div>
+                    
+                    <div className="flex justify-between items-center mt-3">
+                      <span className="text-[11px] font-black tracking-widest text-gray-400 uppercase">{ticket.id}</span>
+                      <span className={`text-[10px] uppercase font-black tracking-wider px-2.5 py-1 rounded-lg border ${ticket.color}`}>
+                        {ticket.status}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
 

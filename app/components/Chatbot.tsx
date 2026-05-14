@@ -204,7 +204,7 @@ export default function Chatbot() {
     };
 
     return (
-        <div className="fixed bottom-20 lg:bottom-6 right-6 z-[99998] flex flex-col items-end pointer-events-none">
+        <div className="fixed bottom-20 lg:bottom-6 right-6 z-[100000] flex flex-col items-end pointer-events-none">
             {/* Chatbot Window */}
             <div
                 className={`pointer-events-auto transition-all duration-500 ease-in-out origin-bottom-right mb-4 bg-white/90 backdrop-blur-xl border border-white/40 shadow-2xl rounded-3xl overflow-hidden flex flex-col w-[90vw] md:w-[400px] h-[600px] max-w-[400px] max-h-[80vh] ${isOpen ? 'opacity-100 scale-100' : 'opacity-0 scale-50 pointer-events-none'}`}

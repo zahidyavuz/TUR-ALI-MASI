@@ -10,6 +10,7 @@ export default function CustomerDashboardLayout({ children }: { children: React.
 
   const navItems = [
     { name: 'Cüzdanım', path: '/dashboard/customer', icon: '🎫' },
+    { name: 'Sepetim', path: '/dashboard/customer/cart', icon: '🛒' },
     { name: 'Favorilerim', path: '/dashboard/customer/favorites', icon: '❤️' },
     { name: 'Profil & Ayarlar', path: '/dashboard/customer/settings', icon: '👤' },
   ];

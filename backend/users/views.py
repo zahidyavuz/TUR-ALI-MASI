@@ -3,8 +3,8 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from django.contrib.auth.models import User
-from .models import UserProfile, Wishlist, Notification
-from .serializers import UserSerializer, WishlistSerializer, NotificationSerializer, UserProfileSerializer
+from .models import UserProfile, Wishlist, Notification, UserCoupon
+from .serializers import UserSerializer, WishlistSerializer, NotificationSerializer, UserProfileSerializer, UserCouponSerializer
 
 
 class UserMeView(generics.RetrieveUpdateAPIView):
@@ -74,3 +74,33 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def mark_all_read(self, request):
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return Response({'status': 'ok'})
+
+class UserCouponViewSet(viewsets.ReadOnlyModelViewSet):
+    """GET /api/v1/users/coupons/ — user's coupons"""
+    serializer_class = UserCouponSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return UserCoupon.objects.filter(user=self.request.user)
+
+    @action(detail=False, methods=['post'], url_path='assign')
+    def assign_coupon(self, request):
+        """POST /api/v1/users/coupons/assign/ — admin/system assign coupon"""
+        # Usually this would be restricted to internal system calls or admins
+        code = request.data.get('code')
+        discount_type = request.data.get('discount_type', 'percentage')
+        discount_value = request.data.get('discount_value')
+        valid_until = request.data.get('valid_until')
+        
+        if not all([code, discount_value, valid_until]):
+             return Response({'error': 'code, discount_value, valid_until parameters are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        coupon = UserCoupon.objects.create(
+            user=request.user,
+            code=code,
+            discount_type=discount_type,
+            discount_value=discount_value,
+            valid_until=valid_until,
+            description=request.data.get('description', '')
+        )
+        return Response(UserCouponSerializer(coupon).data, status=status.HTTP_201_CREATED)

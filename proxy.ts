@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  * GLOBAL SECURITY MIDDLEWARE
  * Bütün istekleri kontrol eder ve yasaklı IP'leri engeller.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
     const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || 
                request.headers.get('x-real-ip') || 
                '127.0.0.1';

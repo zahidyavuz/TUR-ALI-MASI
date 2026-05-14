@@ -108,6 +108,11 @@ export default function Home() {
   const { t, locale, setLocale, formatPrice } = useLocale();
   const [tours, setTours] = useState<any[]>([]);
   const [currentImage, setCurrentImage] = useState(0);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     async function loadTours() {
@@ -174,7 +179,7 @@ export default function Home() {
   const [selectedPrice, setSelectedPrice] = useState('Bütçeniz');
   const [selectedGuests, setSelectedGuests] = useState<number | ''>(1);
 
-  const POPULAR_LOCATIONS = ['Kapadokya, Türkiye', 'Ege Kıyıları, Türkiye', 'Roma, İtalya', 'Paris, Fransa', 'Bali, Endonezya', 'Moskova, Rusya', 'Pekin, Çin', 'Maldivler', 'Dubai, BAE'];
+  const POPULAR_LOCATIONS = ['İstanbul', 'Antalya', 'Kapadokya', 'Muğla', 'İzmir'];
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -270,10 +275,10 @@ export default function Home() {
           <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center mt-2">
             
             <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3 drop-shadow-lg leading-tight w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700" 
-                dangerouslySetInnerHTML={{ __html: t.hero.title }}>
+                dangerouslySetInnerHTML={{ __html: mounted ? t.hero.title : '' }} suppressHydrationWarning>
             </h1>
-            <p className="text-xs md:text-sm text-white/90 font-medium max-w-3xl mx-auto mb-6 drop-shadow-md px-4 leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150">
-              {t.hero.subtitle}
+            <p className="text-xs md:text-sm text-white/90 font-medium max-w-3xl mx-auto mb-6 drop-shadow-md px-4 leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150" suppressHydrationWarning>
+              {mounted ? t.hero.subtitle : ''}
             </p>
 
             {/* Gelişmiş Filtre Çubuğu */}

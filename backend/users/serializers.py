@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
-from .models import UserProfile, Wishlist, Notification
+from .models import UserProfile, Wishlist, Notification, UserCoupon
 from tours.serializers import TourListSerializer
 
 
@@ -13,15 +13,21 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
     is_agency = serializers.SerializerMethodField()
+    agency_id = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile', 'is_agency', 'is_staff', 'role']
-        read_only_fields = ['id', 'username', 'is_agency', 'is_staff', 'role']
+        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile', 'is_agency', 'agency_id', 'is_staff', 'role']
+        read_only_fields = ['id', 'username', 'is_agency', 'agency_id', 'is_staff', 'role']
 
     def get_is_agency(self, obj):
         return hasattr(obj, 'agency_profile')
+
+    def get_agency_id(self, obj):
+        if hasattr(obj, 'agency_profile'):
+            return obj.agency_profile.id
+        return None
 
     def get_role(self, obj):
         if obj.is_superuser or obj.is_staff:
@@ -29,6 +35,7 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'agency_profile'):
             return 'Agency'
         return 'Customer'
+
 
     def update(self, instance, validated_data):
         profile_data = validated_data.pop('profile', {})
@@ -61,3 +68,9 @@ class NotificationSerializer(serializers.ModelSerializer):
         model = Notification
         fields = '__all__'
         read_only_fields = ['created_at']
+
+class UserCouponSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserCoupon
+        fields = '__all__'
+        read_only_fields = ['id', 'user', 'created_at']

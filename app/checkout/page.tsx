@@ -45,6 +45,7 @@ function CheckoutLogic() {
   const guests = parseInt(searchParams.get("guests") || "1");
   const date = searchParams.get("date");
   const menuId = searchParams.get("menuId");
+  const itemType = searchParams.get("type"); // 'meal' or 'tour'
 
   const [tour, setTour] = useState<any>(null);
   const [step, setStep] = useState<1 | 2 | 3>(1); // 1: Info, 2: Payment Gateway, 3: Success
@@ -62,6 +63,8 @@ function CheckoutLogic() {
     phone: "",
     email: "",
     hotelName: "",
+    reservationTime: "",
+    pax: guests || 1,
   });
 
   const [cardForm, setCardForm] = useState({
@@ -194,15 +197,16 @@ function CheckoutLogic() {
 
   const handleProceedToPayment = (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.phone ||
-      !formData.email ||
-      !formData.hotelName
-    ) {
-      alert("Lütfen tüm alanları doldurun.");
-      return;
+    if (itemType === 'meal') {
+      if (!formData.firstName || !formData.lastName || !formData.phone || !formData.email || !formData.reservationTime || !formData.pax) {
+        alert("Lütfen tüm alanları doldurun.");
+        return;
+      }
+    } else {
+      if (!formData.firstName || !formData.lastName || !formData.phone || !formData.email || !formData.hotelName) {
+        alert("Lütfen tüm alanları doldurun.");
+        return;
+      }
     }
     setStep(2);
   };
@@ -232,10 +236,14 @@ function CheckoutLogic() {
             id: Math.floor(Math.random() * 10000) + 1000,
             user_full_name: `${formData.firstName} ${formData.lastName}`,
             user_email: formData.email,
-            tour_detail: { title: tour?.title || "Bilinmeyen Tur" },
+            tour_detail: { title: itemType === 'meal' ? 'Restoran Rezervasyonu' : tour?.title || "Bilinmeyen Tur" },
             start_date: date,
             status: "confirmed",
             total_price: totalPrice,
+            service_type: itemType === 'meal' ? 'meal' : 'tour',
+            category: itemType === 'meal' ? 'Gastronomi/Yemek' : 'Turizm/Aktivite',
+            reservation_time: formData.reservationTime,
+            pax: formData.pax
           };
           // VIP-Badge-Logic-Engine: Bundle alımı veya 5000 TL üzeri harcama VIP yapar
           if (bundleLogic.isBundle || totalPrice >= 5000) {
@@ -431,21 +439,55 @@ function CheckoutLogic() {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
-                  Konakladığınız Otel (Transfer Bilgisi İçin)
-                </label>
-                <input
-                  required
-                  type="text"
-                  value={formData.hotelName}
-                  onChange={(e) =>
-                    setFormData({ ...formData, hotelName: e.target.value })
-                  }
-                  className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold"
-                  placeholder="Örn: Museum Hotel Kapadokya"
-                />
-              </div>
+              {itemType !== 'meal' ? (
+                <div>
+                  <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                    Konakladığınız Otel (Transfer Bilgisi İçin)
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    value={formData.hotelName}
+                    onChange={(e) =>
+                      setFormData({ ...formData, hotelName: e.target.value })
+                    }
+                    className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold"
+                    placeholder="Örn: Museum Hotel Kapadokya"
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                      Rezervasyon Saati
+                    </label>
+                    <input
+                      required
+                      type="time"
+                      value={formData.reservationTime}
+                      onChange={(e) =>
+                        setFormData({ ...formData, reservationTime: e.target.value })
+                      }
+                      className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
+                      Kişi Sayısı
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={formData.pax}
+                      onChange={(e) =>
+                        setFormData({ ...formData, pax: parseInt(e.target.value) || 1 })
+                      }
+                      className="w-full border-2 border-slate-100 rounded-2xl px-5 py-4 bg-slate-50 text-slate-900 focus:border-[#008cb3] focus:bg-white outline-none transition-all font-bold"
+                    />
+                  </div>
+                </div>
+              )}
 
               <button
                 type="submit"
@@ -616,12 +658,12 @@ function CheckoutLogic() {
                                 placeholder="0000 0000 0000 0000"
                                 value={cardForm.number}
                                 onChange={(e) => {
-                                  let val = e.target.value
+                                  const val = e.target.value
                                     .replace(/\s+/g, "")
                                     .replace(/[^0-9]/gi, "");
-                                  let matches = val.match(/\d{4,16}/g);
-                                  let match = (matches && matches[0]) || "";
-                                  let parts = [];
+                                  const matches = val.match(/\d{4,16}/g);
+                                  const match = (matches && matches[0]) || "";
+                                  const parts = [];
                                   for (
                                     let i = 0, len = match.length;
                                     i < len;
@@ -746,23 +788,20 @@ function CheckoutLogic() {
                         <div className="flex flex-col gap-4">
                           <button
                             type="submit"
-                            className="w-full bg-[#0B132B] hover:bg-black text-white font-black py-8 rounded-[24px] shadow-[0_20px_60px_rgba(11,19,43,0.4)] transition-all hover:scale-[1.03] active:scale-[0.97] flex flex-col items-center justify-center gap-2 group text-2xl relative overflow-hidden"
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-[20px] font-black transition-all shadow-[0_15px_35px_-5px_rgba(249,115,22,0.5)] active:scale-95 flex flex-col items-center justify-center gap-1.5 group overflow-hidden relative"
                           >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                            <span className="flex items-center gap-3">
-                              <span>
-                                {totalPrice.toLocaleString("tr-TR", {
-                                  style: "currency",
-                                  currency: "TRY",
-                                })}{" "}
-                                Öde
-                              </span>
-                              <span className="text-3xl group-hover:translate-x-2 transition-transform duration-300">
-                                ➔
-                              </span>
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 flex items-center gap-1.5">
+                              <span className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(110,231,183,0.8)]"></span> GÜVENLİ ÖDEME
                             </span>
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">
-                              GÜVENLİ ÖDEME PANELİNE GEÇ
+                            <span className="text-2xl flex items-center gap-2" suppressHydrationWarning>
+                              {totalPrice.toLocaleString("tr-TR", {
+                                style: "currency",
+                                currency: "TRY",
+                              })}
+                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 group-hover:translate-x-1 transition-transform">
+                                <path fillRule="evenodd" d="M12.97 3.97a.75.75 0 011.06 0l7.5 7.5a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 11-1.06-1.06l6.22-6.22H3a.75.75 0 010-1.5h16.19l-6.22-6.22a.75.75 0 010-1.06z" clipRule="evenodd" />
+                              </svg>
                             </span>
                           </button>
 
@@ -964,10 +1003,10 @@ function CheckoutLogic() {
               </svg>
             </div>
             <h2 className="text-4xl font-black text-white mb-4 tracking-tight">
-              Rezervasyon Başarılı!
+              {itemType === 'meal' ? 'Lezzet Yolculuğunuz Onaylandı!' : 'Rezervasyon Başarılı!'}
             </h2>
             <p className="text-lg font-bold text-slate-400 mb-12 max-w-md mx-auto">
-              Ödemeniz onaylandı. Tatil planınız başarıyla oluşturuldu.
+              {itemType === 'meal' ? 'Ödemeniz onaylandı. Restoranımızda yeriniz ayırtıldı.' : 'Ödemeniz onaylandı. Tatil planınız başarıyla oluşturuldu.'}
             </p>
 
             <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-6 text-left mb-12">
@@ -1011,10 +1050,10 @@ function CheckoutLogic() {
                 Ana Sayfaya Dön
               </button>
               <button
-                onClick={() => router.push("/agency/dashboard")}
-                className="flex-1 bg-[#38bdf8] hover:bg-[#0ea5e9] text-white font-black py-4 rounded-2xl shadow-xl transition-all text-sm uppercase tracking-widest"
+                onClick={() => router.push(itemType === 'meal' ? "/dashboard/customer/tickets" : "/agency/dashboard")}
+                className="flex-1 bg-[#38bdf8] hover:bg-[#0ea5e9] text-white font-black py-4 rounded-2xl shadow-xl transition-all text-sm uppercase tracking-widest flex items-center justify-center gap-2"
               >
-                Panelini Kontrol Et
+                {itemType === 'meal' ? 'Cüzdanıma Git ➔' : 'Panelini Kontrol Et'}
               </button>
             </div>
           </div>
@@ -1109,27 +1148,7 @@ function CheckoutLogic() {
                 </div>
               )}
 
-              <div className="pt-6 border-t border-white/10 flex justify-between items-center">
-                <span className="font-black text-white text-lg">
-                  Toplam Tutar:
-                </span>
-                <div className="text-right">
-                  {bundleLogic.isBundle && (
-                    <div className="text-xs text-slate-500 line-through font-bold mb-1">
-                      {(tourPrice + mealPrice).toLocaleString("tr-TR", {
-                        style: "currency",
-                        currency: "TRY",
-                      })}
-                    </div>
-                  )}
-                  <span className="text-3xl font-black text-[#38bdf8] tracking-tighter">
-                    {totalPrice.toLocaleString("tr-TR", {
-                      style: "currency",
-                      currency: "TRY",
-                    })}
-                  </span>
-                </div>
-              </div>
+
 
               {/* Promo Code Input */}
               <div className="mt-6 pt-6 border-t border-gray-100 dark:border-white/10">

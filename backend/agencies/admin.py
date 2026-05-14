@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Agency, Menu, Table, TableReservation
+from .models import Agency, Menu, Table, DiningReservation
 
 
 @admin.register(Agency)
@@ -42,8 +42,8 @@ class TableAdmin(admin.ModelAdmin):
     list_editable = ['is_active', 'capacity']
 
 
-@admin.register(TableReservation)
-class TableReservationAdmin(admin.ModelAdmin):
+@admin.register(DiningReservation)
+class DiningReservationAdmin(admin.ModelAdmin):
     list_display = ['guest_name', 'restaurant', 'reservation_date', 'reservation_time', 'guest_count', 'table', 'status']
     list_filter = ['status', 'reservation_date', 'restaurant']
     search_fields = ['guest_name', 'guest_phone', 'guest_email']

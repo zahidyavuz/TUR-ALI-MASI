@@ -207,7 +207,7 @@ export async function POST(req: NextRequest) {
         const replies: any = {
             'tr-TR': `Harika! İsteğini analiz ettim ve sistemimizdeki turları tarayarak senin için 3 farklı mini-itinerary seçeneği hazırladım. Hangisi daha çok ilgini çekiyor?`,
             'en-US': `Awesome! I've scanned our hype trips and pulled 3 epic options tailored just for your vibe. Which one grabs you?`,
-            'de-DE': `Ausgezeichnet! Ich habe unsere Datenbank analysiert und 3 perfekt geplante Routen für Sie zusammengestellt. Welche entspricht Ihren Vorstellungen?`,
+            'de-DE': `Ausgezeichnet! Ich habe unsere Datenbank analiziert und 3 perfekt geplante Routen für Sie zusammengestellt. Welche entspricht Ihren Vorstellungen?`,
             'zh-CN': `太棒了！我已经为您匹配了3款最受贵宾欢迎的专属定制行程，请问您最中意哪一款？`
         };
 

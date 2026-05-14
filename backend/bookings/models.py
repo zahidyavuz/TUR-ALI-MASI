@@ -9,6 +9,12 @@ class Booking(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings')
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='bookings')
     
+    SERVICE_TYPE_CHOICES = [
+        ('tour', 'Tour'),
+        ('meal', 'Meal'),
+    ]
+    service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='tour')
+    
     date_label = models.CharField(max_length=255, blank=True, null=True)  # legacy compat
     start_date = models.DateField(null=True, blank=True)
     end_date = models.DateField(null=True, blank=True)
