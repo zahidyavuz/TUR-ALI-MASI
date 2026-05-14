@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Image from 'next/image';
 
 export default function RestaurantMenuBuilderPage() {
@@ -26,8 +26,35 @@ export default function RestaurantMenuBuilderPage() {
     }
   ]);
 
+  // File Upload State
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const removeCrossSell = (id: number) => {
     setCrossSells(crossSells.filter(cs => cs.id !== id));
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length > 0) {
+      setSelectedFiles(prev => [...prev, ...files]);
+      const newPreviews = files.map(file => URL.createObjectURL(file));
+      setPreviews(prev => [...prev, ...newPreviews]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    URL.revokeObjectURL(previews[index]);
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setPreviews(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const resetForm = () => {
+    setSelectedFiles([]);
+    previews.forEach(url => URL.revokeObjectURL(url));
+    setPreviews([]);
+    // Reset other fields if needed
   };
 
   return (
@@ -50,36 +77,74 @@ export default function RestaurantMenuBuilderPage() {
             <h2 className="text-xl font-black text-slate-800 dark:text-white">Yeni Paket Oluştur</h2>
           </div>
           
-          <form className="space-y-6" onSubmit={(e) => e.preventDefault()}>
+          <form className="space-y-6" onSubmit={(e) => {
+            e.preventDefault();
+            // Handle form submission with FormData here if needed
+            alert('Menü oluşturma isteği gönderildi (Dosyalar dahil)');
+            resetForm();
+          }}>
             {/* Görsel Yükleme */}
             <div>
-              <label className="block text-sm font-bold text-gray-600 dark:text-slate-300 mb-2">Sunum Görseli</label>
-              <div className="w-full h-40 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950/50 hover:bg-red-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group">
-                <span className="text-3xl mb-2 group-hover:scale-110 transition-transform text-red-400">📸</span>
-                <span className="text-sm font-bold text-gray-500">Müşteriyi Acıktıracak Bir Fotoğraf Yükleyin</span>
-                <span className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest">Önerilen: 1920x1080px</span>
+              <label className="block text-sm font-bold text-gray-600 dark:text-slate-300 mb-2">Sunum Görselleri ve Belgeler</label>
+              
+              <input 
+                type="file" 
+                multiple 
+                accept="image/*,.pdf,.doc,.docx"
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handleFileChange}
+              />
+
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="w-full min-h-40 border-2 border-dashed border-gray-300 dark:border-slate-700 rounded-2xl flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950/50 hover:bg-[#8B1A2B]/5 dark:hover:bg-slate-800 transition-colors cursor-pointer group p-6"
+              >
+                <span className="text-3xl mb-2 group-hover:scale-110 transition-transform text-[#8B1A2B]">📸</span>
+                <span className="text-sm font-bold text-gray-500">Görsel veya Belge Yüklemek İçin Tıklayın</span>
+                <p className="text-[10px] text-gray-400 mt-1 uppercase tracking-widest text-center">
+                  Sürükleyip bırakabilir veya çoklu seçim yapabilirsiniz.
+                </p>
               </div>
+
+              {/* Previews Grid */}
+              {previews.length > 0 && (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-4 animate-in fade-in zoom-in duration-300">
+                  {previews.map((url, idx) => (
+                    <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 group shadow-sm">
+                      <Image src={url} alt="Preview" fill className="object-cover" unoptimized />
+                      <button 
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); removeFile(idx); }}
+                        className="absolute top-1 right-1 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                      >
+                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="3" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Temel Bilgiler */}
             <div>
               <label className="block text-sm font-bold text-gray-600 dark:text-slate-300 mb-2">Özel Paket Adı</label>
-              <input type="text" placeholder="Örn: Kapadokya Romantik Akşam Yemeği" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 font-bold text-slate-800 dark:text-white"/>
+              <input type="text" placeholder="Örn: Kapadokya Romantik Akşam Yemeği" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#8B1A2B] focus:ring-2 focus:ring-[#8B1A2B]/20 font-bold text-slate-800 dark:text-white"/>
             </div>
 
             <div>
               <label className="block text-sm font-bold text-gray-600 dark:text-slate-300 mb-2">Fix Fiyat (₺) - Kişi Başı</label>
-              <input type="number" placeholder="Örn: 1500" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/20 font-black text-slate-800 dark:text-white text-lg"/>
+              <input type="number" placeholder="Örn: 1500" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#8B1A2B] focus:ring-2 focus:ring-[#8B1A2B]/20 font-black text-slate-800 dark:text-white text-lg"/>
             </div>
 
             {/* Çapraz Satış (Cross-Sell) Bölümü */}
             <div className="pt-4 border-t border-gray-100 dark:border-slate-800">
               <div className="flex justify-between items-center mb-4">
                 <div>
-                  <label className="block text-sm font-black text-red-600 dark:text-red-400">Ekstra İstekler (Cross-Sell)</label>
+                  <label className="block text-sm font-black text-[#8B1A2B] dark:text-[#e8a0aa]">Ekstra İstekler (Cross-Sell)</label>
                   <p className="text-[10px] text-gray-500 font-medium">Sepette gösterilecek kârlı eklemeler.</p>
                 </div>
-                <button className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors">
+                <button type="button" className="text-xs font-bold text-[#8B1A2B] bg-[#8B1A2B]/5 dark:bg-[#8B1A2B]/20 px-3 py-1.5 rounded-lg hover:bg-[#8B1A2B]/10 transition-colors">
                   + Yeni Ekle
                 </button>
               </div>
@@ -92,7 +157,7 @@ export default function RestaurantMenuBuilderPage() {
                       <span>+₺</span>
                       <input type="text" defaultValue={cs.price} className="w-12 bg-transparent outline-none text-right" />
                     </div>
-                    <button onClick={() => removeCrossSell(cs.id)} className="w-6 h-6 bg-red-100 text-red-500 rounded flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors ml-1">
+                    <button type="button" onClick={() => removeCrossSell(cs.id)} className="w-6 h-6 bg-red-100 text-red-500 rounded flex items-center justify-center hover:bg-red-500 hover:text-white transition-colors ml-1">
                       <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
@@ -100,7 +165,7 @@ export default function RestaurantMenuBuilderPage() {
               </div>
             </div>
 
-            <button className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-red-500/30 active:scale-95 text-lg mt-4">
+            <button className="w-full bg-[#8B1A2B] hover:bg-[#7a1625] text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-[#8B1A2B]/30 active:scale-95 text-lg mt-4">
               VIP Menüyü Yayına Al
             </button>
           </form>
@@ -145,3 +210,4 @@ export default function RestaurantMenuBuilderPage() {
     </div>
   );
 }
+

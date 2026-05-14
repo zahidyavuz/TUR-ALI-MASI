@@ -1,6 +1,34 @@
 import { NextResponse } from 'next/server';
 import { generateTicketQrDataUrl } from '@/app/lib/qr';
 
+export async function GET(req: Request) {
+    const { searchParams } = new URL(req.url);
+    const date = searchParams.get('date');
+    const agencyId = searchParams.get('agencyId');
+
+    // MOCK VERİTABANI - Sadece seçilen tarihe (Örn: 2026-05-15) ait yolcuları döndürür
+    // Gerçekte: await db.bookings.findMany({ where: { date, agencyId }, include: { tour: true, user: true } })
+    
+    console.log(`[MANIFEST-SYNC] Tarih: ${date} | Acenta: ${agencyId} listesi çekiliyor.`);
+
+    const mockManifest = {
+        date: date,
+        tours: [
+            { id: 1, title: 'Kapadokya VIP Balon Turu', time: '05:30 AM', vehicle: 'Minibüs 1 (Plaka: 50 ABC 123)' },
+            { id: 2, title: 'Kırmızı Tur (Göreme)', time: '09:30 AM', vehicle: 'Minibüs 2 (Plaka: 50 XYZ 789)' }
+        ],
+        passengers: [
+            { id: 'TKT-8924', tourId: 1, name: 'John Doe', phone: '+1 555 123 4567', hotel: 'Argos in Cappadocia', pax: 2, status: 'Onaylandı' },
+            { id: 'TKT-8925', tourId: 1, name: 'Ayşe Yılmaz', phone: '+90 555 987 6543', hotel: 'Museum Hotel', pax: 1, status: 'Onaylandı' },
+            { id: 'TKT-8926', tourId: 1, name: 'Hans Müller', phone: '+49 151 2345678', hotel: 'Kelebek Cave Hotel', pax: 4, status: 'Onaylandı' },
+            { id: 'TKT-8927', tourId: 1, name: 'Elena Rossi', phone: '+39 333 1234567', hotel: 'Sultan Cave Suites', pax: 2, status: 'Beklemede' },
+            { id: 'TKT-9001', tourId: 2, name: 'Tarik S', phone: '+90 532 000 0000', hotel: 'Göreme Kaya', pax: 3, status: 'Onaylandı' }
+        ]
+    };
+
+    return NextResponse.json({ success: true, data: mockManifest });
+}
+
 export async function POST(req: Request) {
     try {
         const body = await req.json();

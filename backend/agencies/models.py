@@ -39,6 +39,10 @@ class Agency(models.Model):
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_demo = models.BooleanField(default=False, verbose_name='Demo Acente')
+    
+    # Restaurant specific
+    available_tables = models.PositiveIntegerField(default=10, verbose_name='Boş Masa Sayısı')
+    
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
@@ -84,7 +88,10 @@ class Menu(models.Model):
     )
     is_available = models.BooleanField(default=True, verbose_name='Mevcut mu?')
     is_daily_special = models.BooleanField(default=False, verbose_name='Günün Özel Menüsü mü?')
-    image = models.URLField(blank=True, null=True, verbose_name='Görsel URL')
+    image = models.ImageField(upload_to='menus/', blank=True, null=True, verbose_name='Görsel (Ana)')
+    image_sub1 = models.ImageField(upload_to='menus/', blank=True, null=True, verbose_name='Görsel (Yan 1)')
+    image_sub2 = models.ImageField(upload_to='menus/', blank=True, null=True, verbose_name='Görsel (Yan 2)')
+    
     created_at = models.DateTimeField(default=timezone.now)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -101,6 +108,18 @@ class Menu(models.Model):
         verbose_name = 'Menü Kalemi'
         verbose_name_plural = 'Menü Kalemleri'
         ordering = ['category', 'name']
+
+
+class MenuDocument(models.Model):
+    """Menüye ait PDF veya Word belgeleri."""
+    menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name='documents')
+    file = models.FileField(upload_to='menus/docs/')
+    title = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f'{self.menu.name} - Document'
+
 
 
 class Table(models.Model):
@@ -126,7 +145,7 @@ class Table(models.Model):
         verbose_name_plural = 'Masalar'
 
 
-class TableReservation(models.Model):
+class DiningReservation(models.Model):
     """
     Restoran masa rezervasyonları.
     """
@@ -141,7 +160,7 @@ class TableReservation(models.Model):
     restaurant = models.ForeignKey(
         Agency,
         on_delete=models.CASCADE,
-        related_name='table_reservations',
+        related_name='dining_reservations',
         limit_choices_to={'business_type': 'restoran'},
         verbose_name='Restoran'
     )
@@ -154,7 +173,7 @@ class TableReservation(models.Model):
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        related_name='reservations',
+        related_name='dining_reservations',
         verbose_name='Atanan Masa'
     )
     table_number = models.CharField(max_length=20, blank=True, null=True, verbose_name='Masa No (Serbest Metin)')
@@ -167,12 +186,17 @@ class TableReservation(models.Model):
         default='pending',
         verbose_name='Durum'
     )
+    
+    # Analytics
+    total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='Toplam Tutar (₺)')
+    
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):
         return f'{self.restaurant.name} | {self.guest_name} | {self.reservation_date} {self.reservation_time}'
 
     class Meta:
-        verbose_name = 'Masa Rezervasyonu'
-        verbose_name_plural = 'Masa Rezervasyonları'
+        verbose_name = 'Restoran Rezervasyonu'
+        verbose_name_plural = 'Restoran Rezervasyonları'
         ordering = ['reservation_date', 'reservation_time']
+

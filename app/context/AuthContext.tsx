@@ -10,7 +10,8 @@ interface User {
     email: string;
     first_name: string;
     last_name: string;
-    is_agency?: boolean; // We'll infer this from profile or endpoints later
+    is_agency?: boolean;
+    agency_id?: number;
     role?: string;
     is_staff?: boolean;
 }

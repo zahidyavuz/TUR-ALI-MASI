@@ -2,10 +2,10 @@ from rest_framework import viewsets, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated
-from .models import Agency, Menu, TableReservation
+from .models import Agency, Menu, DiningReservation
 from .serializers import (
     AgencySerializer, AgencyApplicationSerializer,
-    MenuSerializer, TableReservationSerializer
+    MenuSerializer, DiningReservationSerializer
 )
 from backend.permissions import IsOwnerOrReadOnly
 
@@ -95,7 +95,7 @@ class MenuViewSet(viewsets.ModelViewSet):
         return Response(MenuSerializer(menu_item).data)
 
 
-class TableReservationViewSet(viewsets.ModelViewSet):
+class DiningReservationViewSet(viewsets.ModelViewSet):
     """
     CRUD for restaurant table reservations.
     GET    /api/v1/table-reservations/             — List (filter by ?restaurant=<id>&date=<YYYY-MM-DD>)
@@ -103,11 +103,11 @@ class TableReservationViewSet(viewsets.ModelViewSet):
     PATCH  /api/v1/table-reservations/<id>/        — Update
     POST   /api/v1/table-reservations/<id>/update-status/ — Change status
     """
-    serializer_class = TableReservationSerializer
+    serializer_class = DiningReservationSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        qs = TableReservation.objects.all()
+        qs = DiningReservation.objects.all()
         restaurant_id = self.request.query_params.get('restaurant')
         if restaurant_id:
             qs = qs.filter(restaurant_id=restaurant_id)
@@ -124,7 +124,7 @@ class TableReservationViewSet(viewsets.ModelViewSet):
         """Change reservation status"""
         reservation = self.get_object()
         new_status = request.data.get('status')
-        valid_statuses = [c[0] for c in TableReservation.STATUS_CHOICES]
+        valid_statuses = [c[0] for c in DiningReservation.STATUS_CHOICES]
 
         if new_status not in valid_statuses:
             return Response(
@@ -134,4 +134,5 @@ class TableReservationViewSet(viewsets.ModelViewSet):
 
         reservation.status = new_status
         reservation.save(update_fields=['status'])
-        return Response(TableReservationSerializer(reservation).data)
+        return Response(DiningReservationSerializer(reservation).data)
+

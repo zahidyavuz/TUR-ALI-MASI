@@ -85,17 +85,7 @@ function SearchResultsContent() {
 
   return (
     <div className="min-h-screen bg-background font-sans text-slate-900 dark:text-white pb-12 transition-colors duration-500">
-      {/* Üst Bar: Puan ve Destek */}
-      <div className="w-full bg-white dark:bg-slate-950/50 py-2 px-4 md:px-8 border-b border-gray-100 dark:border-white/5 flex flex-col md:flex-row justify-between items-center gap-2 text-[11px] font-bold text-gray-500 dark:text-white/60 overflow-hidden transition-colors duration-500">
-        <div className="flex items-center gap-6">
-          <span className="flex items-center gap-1.5"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg> 2.500 İşletmeci</span>
-          <span className="flex items-center gap-1.5">4,6 Yıldız <span className="text-[#00b67a] font-black">★ Trustpilot</span> <span className="text-gray-400 font-medium">(9.906 Değerlendirme)</span></span>
-        </div>
-        <div className="flex items-center gap-6">
-          <span className="flex items-center gap-1.5"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg> 7/24 Müşteri Desteği</span>
-          <span className="flex items-center gap-1.5"><svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg> Ücretsiz eSIM</span>
-        </div>
-      </div>
+
 
       {/* Ana Header */}
       <Navbar />

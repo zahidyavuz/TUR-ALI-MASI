@@ -47,23 +47,24 @@ export default function RestaurantAvailabilityPage() {
             <form className="space-y-4" onSubmit={(e) => e.preventDefault()}>
               <div>
                 <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Seans Saati</label>
-                <input type="time" defaultValue="19:00" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-red-500 font-black text-slate-800 dark:text-white"/>
+                <input type="time" defaultValue="19:00" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#8B1A2B] font-black text-slate-800 dark:text-white"/>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Masa Kotası</label>
-                  <input type="number" placeholder="Örn: 3" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-red-500 font-bold text-slate-800 dark:text-white"/>
+                  <input type="number" placeholder="Örn: 3" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#8B1A2B] font-bold text-slate-800 dark:text-white"/>
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">Max. Kişi</label>
-                  <input type="number" placeholder="Örn: 12" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-red-500 font-bold text-slate-800 dark:text-white"/>
+                  <input type="number" placeholder="Örn: 12" className="w-full bg-slate-50 dark:bg-slate-950 border border-gray-200 dark:border-slate-800 rounded-xl px-4 py-3 outline-none focus:border-[#8B1A2B] font-bold text-slate-800 dark:text-white"/>
                 </div>
               </div>
 
-              <button className="w-full bg-red-500 hover:bg-red-600 text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-red-500/30 active:scale-95 mt-2">
+              <button className="w-full bg-[#8B1A2B] hover:bg-[#7a1625] text-white font-black py-4 rounded-xl transition-all shadow-lg shadow-[#8B1A2B]/30 active:scale-95 mt-2">
                 Seansı Kaydet
               </button>
+
             </form>
           </div>
         </div>
@@ -90,7 +91,7 @@ export default function RestaurantAvailabilityPage() {
                         {slot.time}
                       </span>
                       {isSoldOut && slot.isActive && (
-                        <span className="bg-red-500 text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md animate-pulse">
+                        <span className="bg-[#8B1A2B] text-white text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded-md animate-pulse">
                           TÜKENDİ
                         </span>
                       )}
@@ -119,7 +120,7 @@ export default function RestaurantAvailabilityPage() {
                   {/* Doluluk Çubuğu */}
                   <div className="mt-2">
                     <div className="flex justify-between text-xs font-bold mb-1">
-                      <span className={isSoldOut ? 'text-red-500' : 'text-gray-500'}>
+                      <span className={isSoldOut ? 'text-[#8B1A2B]' : 'text-gray-500'}>
                         Dolu: {slot.currentBookedPax} Kişi
                       </span>
                       <span className="text-gray-400">
@@ -129,12 +130,13 @@ export default function RestaurantAvailabilityPage() {
                     <div className="w-full h-2 bg-gray-100 dark:bg-slate-800 rounded-full overflow-hidden">
                       <div 
                         className={`h-full rounded-full transition-all duration-1000 ${
-                          isSoldOut ? 'bg-red-500' : fillPercentage > 75 ? 'bg-orange-500' : 'bg-blue-500'
+                          isSoldOut ? 'bg-[#8B1A2B]' : fillPercentage > 75 ? 'bg-orange-500' : 'bg-blue-500'
                         }`}
                         style={{ width: `${fillPercentage}%` }}
                       ></div>
                     </div>
                   </div>
+
 
                 </div>
               );

@@ -391,16 +391,33 @@ export default function DynamicTourPage() {
                         </div>
                     )}
 
-                    <div className="flex justify-between items-center pt-2">
-                        <span className="font-black text-slate-800 dark:text-white">{locale === 'en-US' ? 'Total' : 'Toplam Tutar'}</span>
-                        <div className="text-right">
-                            {bundleDiscount > 0 && (
-                                <div className="text-xs text-gray-400 dark:text-slate-600 line-through font-bold mb-1 opacity-60">
-                                    {formatPrice(subtotal + extrasPrice)}
-                                </div>
-                            )}
-                            <span className="text-2xl font-black text-[#008cb3] dark:text-[#38bdf8] tracking-tighter">{formatPrice(totalPriceAmount)}</span>
-                        </div>
+                    <div className="pt-4 mt-2">
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault();
+                                if (!selectedDate) {
+                                    setIsDateError(true);
+                                    setTimeout(() => setIsDateError(false), 1000);
+                                    return;
+                                }
+                                const formattedDate = selectedDate.toISOString().split('T')[0];
+                                const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
+                                router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
+                            }}
+                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-[20px] font-black transition-all shadow-[0_15px_35px_-5px_rgba(249,115,22,0.5)] hover:scale-[1.02] active:scale-[0.98] flex flex-col items-center justify-center gap-1.5 group overflow-hidden relative"
+                        >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 flex items-center gap-1.5">
+                                <span className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(110,231,183,0.8)]"></span> {locale === 'en-US' ? 'SECURE PAYMENT' : 'GÜVENLİ ÖDEME'}
+                            </span>
+                            <div className="flex items-center gap-2 text-2xl" suppressHydrationWarning>
+                                {bundleDiscount > 0 && (
+                                    <span className="text-sm line-through opacity-60 mr-2">{formatPrice(subtotal + extrasPrice)}</span>
+                                )}
+                                <span>{formatPrice(totalPriceAmount)}</span>
+                                <span className="text-3xl group-hover:translate-x-2 transition-transform">➔</span>
+                            </div>
+                        </button>
                     </div>
                 </div>
 
@@ -449,33 +466,7 @@ export default function DynamicTourPage() {
                     <p className="text-[10px] text-gray-400 dark:text-slate-500 font-bold mt-3 text-center italic">Yemek ücretleri restoranda ödenecektir. Ön provizyon alınmaz.</p>
                 </div>
 
-                {/* CTA Butonu - Sticky Checkout CTA */}
-                <div className="flex flex-col gap-2 mb-4 mt-6">
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault();
-                            if (!selectedDate) {
-                                setIsDateError(true);
-                                setTimeout(() => setIsDateError(false), 1000);
-                                return;
-                            }
-                            const formattedDate = selectedDate.toISOString().split('T')[0];
-                            const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
-                            router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
-                        }}
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white font-black text-2xl py-6 rounded-[24px] shadow-[0_15px_35px_-5px_rgba(249,115,22,0.5)] transition-all hover:scale-[1.02] active:scale-[0.98] flex items-center justify-center gap-4 group"
-                    >
-                        <div className="flex items-center gap-3">
-                            <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" className="group-hover:rotate-12 transition-transform">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                                <circle cx="12" cy="16" r="1.5" fill="currentColor" />
-                            </svg>
-                            <span>{locale === 'en-US' ? 'Secure Checkout' : 'Güvenli Ödemeye Geç'}</span>
-                        </div>
-                        <span className="text-3xl group-hover:translate-x-2 transition-transform">➔</span>
-                    </button>
-                </div>
+                {/* (CTA Button moved to replace Toplam Tutar) */}
 
                 {/* Güven Rozetleri (Trust Badges) - Enriched UI */}
                 <div className="mt-2 border-t border-gray-100 dark:border-white/10 pt-5 flex flex-col sm:flex-row items-center gap-3">
@@ -725,14 +716,7 @@ export default function DynamicTourPage() {
             </div>
 
             {/* Mobile Sticky Booking Bar - Always Visible Pay Bar */}
-            <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200 dark:border-white/10 px-5 py-4 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] z-[100] flex items-center justify-between pb-[calc(1.2rem+env(safe-area-inset-bottom))] transition-all duration-500">
-                <div className="flex flex-col">
-                    <p className="text-[11px] font-black text-gray-400 dark:text-slate-500 uppercase tracking-widest mb-0.5 flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                        {locale === 'en-US' ? 'Total' : 'Toplam'}
-                    </p>
-                    <p className="text-2xl font-black text-[#008cb3] dark:text-[#38bdf8] tracking-tighter leading-none">{formatPrice(totalPriceAmount)}</p>
-                </div>
+            <div className="lg:hidden fixed bottom-0 left-0 w-full bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-gray-200 dark:border-white/10 px-5 py-4 shadow-[0_-15px_40px_rgba(0,0,0,0.1)] z-[100] flex items-center justify-center pb-[calc(1.2rem+env(safe-area-inset-bottom))] transition-all duration-500">
                 <button
                     onClick={(e) => {
                         e.preventDefault();
@@ -745,16 +729,16 @@ export default function DynamicTourPage() {
                         const menuParam = selectedMenuId ? `&menuId=${selectedMenuId}` : '';
                         router.push(`/checkout?tourId=${tour.id || slug}&guests=${guests}&date=${formattedDate}${menuParam}`);
                     }}
-                    className="bg-orange-500 active:scale-95 text-white font-black px-6 py-4 rounded-xl shadow-[0_10px_25px_-5px_rgba(249,115,22,0.4)] flex items-center gap-2 text-sm transition-all"
+                    className="w-full bg-orange-500 hover:bg-orange-600 active:scale-95 text-white py-4 px-6 rounded-[20px] shadow-[0_10px_25px_-5px_rgba(249,115,22,0.4)] flex flex-col items-center justify-center gap-1 group relative overflow-hidden transition-all"
                 >
-                    <div className="flex items-center gap-1.5">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                        <span>{locale === 'en-US' ? 'Checkout' : 'Ödemeye Geç'}</span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 flex items-center gap-1.5">
+                        <span className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(110,231,183,0.8)]"></span> {locale === 'en-US' ? 'SECURE PAY' : 'GÜVENLİ ÖDEME'}
+                    </span>
+                    <div className="flex items-center gap-2 text-xl font-black" suppressHydrationWarning>
+                        <span>{formatPrice(totalPriceAmount)}</span>
+                        <span className="group-hover:translate-x-1 transition-transform">➔</span>
                     </div>
-                    <span className="text-lg">➔</span>
                 </button>
             </div>
 
