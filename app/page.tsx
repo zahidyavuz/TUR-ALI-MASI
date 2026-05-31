@@ -253,7 +253,7 @@ export default function Home() {
       <Navbar setShowAgencyModal={setShowAgencyModal} setAgencyTab={setAgencyTab} />
 
       {/* Hero: Pazarlama Tasarımı */}
-      <div className="w-full relative z-0">
+      <div className="w-full relative z-10">
         <div className="w-full py-8 px-4 text-center text-white relative flex flex-col items-center justify-center min-h-[35vh]">
           {/* Arka Plan Resimleri kapsayıcısı */}
           <div className="absolute inset-0 overflow-hidden z-0 bg-slate-900">
@@ -467,20 +467,20 @@ export default function Home() {
 
 
       {/* Neden Tourkia? (Compact Middle Bar) */}
-      <div className="w-full bg-slate-50/50 dark:bg-[#060c1d]/60 py-8 border-y border-gray-100 dark:border-white/5 transition-colors duration-500 backdrop-blur-sm">
+      <div className="w-full bg-slate-50/50 dark:bg-[#060c1d]/60 py-8 border-y border-gray-100 dark:border-white/5 transition-colors duration-500 backdrop-blur-sm relative z-0">
         <div className="max-w-7xl mx-auto px-4 md:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-12">
             {t.whyUs.items.map((item: any, idx: number) => (
               <div key={idx} className="flex items-center gap-4 group">
-                <div className="w-12 h-12 bg-white dark:bg-white/10 text-[#008cb3] dark:text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm dark:shadow-none group-hover:bg-[#008cb3] dark:group-hover:bg-white/20 group-hover:text-white transition-all duration-300">
+                <div className="w-14 h-14 bg-white dark:bg-white/10 text-[#008cb3] dark:text-white rounded-2xl flex items-center justify-center shrink-0 shadow-sm dark:shadow-none group-hover:bg-[#008cb3] dark:group-hover:bg-white/20 group-hover:text-white transition-all duration-300">
                   {idx === 0 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4" /></svg>}
                   {idx === 1 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M11 11V9a2 2 0 00-2-2m2 4v4a2 2 0 104 0v-1m-4-3H9m2 0h4m6 1a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                   {idx === 2 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                   {idx === 3 && <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <h3 className="text-[13px] font-black text-slate-800 dark:text-white leading-none mb-1 group-hover:text-[#008cb3] dark:group-hover:text-blue-300 transition-colors">{item.title}</h3>
-                  <p className="text-[11px] font-bold text-gray-400 dark:text-white/70 leading-tight line-clamp-1">{item.desc}</p>
+                  <h3 className="text-sm font-black text-slate-800 dark:text-white leading-none mb-1.5 group-hover:text-[#008cb3] dark:group-hover:text-blue-300 transition-colors">{item.title}</h3>
+                  <p className="text-xs font-bold text-gray-400 dark:text-white/70 leading-tight line-clamp-1">{item.desc}</p>
                 </div>
               </div>
             ))}
