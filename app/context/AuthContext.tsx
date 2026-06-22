@@ -44,72 +44,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const checkAuth = useCallback(async (): Promise<User | null> => {
         setIsLoading(true);
         const token = auth.getAccessToken();
-        const sessionId = localStorage.getItem('session_id') || Math.random().toString(36).substring(7);
-        if (!localStorage.getItem('session_id')) localStorage.setItem('session_id', sessionId);
 
         if (token) {
-            // Special handling for Admin Demo Login or Mock Login (Dev mode)
-            if (token === 'admin_demo_token' || token?.startsWith('mock_')) {
-                const role = token === 'admin_demo_token' ? 'SuperAdmin' : 
-                             token === 'mock_agency_token' ? 'Agency' : 
-                             token === 'mock_restaurant_token' ? 'Restaurant' : 'Customer';
-                             
-                const mockUser: User = {
-                    id: role === 'SuperAdmin' ? 50 : role === 'Agency' ? 101 : role === 'Restaurant' ? 103 : 102,
-                    username: token === 'admin_demo_token' ? 'yavuz50' : `mock_${role.toLowerCase()}`,
-                    email: token === 'admin_demo_token' ? 'admin@tourkia.com' : `${role.toLowerCase()}@tourkia.com`,
-                    first_name: token === 'admin_demo_token' ? 'Admin' : 'Mock',
-                    last_name: token === 'admin_demo_token' ? 'Yavuz' : role,
-                    is_agency: role === 'Agency',
-                    is_staff: role === 'SuperAdmin',
-                    role: role
-                };
-                setUser(mockUser);
-                setIsLoading(false);
-                return mockUser;
-            }
-
             try {
                 const userData = await fetchAPI('/auth/user/', {
                     headers: auth.getAuthHeaders()
                 });
 
-                // --- SESSION GUARD: Anomali Kontrolü (Temporarily disabled) ---
-                /*
                 if (userData) {
-                    const sessionRes = await fetch('/api/auth/session-check', {
-                        method: 'POST',
-                        body: JSON.stringify({ sessionId, userId: userData.id })
-                    });
-                    
-                    if (sessionRes.status === 403) {
-                        const errorData = await sessionRes.json();
-                        alert(`🚨 GÜVENLİK UYARISI:\n${errorData.message}`);
-                        logout();
-                        setIsLoading(false);
-                        return null;
-                    }
-                }
-                */
-                // KOMUT 110: Rol Verisini Zorla Çek ve Kaydet (Extract-and-Force-Role-State)
-                if (userData) {
-                    let forcedRole = userData.role;
-                    if (!forcedRole) {
-                        // Backend rol döndürmüyorsa, yetkilere bakarak zorla belirle
-                        if (userData.username === 'yavuz50' || userData.is_staff) {
-                            forcedRole = 'admin';
+                    if (!userData.role) {
+                        if (userData.is_staff) {
+                            userData.role = 'admin';
                         } else if (userData.is_agency) {
-                            forcedRole = 'agency';
+                            userData.role = 'agency';
                         } else {
-                            // Check if a businessType was previously intended, else default
-                            forcedRole = 'customer';
+                            userData.role = 'customer';
                         }
-                        userData.role = forcedRole;
-                    }
-                    
-                    // Hafızada tutmakla kalma, anında LocalStorage'a mühürle!
-                    if (typeof window !== 'undefined') {
-                        localStorage.setItem('userRole', forcedRole);
                     }
                 }
 
@@ -118,7 +68,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 return userData;
             } catch (error) {
                 console.error("Auth check failed:", error);
-                // Do not clear tokens automatically on network errors to prevent aggressive logouts
                 setUser(null);
             }
         } else {
