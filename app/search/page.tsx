@@ -66,7 +66,7 @@ function SearchResultsContent() {
       if (maxPrice < 10000) params.max_price = maxPrice;
 
       const data = await fetchTours(params);
-      
+
       // Eğer hiç tur bulunamazsa alternatifleri/popülerleri getir
       if (data.tours.length === 0) {
         const popParams: any = { is_popular: true };
@@ -75,7 +75,38 @@ function SearchResultsContent() {
         setPopularTours(popData.tours.slice(0, 3));
         setTours([]);
       } else {
-        setTours(data.tours || []);
+        let filtered: any[] = data.tours;
+
+        // Süre filtresi (client-side)
+        if (duration) {
+          filtered = filtered.filter((tour: any) => {
+            const d = (tour.duration || '').toLowerCase();
+            const hoursMatch = d.match(/(\d+)\s*saat/);
+            if (hoursMatch) {
+              const hours = parseInt(hoursMatch[1]);
+              return duration === 'short' ? hours <= 4 : hours > 4;
+            }
+            // Saat bilgisi yoksa tam gün sayılır
+            return duration === 'full';
+          });
+        }
+
+        // Kategori filtresi (client-side)
+        if (selectedCategories.length > 0) {
+          filtered = filtered.filter((tour: any) =>
+            selectedCategories.includes(tour.category)
+          );
+        }
+
+        // Rehber dili filtresi (client-side)
+        if (selectedLanguages.length > 0) {
+          filtered = filtered.filter((tour: any) => {
+            const guide = (tour.guide || '').toLowerCase();
+            return selectedLanguages.some(lang => guide.includes(lang.toLowerCase()));
+          });
+        }
+
+        setTours(filtered);
         setPopularTours([]);
       }
       setLoading(false);
