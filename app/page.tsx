@@ -1226,25 +1226,13 @@ export default function Home() {
                       />
                     </div>
 
-                    <button 
+                    <button
                       type={agencyTab === 'login' ? 'button' : 'submit'}
-                      onClick={async () => {
+                      onClick={() => {
                         if (agencyTab === 'login') {
-                          // Login İşlemi: Mock Token oluşturup AuthContext'e veriyoruz
-                          const tokenStr = agencyBusinessType === 'restoran' ? 'mock_restaurant_token' : 'mock_agency_token';
-                          const mockTokens = { access: tokenStr, refresh: tokenStr };
-                          
-                          if (typeof window !== 'undefined') {
-                              localStorage.setItem('access_token', tokenStr);
-                          }
-                          
                           setShowAgencyModal(false);
-                          
-                          // Doğrudan login foksiyonunu çağırıp başarılı olursa Business Hub'a gönder
-                          if (login) {
-                              await login(mockTokens);
-                              window.location.href = '/dashboard/business'; // Kesin ve net yönlendirme (hard redirect)
-                          }
+                          const role = (agencyBusinessType === 'restoran' || agencyBusinessType === 'kafe') ? 'restoran' : 'acenta';
+                          window.location.href = `/login?role=${role}`;
                         }
                       }}
                       className="w-full bg-orange-500 text-white font-black text-[15px] py-4 rounded-2xl mt-4 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30 hover:shadow-xl active:scale-[0.98] duration-200"

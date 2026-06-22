@@ -69,12 +69,7 @@ export default function RegisterPage() {
             });
 
             if (!response) {
-                console.warn("Backend not reachable. Mocking registration.");
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('access_token', 'mock_token');
-                }
-                await login({ access: 'mock_token', refresh: 'mock_token' });
-                router.push('/profile');
+                setError('Kayıt yapılamadı. Sunucuya ulaşılamıyor, lütfen daha sonra tekrar deneyin.');
                 return;
             }
 
