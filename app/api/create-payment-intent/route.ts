@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import Stripe from 'stripe';
+import { calculateOrderAmount, OrderValidationError, TourNotFoundError } from '@/app/lib/orderCalculator';
 
 // NOTE: Replace with your actual Stripe Secret Key (e.g., in a .env local file as STRIPE_SECRET_KEY)
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_dummy_key_change_me_to_run_real_tests', {
@@ -43,10 +44,25 @@ export async function POST(request: Request) {
             }
         }
 
-        const { items, currency = 'usd' } = await request.json();
+        const { items, promoCode, currency = 'try' } = await request.json();
 
-        // calculate order amount here (DO NOT TRUST CLIENT AMOUNT, always calculate on server)
-        const orderAmount = 240000; // e.g., $2400.00 -> 240000 cents
+        // Order amount is always computed server-side from the authoritative
+        // tour/menu price (never trusts a client-supplied amount). See
+        // app/lib/orderCalculator.ts for the shared pricing logic.
+        // NOTE: this route is intentionally not called from the live checkout
+        // page yet (see TODOS.md) — payment provider activation is a separate,
+        // later initiative. This fix makes the calculation correct and ready
+        // for whichever provider activates it.
+        let orderAmount: number;
+        try {
+            const result = await calculateOrderAmount({ items, promoCode, currency });
+            orderAmount = result.amount;
+        } catch (err: any) {
+            if (err instanceof OrderValidationError || err instanceof TourNotFoundError) {
+                return NextResponse.json({ error: err.message }, { status: 400 });
+            }
+            throw err;
+        }
 
         // Create a PaymentIntent with the order amount and currency
         const paymentIntent = await stripe.paymentIntents.create({
