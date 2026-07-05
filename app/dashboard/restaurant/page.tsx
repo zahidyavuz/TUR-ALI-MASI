@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from '@/app/context/AuthContext';
 import { fetchAPI } from '@/app/lib/api';
+import { auth } from '@/app/lib/auth';
 
 // Status labels
 const STATUS_LABELS: Record<string, string> = {
@@ -78,7 +79,14 @@ export default function RestaurantOverviewPage() {
     if (!user?.agency_id) return;
 
     const connectWS = () => {
-      const wsUrl = `ws://localhost:8000/ws/restaurant/${user.agency_id}/`;
+      // Auth is via query-string token (backend/agencies/consumers.py),
+      // not a cookie — cross-domain deploys (frontend/backend on different
+      // hosts) would silently drop a cookie-based approach.
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+      const wsProtocol = apiUrl.startsWith('https') ? 'wss' : 'ws';
+      const wsHost = apiUrl.replace(/^https?:\/\//, '').replace(/\/api\/v1\/?$/, '');
+      const token = auth.getAccessToken();
+      const wsUrl = `${wsProtocol}://${wsHost}/ws/restaurant/${user.agency_id}/?token=${encodeURIComponent(token || '')}`;
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {

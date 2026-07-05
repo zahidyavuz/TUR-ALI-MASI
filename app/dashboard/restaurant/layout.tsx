@@ -1,13 +1,25 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function RestaurantDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isLoading, logout } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return;
+    const role = user?.role?.toLowerCase() || '';
+    const allowed = role === 'restaurant' || role === 'kafe' || role === 'cafe';
+    if (!allowed) {
+      router.replace('/login');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) return null;
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const navItems = [
@@ -80,7 +92,7 @@ export default function RestaurantDashboardLayout({ children }: { children: Reac
         </nav>
 
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-          <button className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-colors">
+          <button onClick={() => { logout(); router.replace('/login'); }} className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-colors">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             Çıkış Yap
           </button>

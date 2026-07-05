@@ -3,16 +3,17 @@ import logging
 
 from channels.db import database_sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
-from rest_framework_simplejwt.exceptions import TokenError
+from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
 from rest_framework_simplejwt.tokens import AccessToken
 
 logger = logging.getLogger(__name__)
 
-# Cookie name must match REST_AUTH['JWT_AUTH_COOKIE'] in settings.py — this
-# consumer decodes the JWT manually because Channels' AuthMiddlewareStack
-# populates scope['user'] from Django session auth, not from this app's JWT
-# cookie auth (scope['user'] would be AnonymousUser for real users here).
-AUTH_COOKIE_NAME = 'auth-token'
+# Token is passed via query string (ws://.../?token=<access_token>), not a
+# cookie: frontend and backend can end up on different domains once the
+# backend is actually deployed (see TODOS.md), and cross-site cookies would
+# simply not be sent in that case. Query-string tokens work regardless of
+# domain — the frontend caller (app/dashboard/restaurant/page.tsx) must
+# append the current access token to the websocket URL.
 
 
 class RestaurantConsumer(AsyncWebsocketConsumer):
@@ -29,8 +30,14 @@ class RestaurantConsumer(AsyncWebsocketConsumer):
             await self.close(code=4400)
             return
 
-        token = self.scope.get('cookies', {}).get(AUTH_COOKIE_NAME)
-        if not token:
+        query_string = self.scope.get('query_string', b'').decode()
+        token_str = None
+        for param in query_string.split('&'):
+            if param.startswith('token='):
+                token_str = param[len('token='):]
+                break
+
+        if not token_str:
             logger.warning(
                 'RestaurantConsumer reject=no_token restaurant_id=%s',
                 restaurant_id,
@@ -39,9 +46,9 @@ class RestaurantConsumer(AsyncWebsocketConsumer):
             return
 
         try:
-            access_token = AccessToken(token)
+            access_token = AccessToken(token_str)
             user_id = access_token['user_id']
-        except TokenError:
+        except (TokenError, InvalidToken, KeyError):
             logger.warning(
                 'RestaurantConsumer reject=invalid_token restaurant_id=%s',
                 restaurant_id,
@@ -70,7 +77,11 @@ class RestaurantConsumer(AsyncWebsocketConsumer):
     @database_sync_to_async
     def _user_owns_restaurant(self, user_id, restaurant_id):
         from agencies.models import Agency
-        return Agency.objects.filter(owner_id=user_id, id=restaurant_id).exists()
+        return Agency.objects.filter(
+            owner_id=user_id,
+            id=restaurant_id,
+            business_type__in=['restoran', 'kafe'],
+        ).exists()
 
     async def disconnect(self, close_code):
         room_group_name = getattr(self, 'room_group_name', None)

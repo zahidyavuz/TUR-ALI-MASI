@@ -1,12 +1,22 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function CustomerDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.replace('/login');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) return null;
 
   const navItems = [
     { name: 'Cüzdanım', path: '/dashboard/customer', icon: '🎫' },

@@ -1,14 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AgencyDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, isLoading, logout } = useAuth();
+  const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    if (isLoading) return;
+    const role = user?.role?.toLowerCase() || '';
+    const allowed = user?.is_agency || role === 'agency' || role === 'merchant/agency';
+    if (!allowed) {
+      router.replace('/login');
+    }
+  }, [user, isLoading, router]);
+
+  if (isLoading || !user) return null;
 
   const navItems = [
     { name: 'İstatistik Merkezi', path: '/dashboard/agency', icon: '📊' },
@@ -40,7 +52,7 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
 
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 md:hidden backdrop-blur-sm"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -64,8 +76,8 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
           {navItems.map((item) => {
             const isActive = pathname === item.path;
             return (
-              <Link 
-                key={item.path} 
+              <Link
+                key={item.path}
                 href={item.path}
                 onClick={() => setIsMobileMenuOpen(false)}
                 className={`flex items-center gap-3 px-4 py-3 rounded-md font-medium text-sm transition-all font-sans ${isActive ? 'bg-slate-900 text-white shadow-sm' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-white'}`}
@@ -77,7 +89,7 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
           })}
         </nav>
         <div className="p-4 border-t border-slate-200 dark:border-slate-800">
-          <button onClick={() => { /* Logout Logic */ }} className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-colors font-sans">
+          <button onClick={() => { logout(); router.replace('/login'); }} className="flex items-center justify-center w-full gap-2 px-4 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-md transition-colors font-sans">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
             Çıkış Yap
           </button>
@@ -94,8 +106,8 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
         {navItems.map((item) => {
           const isActive = pathname === item.path;
           return (
-            <Link 
-              key={item.path} 
+            <Link
+              key={item.path}
               href={item.path}
               className={`flex flex-col items-center gap-1 p-2 min-w-[72px] transition-colors ${isActive ? 'text-slate-900 dark:text-white' : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-300'}`}
             >

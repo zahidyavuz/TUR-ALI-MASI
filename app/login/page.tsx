@@ -11,7 +11,6 @@ import TwoFactorVerify from '../components/TwoFactorVerify';
 function LoginContent() {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [businessType, setBusinessType] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -26,12 +25,6 @@ function LoginContent() {
     const searchParams = useSearchParams();
     const { login } = useAuth();
 
-    useEffect(() => {
-        const roleFromUrl = searchParams.get('role');
-        if (roleFromUrl === 'acenta') setBusinessType('agency');
-        if (roleFromUrl === 'restoran' || roleFromUrl === 'kafe') setBusinessType('restaurant');
-    }, [searchParams]);
-
     const handleRedirect = (user: any) => {
         if (!user) {
             window.location.href = '/';
@@ -39,19 +32,15 @@ function LoginContent() {
         }
 
         const role = user.role?.toLowerCase() || '';
-        const isAdmin = user.username === 'yavuz50' || user.is_staff || role === 'superadmin' || role === 'admin';
+        const isAdmin = user.is_staff || role === 'superadmin' || role === 'admin';
         const isAgency = role === 'agency' || role === 'merchant/agency' || user.is_agency;
         const isRestaurant = role === 'restaurant' || role === 'kafe' || role === 'cafe';
-        const isCustomer = !isAdmin && !isAgency && !isRestaurant;
 
-        // Final-Login-Logic-Lock: HİÇ bekletmeden kesin yönlendirme (Acımasız Yönlendirme)
         if (isAdmin) {
             window.location.href = '/dashboard/admin';
         } else if (isAgency || isRestaurant) {
-            // Acenta veya Restoran ise birleştirilmiş business rotasına gönder
             window.location.href = '/dashboard/business';
         } else {
-            // Müşteri ise (Customer) doğrudan ana sayfaya (vitrine) gönder
             window.location.href = '/';
         }
     };
@@ -60,94 +49,36 @@ function LoginContent() {
         e.preventDefault();
         setError('');
 
-        // ZERO-TRUST: Brute Force Koruması (Temporarily disabled)
-        /*
         const limit = checkRateLimit('login_attempts');
         if (!limit.allowed) {
             setError(`Çok fazla hatalı deneme yaptınız. Güvenlik sebebiyle erişiminiz ${limit.remainingMinutes} dakikalığına kilitlenmiştir.`);
             return;
         }
-        */
 
         setLoading(true);
 
         try {
-            // Özel Admin Girişi
-            if (username === 'yavuz50' && password === 'yavuz50') {
-                const mockTokens = { access: 'admin_demo_token', refresh: 'admin_demo_token' };
-                const mockUser = { id: 50, username: 'yavuz50', is_staff: true, role: 'SuperAdmin' };
-                
-                // 2FA Gerekli mi?
-                if (requires2FA(mockUser)) {
-                    const res = await fetch('/api/auth/2fa', {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'initiate', userId: mockUser.id, username: mockUser.username })
-                    });
-                    const { sessionId } = await res.json();
-                    setTwoFactor({ show: true, sessionId, user: mockUser, tokens: mockTokens });
-                    return;
-                }
-
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('access_token', 'admin_demo_token');
-                }
-                const user = await login(mockTokens);
-                handleRedirect(user);
-                return;
-            }
-
-            const credentials = { username, password };
-
             const response = await fetchAPI('/auth/login/', {
                 method: 'POST',
-                body: JSON.stringify(credentials)
+                body: JSON.stringify({ username, password })
             });
 
             if (!response) {
-                // Mock fallback based on intended login type
-                let tokenStr = 'mock_customer_token';
-                if (businessType === 'agency') tokenStr = 'mock_agency_token';
-                if (businessType === 'restaurant') tokenStr = 'mock_restaurant_token';
-
-                const mockTokens = { access: tokenStr, refresh: tokenStr };
-                const mockUser = businessType === 'agency' 
-                    ? { id: 101, username: 'mock_agency', is_agency: true, role: 'Agency' }
-                    : businessType === 'restaurant'
-                    ? { id: 103, username: 'mock_restaurant', is_agency: false, role: 'Restaurant' }
-                    : { id: 102, username: 'mock_customer', is_agency: false, role: 'Customer' };
-                
-                if (requires2FA(mockUser)) {
-                    const res = await fetch('/api/auth/2fa', {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'initiate', userId: mockUser.id, username: mockUser.username })
-                    });
-                    const { sessionId } = await res.json();
-                    setTwoFactor({ show: true, sessionId, user: mockUser, tokens: mockTokens });
-                    return;
-                }
-
-                if (typeof window !== 'undefined') {
-                    localStorage.setItem('access_token', 'mock_token');
-                }
-                const user = await login(mockTokens);
-                handleRedirect(user || mockUser);
+                recordFailedAttempt('login_attempts');
+                setError('Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin veya daha sonra tekrar deneyin.');
                 return;
             }
 
-            const tokens = response.access_token ? { access: response.access_token, refresh: response.refresh_token } : { access: response.access, refresh: response.refresh };
-            
+            const tokens = response.access_token
+                ? { access: response.access_token, refresh: response.refresh_token }
+                : { access: response.access, refresh: response.refresh };
+
             if (tokens.access) {
                 resetAttempts('login_attempts');
-                
-                // Fetch user data to check 2FA and Role Mismatch
+
                 const userData = await fetchAPI('/auth/user/', {
                     headers: { 'Authorization': `Bearer ${tokens.access}` }
                 });
-
-                // --- ROLE MISMATCH VALIDATION: Disabled for frictionless access ---
-                if (userData) {
-                    // Always allow login regardless of role during testing
-                }
 
                 if (requires2FA(userData)) {
                     const res = await fetch('/api/auth/2fa', {
@@ -177,12 +108,8 @@ function LoginContent() {
             method: 'POST',
             body: JSON.stringify({ action: 'verify', sessionId: twoFactor.sessionId, code })
         });
-        
+
         if (res.ok) {
-            // Login finalization
-            if (typeof window !== 'undefined' && twoFactor.tokens.access) {
-                localStorage.setItem('access_token', twoFactor.tokens.access);
-            }
             const user = await login(twoFactor.tokens);
             handleRedirect(user);
         } else {
