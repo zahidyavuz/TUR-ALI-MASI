@@ -22,13 +22,7 @@ class Booking(models.Model):
         ('shuttle', 'Shuttle'),
     ]
     service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='tour')
-    
-    SERVICE_TYPE_CHOICES = [
-        ('tour', 'Tour'),
-        ('meal', 'Meal'),
-    ]
-    service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='tour')
-    
+
     date_label = models.CharField(max_length=255, blank=True, null=True)  # legacy compat
     start_date = models.DateField(null=True, blank=True)
     # Shuttles are time-slotted (ShuttleAvailability has date + time); tours
