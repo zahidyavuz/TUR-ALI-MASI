@@ -54,10 +54,13 @@ class AgentFinanceLedger(models.Model):
         Bir Booking nesnesinden finansal kayıt oluşturur.
         Idempotent: aynı booking_ref varsa tekrar oluşturmaz.
         """
-        if not hasattr(booking.tour, 'agency') or not booking.tour.agency:
+        # Booking.tour is nullable — shuttle bookings use shuttle_route instead
+        # (see bookings/models.py). Either one carries an `agency` FK.
+        service = booking.tour or booking.shuttle_route
+        if not service or not hasattr(service, 'agency') or not service.agency:
             return None
 
-        agency = booking.tour.agency
+        agency = service.agency
         rate   = agency.commission_rate  # örn: Decimal('10.00')
         gross  = booking.total_price
 
@@ -68,7 +71,9 @@ class AgentFinanceLedger(models.Model):
             booking_ref=booking.booking_ref,
             defaults={
                 'agency':            agency,
-                'tour_title':        booking.tour.title,
+                # tour_title stores the service title for either a tour or a
+                # shuttle route — field kept as-is to avoid a schema change.
+                'tour_title':        service.title,
                 'tour_date':         booking.start_date,
                 'gross_amount':      gross,
                 'commission_rate':   rate,

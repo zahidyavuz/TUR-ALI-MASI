@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     # Local apps
     'agencies',
     'tours',
+    'shuttles',
     'bookings',
     'reviews',
     'blogs',

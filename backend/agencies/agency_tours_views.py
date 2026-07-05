@@ -17,12 +17,10 @@ Endpoint'ler:
   POST   /api/v1/agency/tours/<slug>/upload-image/ → Görsel yükle (Pillow optimize)
   GET    /api/v1/agency/tours/<slug>/manifest/     → Günlük yolcu listesi
 """
-import io
 import logging
 import uuid
 from datetime import date, timedelta
 
-from django.core.files.base import ContentFile
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from rest_framework import viewsets, status, parsers
@@ -32,6 +30,7 @@ from rest_framework.response import Response
 
 from agencies.models import Agency
 from core.permissions import IsAgentOwner, IsVerifiedAgent, StrictMassAssignmentPermission
+from core.image_utils import optimize_image
 from tours.models import Tour, TourAvailability
 from tours.serializers import TourDetailSerializer, TourListSerializer
 from bookings.models import Booking
@@ -39,18 +38,7 @@ from bookings.serializers import BookingSerializer
 
 logger = logging.getLogger('agencies')
 
-# ─── Pillow ───────────────────────────────────────────────────────────────────
-try:
-    from PIL import Image as PilImage
-    PILLOW_AVAILABLE = True
-except ImportError:
-    PILLOW_AVAILABLE = False
-    logger.warning("Pillow kütüphanesi bulunamadı. Görsel optimizasyonu devre dışı.")
-
-# Konfigürasyon sabitleri
-MAX_IMAGE_SIZE = (1200, 900)   # piksel
-IMAGE_QUALITY  = 82            # JPEG/WEBP kalitesi (1-95)
-MAX_UPLOAD_MB  = 10            # Yükleme boyut sınırı (MB)
+MAX_UPLOAD_MB = 10  # Yükleme boyut sınırı (MB)
 
 
 class AgencyTourViewSet(viewsets.ModelViewSet):
@@ -144,7 +132,7 @@ class AgencyTourViewSet(viewsets.ModelViewSet):
         if field_name not in allowed_fields:
             return Response({'error': f'Geçersiz alan adı: {field_name}'}, status=status.HTTP_400_BAD_REQUEST)
 
-        optimized = self._optimize_image(image_file)
+        optimized = optimize_image(image_file)
         filename  = f"tours/{uuid.uuid4().hex}.webp"
 
         getattr(tour, field_name).save(filename, optimized, save=True)
@@ -245,50 +233,3 @@ class AgencyTourViewSet(viewsets.ModelViewSet):
         ]
         if slots:
             TourAvailability.objects.bulk_create(slots, ignore_conflicts=True)
-
-    @staticmethod
-    def _optimize_image(image_file) -> ContentFile:
-        """
-        Pillow ile görsel optimizasyonu:
-          1. MAX_IMAGE_SIZE içine sığdır (thumbnail — oranı koru).
-          2. WEBP formatına dönüştür (en iyi sıkıştırma).
-          3. ContentFile olarak döndür (Django'nun storage'ına yazılabilir).
-
-        Pillow yüklü değilse orijinal dosyayı döndürür.
-        """
-        if not PILLOW_AVAILABLE:
-            return ContentFile(image_file.read())
-
-        try:
-            img = PilImage.open(image_file)
-
-            # EXIF rotasyonunu düzelt
-            try:
-                from PIL.ImageOps import exif_transpose
-                img = exif_transpose(img)
-            except Exception:
-                pass
-
-            # RGBA / P modlarını RGB'ye çevir (WEBP RGBA desteklese de sıkıştırma için RGB daha iyi)
-            if img.mode in ('RGBA', 'P', 'LA'):
-                background = PilImage.new('RGB', img.size, (255, 255, 255))
-                if img.mode == 'RGBA':
-                    background.paste(img, mask=img.split()[3])
-                else:
-                    background.paste(img.convert('RGBA'), mask=img.convert('RGBA').split()[3])
-                img = background
-            elif img.mode != 'RGB':
-                img = img.convert('RGB')
-
-            # Yeniden boyutlandır
-            img.thumbnail(MAX_IMAGE_SIZE, PilImage.LANCZOS)
-
-            buffer = io.BytesIO()
-            img.save(buffer, format='WEBP', quality=IMAGE_QUALITY, method=6)
-            buffer.seek(0)
-            return ContentFile(buffer.read())
-
-        except Exception as e:
-            logger.error(f"[IMAGE_OPTIMIZE] Pillow optimizasyonu başarısız, orijinal kullanılıyor: {e}")
-            image_file.seek(0)
-            return ContentFile(image_file.read())

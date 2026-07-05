@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from tours.views import TourViewSet, CategoryViewSet
+from shuttles.views import ShuttleRouteViewSet
 from agencies.views import AgencyViewSet, MenuViewSet
 from agencies.restaurant_views import RestaurantDailyStatsView, DiningReservationViewSet
 from reviews.views import ReviewViewSet
@@ -12,6 +13,7 @@ from users.views import UserMeView, WishlistViewSet, NotificationViewSet, UserCo
 from contacts.views import ContactMessageViewSet, LeadViewSet
 # ── Acenta B2B Modülleri ──────────────────────────────────────────────────────
 from agencies.agency_tours_views import AgencyTourViewSet
+from agencies.agency_shuttles_views import AgencyShuttleViewSet
 from agencies.finance_views import (
     AgencyFinanceSummaryView,
     AgencyFinanceLedgerView,
@@ -24,6 +26,7 @@ from agencies.finance_views import (
 router = DefaultRouter()
 router.register(r'agencies', AgencyViewSet, basename='agency')
 router.register(r'tours', TourViewSet)
+router.register(r'shuttles', ShuttleRouteViewSet, basename='shuttle')
 router.register(r'categories', CategoryViewSet)
 router.register(r'reviews', ReviewViewSet)
 router.register(r'bookings', BookingViewSet, basename='booking')
@@ -39,6 +42,7 @@ router.register(r'menus', MenuViewSet, basename='menu')
 router.register(r'restaurant/reservations', DiningReservationViewSet, basename='restaurant-reservation')
 # ── Acenta Tur Yönetimi (RLS korumalı) ───────────────────────────────────────
 router.register(r'agency/tours', AgencyTourViewSet, basename='agency-tour')
+router.register(r'agency/shuttles', AgencyShuttleViewSet, basename='agency-shuttle')
 
 
 

@@ -24,20 +24,29 @@ def booking_status_notification(sender, instance, **kwargs):
     if not instance.user:
         return
 
+    # Booking.tour is nullable (shuttle bookings use shuttle_route instead) —
+    # see bookings/models.py. Build a label that works for either.
+    if instance.tour:
+        service_label = f'{instance.tour.title} turu'
+    elif instance.shuttle_route:
+        service_label = f'{instance.shuttle_route.title} transferi'
+    else:
+        service_label = 'hizmetiniz'
+
     status_messages = {
         'confirmed': {
             'title': 'Rezervasyonunuz Onaylandı! ✅',
-            'message': f'{instance.tour.title} turu için ödemeniz alındı. Referans: {instance.booking_ref}',
+            'message': f'{service_label} için ödemeniz alındı. Referans: {instance.booking_ref}',
             'icon': '✅',
         },
         'cancelled': {
             'title': 'Rezervasyonunuz İptal Edildi',
-            'message': f'{instance.tour.title} turu için olan rezervasyonunuz ({instance.booking_ref}) iptal edildi.',
+            'message': f'{service_label} için olan rezervasyonunuz ({instance.booking_ref}) iptal edildi.',
             'icon': '❌',
         },
         'failed': {
             'title': 'Ödeme Başarısız',
-            'message': f'{instance.tour.title} turu için ödemeniz başarısız oldu. Lütfen tekrar deneyin.',
+            'message': f'{service_label} için ödemeniz başarısız oldu. Lütfen tekrar deneyin.',
             'icon': '⚠️',
         },
     }
@@ -61,14 +70,15 @@ def booking_status_notification(sender, instance, **kwargs):
                 action_url='/bookings'
             )
 
-    # Acenta sahibine de bildirim
-    if instance.status == 'confirmed' and hasattr(instance.tour, 'agency') and instance.tour.agency:
-        agency_owner = instance.tour.agency.owner
+    # Acenta sahibine de bildirim (tour ya da shuttle_route'un agency'si)
+    service = instance.tour or instance.shuttle_route
+    if instance.status == 'confirmed' and service and hasattr(service, 'agency') and service.agency:
+        agency_owner = service.agency.owner
         if agency_owner:
             Notification.objects.create(
                 user=agency_owner,
                 title='Yeni Onaylı Rezervasyon! 🎉',
-                message=f'{instance.tour.title} turu için yeni bir rezervasyon onaylandı. Ref: {instance.booking_ref}',
+                message=f'{service_label} için yeni bir rezervasyon onaylandı. Ref: {instance.booking_ref}',
                 icon='🎉',
                 type='booking',
                 action_url='/agency/dashboard'
@@ -93,9 +103,9 @@ def create_finance_ledger_entry(sender, instance, created, **kwargs):
     if instance.status != 'confirmed':
         return
 
-    # Tour'un bir acentası yoksa finansal kayıt tutulmaz
-    tour = instance.tour
-    if not hasattr(tour, 'agency') or not tour.agency:
+    # Tour'un (ya da shuttle_route'un) bir acentası yoksa finansal kayıt tutulmaz
+    service = instance.tour or instance.shuttle_route
+    if not service or not hasattr(service, 'agency') or not service.agency:
         return
 
     try:

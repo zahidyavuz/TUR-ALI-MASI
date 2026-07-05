@@ -63,12 +63,12 @@ class AdminDashboardView(APIView):
         total_tours = Tour.objects.count()
 
         # Recent activities (last 5 bookings)
-        recent_bookings = Booking.objects.select_related('tour', 'user').order_by('-created_at')[:5]
+        recent_bookings = Booking.objects.select_related('tour', 'shuttle_route', 'user').order_by('-created_at')[:5]
         recent_activities = [
             {
                 'id': str(b.id),
                 'type': 'booking',
-                'description': f'{b.user.username} - {b.tour.title}',
+                'description': f'{b.user.username} - {b.tour.title if b.tour else (b.shuttle_route.title if b.shuttle_route else "Bilinmeyen hizmet")}',
                 'status': b.status,
                 'amount': float(b.total_price),
                 'time': b.created_at.isoformat(),

@@ -78,3 +78,42 @@ TODO P2 lands) — not justified until the feature is actually deployable.
 **Effort:** S (human) → S (CC+gstack).
 **Priority:** P3.
 **Depends on:** TODO P2 (needs the feature actually running to matter).
+
+## P3 — Agency dashboard analytics don't include shuttle bookings
+
+**What:** `agencies/dashboard.py`'s `AgencyDashboardView` (the main "İstatistik
+Merkezi" widget) filters `Booking.objects.filter(tour__agency=agency)` — this
+silently excludes shuttle bookings (`tour=None`) from revenue totals, monthly
+trend, conversion rate, and the "top performing tour" widget.
+
+**Why:** Added 2026-07-05 alongside the shuttle/transfer module. Shuttle
+bookings ARE tracked correctly in `AgentFinanceLedger` (commission/payout
+system) and in the shuttle-specific `manifest` action — just not in this
+one aggregate dashboard view.
+
+**Pros:** Agencies offering transfers get accurate top-line revenue numbers.
+**Cons:** Touches revenue/trend aggregation queries used by a live dashboard
+— needs its own careful review (a "top_tour" widget becoming "top_service"
+is a small UX decision, not just a query change).
+
+**Effort:** S (human) → S (CC+gstack).
+**Priority:** P3.
+**Depends on:** nothing — `Booking.shuttle_route` already exists.
+
+## P3 — Real payment collection UI still not wired for shuttle bookings
+
+**What:** `/transfer/[id]/page.tsx` creates a real Booking + real Stripe
+PaymentIntent server-side (correct, tested), but does not collect card
+details — consistent with the existing, deliberate "prepare, don't activate"
+stance on payment processing (see the earlier P0 plan, 2026-07-04: user is
+integrating İyzico later). Shuttle bookings are created with status=pending
+and stay there until real payment collection is activated project-wide.
+
+**Why:** Matches existing precedent exactly rather than activating live
+payment collection for one service type ahead of the others.
+
+**Effort:** depends entirely on the payment-provider-activation TODO (P1,
+"Deploy the Django backend somewhere reachable" implies this comes after).
+**Priority:** P3 (tracked here so it isn't forgotten once payment activation
+happens — every service type, not just tours, needs the same wiring).
+**Depends on:** payment provider activation (İyzico), user's own future work.
