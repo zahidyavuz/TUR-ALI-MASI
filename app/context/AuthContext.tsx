@@ -14,6 +14,11 @@ interface User {
     agency_id?: number;
     role?: string;
     is_staff?: boolean;
+    // Partner onboarding status — see backend/users/serializers.py UserSerializer.
+    agency_status?: string | null;
+    agency_business_type?: string | null;
+    agency_onboarding_step?: number | null;
+    agency_rejection_reason?: string | null;
 }
 
 interface AuthContextType {

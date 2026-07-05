@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useAuth } from '../../context/AuthContext';
 
 export default function AdminDashboard() {
@@ -23,11 +24,11 @@ export default function AdminDashboard() {
             <h3 className="text-lg font-bold text-white mb-2">Güvenlik Duvarı</h3>
             <p className="text-xs text-slate-400">Siber saldırı kayıtları ve IP engelleme.</p>
           </div>
-          <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 hover:border-orange-500 transition-colors cursor-pointer group">
+          <Link href="/dashboard/admin/basvurular" className="bg-slate-800 p-6 rounded-2xl border border-slate-700 hover:border-orange-500 transition-colors cursor-pointer group block">
             <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">🏢</div>
             <h3 className="text-lg font-bold text-white mb-2">Acenta & Restoran Onay</h3>
             <p className="text-xs text-slate-400">Bekleyen ticari kayıt başvuruları.</p>
-          </div>
+          </Link>
           <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 hover:border-purple-500 transition-colors cursor-pointer group">
             <div className="text-4xl mb-4 group-hover:scale-110 transition-transform">📊</div>
             <h3 className="text-lg font-bold text-white mb-2">Finans & Raporlar</h3>

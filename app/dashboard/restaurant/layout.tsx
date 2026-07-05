@@ -4,23 +4,31 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import PartnerApplicationStatus from '../../components/PartnerApplicationStatus';
 
 export default function RestaurantDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     if (isLoading) return;
-    const role = user?.role?.toLowerCase() || '';
-    const allowed = role === 'restaurant' || role === 'kafe' || role === 'cafe';
+    // NOT: UserSerializer.get_role() 'restaurant'/'kafe' DEĞİL sadece
+    // 'Agency'/'Customer'/'Admin' döner — role'e göre kontrol her zaman
+    // başarısız oluyordu (bkz. agency_business_type, backend/users/serializers.py).
+    const businessType = user?.agency_business_type;
+    const allowed = user?.is_agency && (businessType === 'restoran' || businessType === 'kafe' || businessType === 'her_ikisi');
     if (!allowed) {
       router.replace('/login');
     }
   }, [user, isLoading, router]);
 
   if (isLoading || !user) return null;
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  if (user.agency_status && user.agency_status !== 'onaylandi') {
+    return <PartnerApplicationStatus status={user.agency_status} rejectionReason={user.agency_rejection_reason} />;
+  }
 
   const navItems = [
     { name: 'Genel Bakış',    path: '/dashboard/restaurant',              icon: '📈' },

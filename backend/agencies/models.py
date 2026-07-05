@@ -8,41 +8,107 @@ class Agency(models.Model):
         ('acenta', 'Tur Acentası'),
         ('restoran', 'Restoran'),
         ('kafe', 'Kafe'),
+        ('shuttle', 'Shuttle / Transfer'),
+        ('her_ikisi', 'Tur Acentası + Restoran/Kafe'),
+    ]
+
+    # Partner onboarding application status. Distinct from is_verified/is_active
+    # (legacy flags, kept for backward compat and still what IsVerifiedAgent
+    # checks) — status is the richer, stepper-driven state machine:
+    #   taslak -> beklemede -> inceleniyor -> onaylandi
+    #                       -> reddedildi
+    #                       -> eksik_bilgi -> beklemede (resubmit)
+    # is_verified is derived from status == 'onaylandi' whenever status changes
+    # via the admin approve/reject actions (see agencies/admin_views.py) so
+    # existing permission checks (IsVerifiedAgent) keep working unmodified.
+    STATUS_CHOICES = [
+        ('taslak', 'Taslak'),
+        ('beklemede', 'Beklemede'),
+        ('inceleniyor', 'İnceleniyor'),
+        ('onaylandi', 'Onaylandı'),
+        ('reddedildi', 'Reddedildi'),
+        ('eksik_bilgi', 'Eksik Bilgi'),
+    ]
+
+    LEGAL_ENTITY_CHOICES = [
+        ('company', 'Şirket (Ltd./A.Ş.)'),
+        ('individual', 'Şahıs İşletmesi'),
+    ]
+
+    TURSAB_GROUP_CHOICES = [
+        ('A', 'A Grubu'),
+        ('B', 'B Grubu'),
+        ('C', 'C Grubu'),
     ]
 
     owner = models.OneToOneField(User, on_delete=models.CASCADE, related_name='agency_profile', null=True, blank=True)
     name = models.CharField(max_length=255)
     logo = models.ImageField(upload_to='agencies/logos/', blank=True, null=True)
+    cover_image = models.ImageField(upload_to='agencies/covers/', blank=True, null=True, verbose_name='Kapak Fotoğrafı')
     trust_score = models.DecimalField(max_digits=3, decimal_places=1, default=5.0)
     description = models.TextField(blank=True, null=True)
 
-    # Business type (Acenta / Restoran)
+    # Business type (Acenta / Restoran / Shuttle / ...)
     business_type = models.CharField(
         max_length=20,
         choices=BUSINESS_TYPE_CHOICES,
         default='acenta',
         verbose_name='İşletme Türü'
     )
+    legal_entity_type = models.CharField(
+        max_length=20, choices=LEGAL_ENTITY_CHOICES, blank=True, null=True,
+        verbose_name='Tüzel Kişilik Türü'
+    )
 
     # Contact info
     phone = models.CharField(max_length=30, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     address = models.TextField(blank=True, null=True)
+    city = models.CharField(max_length=100, blank=True, null=True, verbose_name='Şehir')
+    district = models.CharField(max_length=100, blank=True, null=True, verbose_name='İlçe')
     website = models.URLField(blank=True, null=True)
 
-    # Business info
+    # Legal & tax info
+    tax_id = models.CharField(max_length=11, blank=True, null=True, verbose_name='Vergi Kimlik No / TCKN')
+    tax_office = models.CharField(max_length=255, blank=True, null=True, verbose_name='Vergi Dairesi')
+    mersis_no = models.CharField(max_length=20, blank=True, null=True, verbose_name='MERSİS No')
+    trade_registry_document = models.FileField(
+        upload_to='agencies/legal/', blank=True, null=True, verbose_name='Ticaret Sicil / Faaliyet Belgesi'
+    )
+
+    # TÜRSAB (required only when business_type is 'acenta' or 'her_ikisi' —
+    # enforced in agencies/onboarding_serializers.py's validate())
     tursab_no = models.CharField(max_length=20, blank=True, null=True, verbose_name='TURSAB No')
+    tursab_group = models.CharField(max_length=1, choices=TURSAB_GROUP_CHOICES, blank=True, null=True, verbose_name='Acenta Grubu')
+    tursab_document = models.FileField(upload_to='agencies/tursab/', blank=True, null=True, verbose_name='TÜRSAB İşletme Belgesi')
+
     commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, verbose_name='Komisyon Oranı (%)')
     sub_merchant_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='Iyzico Sub-Merchant ID')
 
-    # Status
+    # Finance / payout
+    iban = models.CharField(max_length=32, blank=True, null=True, verbose_name='IBAN')
+    bank_account_holder = models.CharField(max_length=255, blank=True, null=True, verbose_name='Hesap Sahibi')
+    bank_name = models.CharField(max_length=255, blank=True, null=True, verbose_name='Banka Adı')
+
+    # Contract / KVKK
+    contract_accepted_at = models.DateTimeField(null=True, blank=True, verbose_name='Sözleşme Onay Tarihi')
+    kvkk_accepted_at = models.DateTimeField(null=True, blank=True, verbose_name='KVKK Onay Tarihi')
+
+    # Onboarding application state
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='taslak', verbose_name='Başvuru Durumu')
+    rejection_reason = models.TextField(blank=True, null=True, verbose_name='Red / Eksik Bilgi Sebebi')
+    onboarding_step = models.PositiveSmallIntegerField(default=1, verbose_name='Kayıt Adımı')
+
+    # Status (legacy flags — is_verified is kept in sync with status=='onaylandi'
+    # by the admin approve/reject/request_more_info actions so IsVerifiedAgent
+    # and every other existing permission check keep working unmodified)
     is_verified = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     is_demo = models.BooleanField(default=False, verbose_name='Demo Acente')
-    
+
     # Restaurant specific
     available_tables = models.PositiveIntegerField(default=10, verbose_name='Boş Masa Sayısı')
-    
+
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

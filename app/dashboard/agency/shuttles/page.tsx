@@ -171,19 +171,12 @@ export default function AgencyShuttlesPage() {
         fd.append('description', formData.description);
         if (imageFile) fd.append('image_main', imageFile);
 
-        // fetchAPI JSON.stringify + Content-Type: application/json varsayar;
-        // FormData göndermek için doğrudan fetch kullanmak yerine burada
-        // manuel bir istek atıyoruz (auth header'ı korunarak).
-        const { auth } = await import('@/app/lib/auth');
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
-        const res = await fetch(`${API_URL}/agency/shuttles/`, {
+        const created = await fetchAPI('/agency/shuttles/', {
           method: 'POST',
-          headers: { ...auth.getAuthHeaders() },
           body: fd,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          setFormError(err.detail || err.error || Object.values(err)[0] as string || 'Rota eklenemedi.');
+        if (!created) {
+          setFormError('Rota eklenemedi.');
           setIsSubmitting(false);
           return;
         }

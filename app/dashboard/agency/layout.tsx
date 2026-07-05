@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import PartnerApplicationStatus from '../../components/PartnerApplicationStatus';
 
 export default function AgencyDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -21,6 +22,12 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
   }, [user, isLoading, router]);
 
   if (isLoading || !user) return null;
+
+  // Onaylanmamış (henüz başvurusu tamamlanmamış/incelemede/reddedilmiş) bir
+  // partner tam dashboard'a erişemez — durum ekranı gösterilir.
+  if (user.agency_status && user.agency_status !== 'onaylandi') {
+    return <PartnerApplicationStatus status={user.agency_status} rejectionReason={user.agency_rejection_reason} />;
+  }
 
   const navItems = [
     { name: 'İstatistik Merkezi', path: '/dashboard/agency', icon: '📊' },

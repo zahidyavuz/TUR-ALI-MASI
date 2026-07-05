@@ -12,6 +12,7 @@ import CurrencySelector from './components/CurrencySelector';
 import NotificationCenter from './components/NotificationCenter';
 import FavoriteButton from './components/FavoriteButton';
 import Navbar from './components/Navbar';
+import PartnerOnboardingStepper from './components/PartnerOnboardingStepper';
 import { useAuth } from './context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 
@@ -152,12 +153,10 @@ export default function Home() {
   const [agencyTab, setAgencyTab] = useState<'login' | 'register' | 'pricing'>('login');
   const [agencyBusinessType, setAgencyBusinessType] = useState('acenta');
   
-  // Agency Form States
+  // Agency Login Form State (register/başvuru tarafı artık kendi state'ini
+  // PartnerOnboardingStepper içinde yönetiyor)
   const [agencyEmail, setAgencyEmail] = useState('');
   const [agencyPassword, setAgencyPassword] = useState('');
-  const [agencyBusinessName, setAgencyBusinessName] = useState('');
-  const [agencyTursabNo, setAgencyTursabNo] = useState('');
-  const [agencyAddress, setAgencyAddress] = useState('');
 
   // Sourced from Auth context
   const { user, login, logout } = useAuth();
@@ -1144,56 +1143,12 @@ export default function Home() {
               {/* Form İçeriği */}
               <div className="p-7">
 
-                {/* Login & Register Sekmeleri */}
-                {(agencyTab === 'login' || agencyTab === 'register') && (
-                  <form className="flex flex-col gap-4" onSubmit={(e) => {
-                    e.preventDefault();
-                    if (agencyTab === 'register') {
-                      alert('Acentelik başvurunuz alınmıştır.');
-                      setShowAgencyModal(false);
-                    }
-                  }}>
-                    {agencyTab === 'register' && (
-                      <>
-                        <div>
-                          <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme / Firma Adı</label>
-                          <input 
-                            type="text" 
-                            value={agencyBusinessName}
-                            onChange={(e) => setAgencyBusinessName(e.target.value)}
-                            placeholder="Örn: Gurme Restoran veya X Turizm" 
-                            className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" 
-                          />
-                        </div>
-                        {agencyBusinessType === 'acenta' && (
-                          <div className="animate-in slide-in-from-top-2 duration-300">
-                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">TURSAB Belge No</label>
-                            <input 
-                                type="text" 
-                                value={agencyTursabNo}
-                                onChange={(e) => setAgencyTursabNo(e.target.value)}
-                                placeholder="Örn: 12345" 
-                                className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" 
-                            />
-                          </div>
-                        )}
-                        {(agencyBusinessType === 'restoran' || agencyBusinessType === 'kafe') && (
-                          <div className="animate-in slide-in-from-top-2 duration-300">
-                            <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme Adresi / Şehir</label>
-                            <input 
-                                type="text" 
-                                value={agencyAddress}
-                                onChange={(e) => setAgencyAddress(e.target.value)}
-                                placeholder="Örn: Kapadokya, Nevşehir" 
-                                className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-medium placeholder-gray-400" 
-                            />
-                          </div>
-                        )}
-                      </>
-                    )}
+                {/* Giriş Sekmesi */}
+                {agencyTab === 'login' && (
+                  <form className="flex flex-col gap-4" onSubmit={(e) => e.preventDefault()}>
                     <div>
                       <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">İşletme Türü</label>
-                      <select 
+                      <select
                         value={agencyBusinessType}
                         onChange={(e) => setAgencyBusinessType(e.target.value)}
                         className="w-full px-5 py-3 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[14px] font-bold text-slate-700"
@@ -1204,42 +1159,45 @@ export default function Home() {
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Kurumsal E-Posta</label>
-                      <input 
-                        type="email" 
+                      <input
+                        type="email"
                         value={agencyEmail}
                         onChange={(e) => setAgencyEmail(e.target.value)}
-                        placeholder="iletisim@firmaniz.com" 
-                        className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" 
+                        placeholder="iletisim@firmaniz.com"
+                        className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400"
                       />
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-1.5 ml-1">
                         <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">Şifre</label>
-                        {agencyTab === 'login' && <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="text-xs text-orange-500 hover:underline font-bold mr-1">Şifremi Unuttum?</button>}
+                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }} className="text-xs text-orange-500 hover:underline font-bold mr-1">Şifremi Unuttum?</button>
                       </div>
-                      <input 
-                        type="password" 
+                      <input
+                        type="password"
                         value={agencyPassword}
                         onChange={(e) => setAgencyPassword(e.target.value)}
-                        placeholder="••••••••" 
-                        className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" 
+                        placeholder="••••••••"
+                        className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-orange-500 outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400"
                       />
                     </div>
 
                     <button
-                      type={agencyTab === 'login' ? 'button' : 'submit'}
+                      type="button"
                       onClick={() => {
-                        if (agencyTab === 'login') {
-                          setShowAgencyModal(false);
-                          const role = (agencyBusinessType === 'restoran' || agencyBusinessType === 'kafe') ? 'restoran' : 'acenta';
-                          window.location.href = `/login?role=${role}`;
-                        }
+                        setShowAgencyModal(false);
+                        const role = (agencyBusinessType === 'restoran' || agencyBusinessType === 'kafe') ? 'restoran' : 'acenta';
+                        window.location.href = `/login?role=${role}`;
                       }}
                       className="w-full bg-orange-500 text-white font-black text-[15px] py-4 rounded-2xl mt-4 hover:bg-orange-600 transition-colors shadow-lg shadow-orange-500/30 hover:shadow-xl active:scale-[0.98] duration-200"
                     >
-                      {agencyTab === 'login' ? 'Yönetim Paneline Gir' : 'Hemen Başvuru Yap'}
+                      Yönetim Paneline Gir
                     </button>
                   </form>
+                )}
+
+                {/* Başvuru (Onboarding) Sekmesi */}
+                {agencyTab === 'register' && (
+                  <PartnerOnboardingStepper onSuccess={() => setShowAgencyModal(false)} />
                 )}
 
                 {/* Premium Tarife / Sponsorluk Sekmesi */}

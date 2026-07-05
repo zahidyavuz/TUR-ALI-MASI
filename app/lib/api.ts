@@ -4,13 +4,26 @@ import { auth } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
+interface FetchAPIOptions extends RequestInit {
+    /**
+     * Opt-in, additive-only: when true, an HTTP error response (4xx/5xx)
+     * throws (preserving err.message/err.data/err.status) instead of being
+     * swallowed into a `null` return. Default behavior for every existing
+     * caller is unchanged. Use this when the caller needs to show the
+     * specific field-level validation message (e.g. multi-step forms),
+     * not just "something went wrong".
+     */
+    throwOnHttpError?: boolean;
+}
+
+export async function fetchAPI(endpoint: string, options: FetchAPIOptions = {}) {
+    const { throwOnHttpError, ...fetchOptions } = options;
     // ZERO-TRUST: Otomatik Sanitization
-    let bodyObj = options.body;
-    if (typeof options.body === 'string') {
+    let bodyObj = fetchOptions.body;
+    if (typeof fetchOptions.body === 'string') {
         try {
             // Sadece JSON formatındaki body'leri parse et ve sanitize et
-            const parsedBody = JSON.parse(options.body);
+            const parsedBody = JSON.parse(fetchOptions.body);
             const sanitizedBody = sanitizePayload(parsedBody);
             bodyObj = JSON.stringify(sanitizedBody);
         } catch (e) {
@@ -18,7 +31,11 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
         }
     }
 
-    const defaultHeaders = {
+    // FormData (multipart) uploads must NOT get a manual Content-Type — the
+    // browser sets the multipart boundary itself. Forcing application/json
+    // here would silently break every file-upload caller.
+    const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
+    const defaultHeaders: Record<string, string> = isFormData ? {} : {
         'Content-Type': 'application/json',
     };
 
@@ -30,12 +47,12 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
     }
 
     const config = {
-        ...options,
+        ...fetchOptions,
         body: bodyObj,
         headers: {
             ...defaultHeaders,
             ...authHeaders,
-            ...options.headers,
+            ...fetchOptions.headers,
         },
     };
     try {
@@ -84,8 +101,15 @@ export async function fetchAPI(endpoint: string, options: RequestInit = {}) {
 
 
         if (isNetworkError) {
-            // Backend is not available — return null silently
+            // Backend is not available — return null silently, even with
+            // throwOnHttpError, since there's no specific field error to show.
             return null;
+        }
+
+        // An HTTP error response (4xx/5xx) with a real Django error body —
+        // (error as any).data/.status were set above before this catch.
+        if (throwOnHttpError && (error as any)?.status !== undefined) {
+            throw error;
         }
 
         // For other errors, we still return null to avoid breaking components,

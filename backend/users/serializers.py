@@ -15,11 +15,25 @@ class UserSerializer(serializers.ModelSerializer):
     is_agency = serializers.SerializerMethodField()
     agency_id = serializers.SerializerMethodField()
     role = serializers.SerializerMethodField()
+    # Partner onboarding status — used by dashboard/agency and
+    # dashboard/restaurant layouts to gate access until an application is
+    # approved, and to render the "Başvuru Durumu" screen otherwise.
+    agency_status = serializers.SerializerMethodField()
+    agency_business_type = serializers.SerializerMethodField()
+    agency_onboarding_step = serializers.SerializerMethodField()
+    agency_rejection_reason = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile', 'is_agency', 'agency_id', 'is_staff', 'role']
-        read_only_fields = ['id', 'username', 'is_agency', 'agency_id', 'is_staff', 'role']
+        fields = [
+            'id', 'username', 'email', 'first_name', 'last_name', 'profile',
+            'is_agency', 'agency_id', 'is_staff', 'role',
+            'agency_status', 'agency_business_type', 'agency_onboarding_step', 'agency_rejection_reason',
+        ]
+        read_only_fields = [
+            'id', 'username', 'is_agency', 'agency_id', 'is_staff', 'role',
+            'agency_status', 'agency_business_type', 'agency_onboarding_step', 'agency_rejection_reason',
+        ]
 
     def get_is_agency(self, obj):
         return hasattr(obj, 'agency_profile')
@@ -35,6 +49,26 @@ class UserSerializer(serializers.ModelSerializer):
         if hasattr(obj, 'agency_profile'):
             return 'Agency'
         return 'Customer'
+
+    def get_agency_status(self, obj):
+        if hasattr(obj, 'agency_profile'):
+            return obj.agency_profile.status
+        return None
+
+    def get_agency_business_type(self, obj):
+        if hasattr(obj, 'agency_profile'):
+            return obj.agency_profile.business_type
+        return None
+
+    def get_agency_onboarding_step(self, obj):
+        if hasattr(obj, 'agency_profile'):
+            return obj.agency_profile.onboarding_step
+        return None
+
+    def get_agency_rejection_reason(self, obj):
+        if hasattr(obj, 'agency_profile'):
+            return obj.agency_profile.rejection_reason
+        return None
 
 
     def update(self, instance, validated_data):

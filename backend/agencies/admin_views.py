@@ -1,7 +1,11 @@
+import logging
+
 from rest_framework.views import APIView
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from django.core.mail import send_mail
+from django.conf import settings
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import timedelta
@@ -10,7 +14,10 @@ from backend.admin_permissions import IsAdminUser
 from agencies.models import Agency
 from tours.models import Tour
 from bookings.models import Booking
+from users.models import Notification
 from .admin_serializers import AdminAgencyListSerializer, AdminAgencyDetailSerializer
+
+logger = logging.getLogger('agencies')
 
 
 class AdminDashboardView(APIView):
@@ -29,7 +36,7 @@ class AdminDashboardView(APIView):
         total_agencies = Agency.objects.count()
 
         # Pending approvals
-        pending_approvals = Agency.objects.filter(is_verified=False, is_active=True).count()
+        pending_approvals = Agency.objects.filter(status='beklemede').count()
 
         # Today's bookings
         todays_bookings = Booking.objects.filter(created_at__date=today).count()
@@ -141,6 +148,10 @@ class AdminAgencyViewSet(viewsets.ModelViewSet):
         if is_demo is not None:
             qs = qs.filter(is_demo=is_demo.lower() == 'true')
 
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
         return qs
 
     @action(detail=True, methods=['post'], url_path='toggle-active')
@@ -157,12 +168,97 @@ class AdminAgencyViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'], url_path='approve')
     def approve(self, request, pk=None):
-        """Approve an agency"""
+        """Onaylar — status='onaylandi' + is_verified=True (IsVerifiedAgent bunu okur)."""
         agency = self.get_object()
+        agency.status = 'onaylandi'
         agency.is_verified = True
-        agency.save(update_fields=['is_verified'])
+        agency.rejection_reason = None
+        agency.save(update_fields=['status', 'is_verified', 'rejection_reason'])
+
+        self._notify_owner(
+            agency,
+            title='Başvurunuz Onaylandı! 🎉',
+            message=f'{agency.name} başvurunuz onaylandı. Artık ürün/tur ekleyebilirsiniz.',
+            icon='🎉',
+        )
+        logger.info(f"[ONBOARDING] Approved: agency '{agency.name}' by {request.user.username}")
+
         return Response({
             'id': agency.id,
+            'status': agency.status,
             'is_verified': True,
             'message': f'{agency.name} onaylandı.'
         })
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        """Reddeder — sebep zorunlu, partnere gösterilir + bildirim gider."""
+        agency = self.get_object()
+        reason = (request.data.get('reason') or '').strip()
+        if not reason:
+            return Response({'error': 'Red sebebi zorunludur.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        agency.status = 'reddedildi'
+        agency.is_verified = False
+        agency.rejection_reason = reason
+        agency.save(update_fields=['status', 'is_verified', 'rejection_reason'])
+
+        self._notify_owner(
+            agency,
+            title='Başvurunuz Reddedildi',
+            message=f'{agency.name} başvurunuz reddedildi. Sebep: {reason}',
+            icon='❌',
+        )
+        logger.info(f"[ONBOARDING] Rejected: agency '{agency.name}' by {request.user.username}")
+
+        return Response({
+            'id': agency.id,
+            'status': agency.status,
+            'rejection_reason': reason,
+            'message': f'{agency.name} reddedildi.'
+        })
+
+    @action(detail=True, methods=['post'], url_path='request-more-info')
+    def request_more_info(self, request, pk=None):
+        """Eksik bilgi ister — partner düzenleyip tekrar gönderebilir (status geri taslak/eksik_bilgi'ye döner)."""
+        agency = self.get_object()
+        note = (request.data.get('message') or '').strip()
+        if not note:
+            return Response({'error': 'Eksik bilgi mesajı zorunludur.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        agency.status = 'eksik_bilgi'
+        agency.is_verified = False
+        agency.rejection_reason = note
+        agency.save(update_fields=['status', 'is_verified', 'rejection_reason'])
+
+        self._notify_owner(
+            agency,
+            title='Başvurunuzda Eksik Bilgi Var',
+            message=f'{agency.name} başvurunuzda eksik bilgi tespit edildi: {note}',
+            icon='⚠️',
+        )
+        logger.info(f"[ONBOARDING] More info requested: agency '{agency.name}' by {request.user.username}")
+
+        return Response({
+            'id': agency.id,
+            'status': agency.status,
+            'rejection_reason': note,
+            'message': f'{agency.name} için eksik bilgi talebi gönderildi.'
+        })
+
+    @staticmethod
+    def _notify_owner(agency, title, message, icon):
+        if not agency.owner:
+            return
+        Notification.objects.create(
+            user=agency.owner, title=title, message=message, icon=icon,
+            type='agency_status', action_url='/dashboard/agency',
+        )
+        if agency.owner.email:
+            try:
+                send_mail(
+                    title, message, settings.DEFAULT_FROM_EMAIL,
+                    [agency.owner.email], fail_silently=True,
+                )
+            except Exception as e:
+                logger.warning(f"[ONBOARDING] Notification email failed for {agency.name}: {e}")

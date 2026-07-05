@@ -19,6 +19,11 @@ from agencies.finance_views import (
     AgencyFinanceLedgerView,
     AgencyPayoutRequestView,
 )
+from agencies.onboarding_views import (
+    OnboardingStartView,
+    OnboardingUpdateView,
+    OnboardingSubmitView,
+)
 
 
 
@@ -48,6 +53,10 @@ router.register(r'agency/shuttles', AgencyShuttleViewSet, basename='agency-shutt
 
 urlpatterns = [
     path('agencies/dashboard/', AgencyDashboardView.as_view(), name='agency-dashboard'),
+    # ── Partner Onboarding (stepper) ───────────────────────────────────────────
+    path('agencies/onboarding/start/', OnboardingStartView.as_view(), name='agency-onboarding-start'),
+    path('agencies/onboarding/submit/', OnboardingSubmitView.as_view(), name='agency-onboarding-submit'),
+    path('agencies/onboarding/', OnboardingUpdateView.as_view(), name='agency-onboarding-update'),
     path('admin/dashboard/', AdminDashboardView.as_view(), name='admin-dashboard'),
     path('users/me/', UserMeView.as_view(), name='user-me'),
     # ── Finans Endpoint'leri ──────────────────────────────────────────────────
