@@ -109,7 +109,7 @@ EOF
 
 ---
 
-### [ ] F1-04 · Checkout'u Django rezervasyon akışına bağla (simülasyonun sonu)
+### [x] F1-04 · Checkout'u Django rezervasyon akışına bağla (simülasyonun sonu)
 
 **Öncelik:** P0 · **Efor:** L
 
@@ -127,7 +127,7 @@ EOF
 
 **Bitti sayılır:** `grep -rn "demo_new_bookings\|handleSimulatePayment" app/` boş.
 
-**Notlar:** _
+**Notlar:** Backend: `Booking` modeline misafir alanları eklendi (`guest_full_name`, `guest_email`, `guest_phone`, `guest_hotel`) + migration `0005`; serializer `fields`'a eklendi; `views.py create()` bu alanları uzunluk kırpmasıyla yazıyor, ayrıca `service_type` (`tour`/`meal`) ve `guests` girdi doğrulaması eklendi. Frontend: `app/checkout/page.tsx` artık `fetchAPI('/bookings/', {method:'POST'})` çağırıyor (fiyat gönderilmiyor — sunucu hesaplıyor), dönen `clientSecret` `StripePaymentSection`'a veriliyor; `StripePaymentSection` deferred-intent yerine clientSecret moduna geçirilip `stripe.confirmPayment` ile `return_url`'e yönlendiriyor. `handleSimulatePaymentProcess`, sahte "step 3" başarı ekranı, `persistMockBooking`, `calculateBundleDiscount`/`bundleLogic`, promosyon kodu bloğu ve combo/upsell modalı tamamen silindi (~330 satır). `app/checkout-success/page.tsx` sıfırdan yazıldı: `?ref=` ile `fetchAPI('/bookings/<id>/')` sorgusu, `pending` iken 3 sn'de bir max 20 kez polling + "onay bekleniyor" ekranı, `confirmed` iken bilet linki; eski ham `fetch('/api/bookings')` (F1-05'te silinecek ölü route) ve koşulsuz "onaylandı" mesajı kaldırıldı. **Sapma:** görev metni `?ref=<booking_ref>` diyor ama DRF router lookup'ı UUID `id` üzerinden olduğu için `ref` parametresi UUID taşıyor (backend URL değişikliği gerekmesin diye). `app/restaurant-menu/[slug]/page.tsx`'teki `demo_new_bookings` okuması (yazan taraf silindiği için artık hep `false` dönerdi) gerçek `fetchAPI('/bookings/')` sorgusuna çevrildi. Doğrulama: `tsc --noEmit` temiz, `npm run lint` temiz, `npm run build` başarılı, `makemigrations --check` "No changes detected", `migrate --check` OK, `manage.py test` 29/29 OK, AST duplicate taraması temiz, bitti-sayılır grep'i boş. Uçtan uca Stripe test kartı doğrulaması yapılmadı (canlı Stripe anahtarı/webhook tüneli yok) — F2 öncesi manuel doğrulama gerekiyor.
 
 ---
 
@@ -573,6 +573,9 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · ölü kod] `app/lib/secureVault.ts` kart yardımcıları artık kullanılmıyor.** `formatCardInput`, `formatCvvInput`, `formatExpiryInput`, `maskCardNumber`, `storePaymentToken` tek kullanıcıları olan `SecurePaymentForm.tsx` F1-03'te silindiği için ölü kaldı. Dosyanın `isSessionValid`/`secureClear` kısmı `app/lib/auth.ts` tarafından hâlâ kullanılıyor, o yüzden dosya bütün olarak silinemez. F3-04'te (ölü kod temizliği) kart yardımcıları kaldırılmalı.
 * **[P1 · yanıltıcı] `app/page.tsx`'te açılması imkânsız bir ödeme modalı vardı.** `showPaymentModal` state'i hiçbir yerde `true` yapılmıyordu; modal ham kart no/SKT/CVC inputları, sabit "₺14.500" tutar ve `alert('Ödeme simülasyonu başarıyla tamamlandı!')` içeriyordu. F1-03 doğrulama grep'inde yakalandı ve silindi (görev kapsamıyla doğrudan ilgili olduğu için istisnaen aynı commit'te).
 * **[P2 · ölü kod] `recordFailedAttempt` import ediliyor ama kullanılmıyor.** `app/checkout/page.tsx:8`. Rate-limit sayacı hiç artırılmıyor olabilir; `checkRateLimit("checkout_attempts")` çağrılıyor fakat başarısız deneme kaydedilmiyor. F1-04'te ödeme hata yolu gerçek hale gelince gözden geçirilmeli.
+* **[P0 · bug] `AgentFinanceLedger.create_from_booking` float/Decimal karışımıyla patlıyor.** `backend/agencies/finance_models.py:67` → `TypeError: unsupported operand type(s) for /: 'float' and 'decimal.Decimal'`. `manage.py test` sırasında `bookings/signals.py:113` bu hatayı yakalayıp logluyor, yani testler "OK" geçiyor ama **her rezervasyonda acente komisyon kaydı sessizce oluşturulmuyor**. F1-04 kapsamı dışı (mevcut bug, benim değişikliğimden bağımsız) ama para ile ilgili olduğu için P0 — `gross`'un Decimal'e çevrilmesi gerek.
+* **[P1 · eksik akış] Restoran menüsü checkout'u kırık.** `/checkout?menuId=<id>&type=meal` linki (`app/restaurant-menu/[slug]/page.tsx` "Hemen Al") `tourId` göndermiyor; checkout `tourId` olmadan çalışamıyor. F1-04'te sahte başarı ekranı yerine dürüst bir "restoran menüsü rezervasyonu henüz çevrimiçi ödemeye açık değildir" mesajı gösterildi. Backend'de `DiningReservationViewSet` (`restaurant/reservations`) var ama ödemesiz ayrı bir akış. Yemek satın alma akışı baştan tasarlanmalı.
+* **[P2 · ölü kod] `vip_membership` localStorage'ını artık kimse yazmıyor.** F1-04'te tek yazan yer (checkout simülasyonu) silindi; `app/tour/[slug]/page.tsx:93` ve `app/taste/page.tsx:115` hâlâ okuyor, dolayısıyla VIP indirimi/rozeti artık hiç tetiklenmiyor. Ya gerçek bir üyelik modeli backend'e eklenmeli ya da bu okuma dalları silinmeli.
 * **[P2 · ortam] Yerel geliştirme ortamı kurulu değildi.** `node_modules` yoktu (`npm install` ile kuruldu). Backend için Python venv de yok (`backend/venv`, `.venv` bulunamadı, `django` global olarak da kurulu değil) — bu yüzden STD-CHECK'in backend yarısı (makemigrations --check / migrate --check / test) F1-01'de çalıştırılamadı. F1-01 yalnız frontend dosyası değiştirdiği için sonucu etkilemez, ancak F1-04'ten itibaren backend ortamı şart.
 
 ---

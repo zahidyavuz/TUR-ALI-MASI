@@ -19,6 +19,7 @@ class BookingSerializer(serializers.ModelSerializer):
             'id', 'service_type', 'tour', 'tour_detail', 'shuttle_route', 'shuttle_detail',
             'user_email', 'user_full_name', 'date_label', 'start_date', 'start_time', 'end_date',
             'guests', 'total_price', 'status', 'booking_ref',
+            'guest_full_name', 'guest_email', 'guest_phone', 'guest_hotel',
             'payment_intent_id', 'created_at', 'cancelled_at'
         ]
         read_only_fields = ['user', 'status', 'total_price', 'booking_ref', 'payment_intent_id', 'cancelled_at']

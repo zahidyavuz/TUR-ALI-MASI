@@ -15,26 +15,25 @@ import {
  * Kart numarası / SKT / CVC alanları Stripe'ın iframe'lerinde tutulur;
  * bu veriler hiçbir zaman uygulamanın state'ine veya sunucularımıza girmez.
  *
- * Elements "deferred intent" modunda çalışır: PaymentIntent, kullanıcı
- * ödemeye bastığı anda backend'de oluşturulur. Intent'i oluşturup
- * client_secret döndürme işi `onConfirmPayment` prop'una aittir ve
- * F1-04'te Django `/bookings/` akışına bağlanacaktır.
+ * `clientSecret` Django `POST /bookings/` tarafından oluşturulan
+ * PaymentIntent'ten gelir. Onay `stripe.confirmPayment` ile yapılır ve
+ * kullanıcı `returnUrl`'e yönlendirilir; rezervasyonun `confirmed` olması
+ * Stripe webhook'una bağlıdır (asenkron).
  */
 
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 
 interface StripePaymentSectionProps {
-  /** Tahsil edilecek tutar (TRY, ana birim). */
+  /** Django'nun oluşturduğu PaymentIntent client secret'ı. */
+  clientSecret: string;
+  /** Tahsil edilecek tutar (TRY, ana birim) — yalnız buton metni için. */
   amount: number;
-  /**
-   * Ödemeyi tamamlar. PaymentIntent'i backend'de oluşturup client_secret
-   * döndürmelidir. F1-04'te gerçek implementasyon bağlanacak.
-   */
-  onConfirmPayment: () => Promise<void>;
+  /** Ödeme sonrası dönülecek mutlak URL. */
+  returnUrl: string;
 }
 
-function PaymentFormInner({ amount, onConfirmPayment }: StripePaymentSectionProps) {
+function PaymentFormInner({ amount, returnUrl }: Omit<StripePaymentSectionProps, 'clientSecret'>) {
   const stripe = useStripe();
   const elements = useElements();
   const [error, setError] = useState<string | null>(null);
@@ -47,20 +46,15 @@ function PaymentFormInner({ amount, onConfirmPayment }: StripePaymentSectionProp
     setIsSubmitting(true);
     setError(null);
 
-    const { error: submitError } = await elements.submit();
-    if (submitError) {
-      setError(submitError.message || 'Kart bilgileri doğrulanamadı.');
-      setIsSubmitting(false);
-      return;
-    }
+    // Başarılı olursa Stripe kullanıcıyı returnUrl'e yönlendirir ve bu
+    // satırdan sonrası çalışmaz. Sadece hata durumunda geri döner.
+    const { error: confirmError } = await stripe.confirmPayment({
+      elements,
+      confirmParams: { return_url: returnUrl },
+    });
 
-    try {
-      await onConfirmPayment();
-    } catch (err: any) {
-      setError(err?.message || 'Ödeme tamamlanamadı, lütfen tekrar deneyin.');
-    } finally {
-      setIsSubmitting(false);
-    }
+    setError(confirmError?.message || 'Ödeme tamamlanamadı, lütfen tekrar deneyin.');
+    setIsSubmitting(false);
   };
 
   return (
@@ -119,7 +113,10 @@ function PaymentFormInner({ amount, onConfirmPayment }: StripePaymentSectionProp
   );
 }
 
-export default function StripePaymentSection(props: StripePaymentSectionProps) {
+export default function StripePaymentSection({
+  clientSecret,
+  ...rest
+}: StripePaymentSectionProps) {
   if (!stripePromise) {
     return (
       <div className="bg-amber-50 border border-amber-200 text-amber-800 px-6 py-5 rounded-2xl text-sm font-bold">
@@ -134,14 +131,12 @@ export default function StripePaymentSection(props: StripePaymentSectionProps) {
     <Elements
       stripe={stripePromise}
       options={{
-        mode: 'payment',
-        amount: Math.round(props.amount * 100),
-        currency: 'try',
+        clientSecret,
         locale: 'tr',
         appearance: { theme: 'stripe', variables: { borderRadius: '16px' } },
       }}
     >
-      <PaymentFormInner {...props} />
+      <PaymentFormInner {...rest} />
     </Elements>
   );
 }

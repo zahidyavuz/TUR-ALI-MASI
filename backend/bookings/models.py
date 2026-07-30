@@ -40,6 +40,14 @@ class Booking(models.Model):
     ]
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
     
+    # Rezervasyonu yapan hesap (user) ile hizmeti alacak misafir farklı
+    # olabilir; ayrıca transfer için otel bilgisi gerekir. Boş bırakılabilir,
+    # bu durumda user'ın kendi bilgileri geçerlidir.
+    guest_full_name = models.CharField(max_length=150, blank=True, default='')
+    guest_email = models.EmailField(blank=True, default='')
+    guest_phone = models.CharField(max_length=32, blank=True, default='')
+    guest_hotel = models.CharField(max_length=255, blank=True, default='')
+
     booking_ref = models.CharField(max_length=50, unique=True)
     payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
     

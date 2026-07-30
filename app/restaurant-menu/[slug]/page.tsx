@@ -4,6 +4,7 @@ import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { useLocale } from '../../context/LocaleContext';
+import { fetchAPI } from '@/app/lib/api';
 
 // MOCK: Dinamik Veritabanı (Menus tablosunu ve Restaurants tablosunu simüle eder)
 const RESTAURANT_DB: Record<string, any> = {
@@ -203,25 +204,24 @@ export default function RestaurantMenuPage() {
         }, 500);
     };
 
-    const openReviewModal = (id: string, name: string, type: 'restaurant' | 'meal') => {
+    const openReviewModal = async (id: string, name: string, type: 'restaurant' | 'meal') => {
         setReviewTarget({ id, name, type });
         setIsReviewModalOpen(true);
         setNewReviewText('');
         setNewReviewRating(5);
 
-        if (typeof window !== 'undefined') {
-            const bookingsStr = localStorage.getItem('demo_new_bookings');
-            if (bookingsStr) {
-                try {
-                    const bookings = JSON.parse(bookingsStr);
-                    const purchased = bookings.some((b: any) => b.service_type === 'meal');
-                    setHasPurchased(purchased);
-                } catch (e) {
-                    setHasPurchased(false);
-                }
-            } else {
-                setHasPurchased(false);
-            }
+        // "Doğrulanmış müşteri" kontrolü: kullanıcının onaylanmış bir yemek
+        // rezervasyonu var mı? Endpoint zaten kullanıcının kendi kayıtlarıyla
+        // sınırlı; kimlik doğrulanmamışsa 401 döner ve yorum kapalı kalır.
+        setHasPurchased(false);
+        const bookings = await fetchAPI('/bookings/');
+        const list = Array.isArray(bookings) ? bookings : bookings?.results;
+        if (Array.isArray(list)) {
+            setHasPurchased(
+                list.some(
+                    (b: any) => b.service_type === 'meal' && b.status === 'confirmed'
+                )
+            );
         }
     };
 

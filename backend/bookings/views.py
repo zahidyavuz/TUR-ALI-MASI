@@ -49,10 +49,23 @@ class BookingViewSet(viewsets.ModelViewSet):
             return self._create_shuttle_booking(request)
 
         tour_slug  = request.data.get('tour_slug')
-        guests     = int(request.data.get('guests', 1))
         date_label = request.data.get('date_label', '')
         start_date = request.data.get('start_date')
         end_date   = request.data.get('end_date')
+        # 'tour' veya 'meal'; 'shuttle' yukarıda ayrı akışa yönlendirildi.
+        service_type = request.data.get('service_type') or 'tour'
+        if service_type not in ('tour', 'meal'):
+            return Response(
+                {'error': 'Geçersiz hizmet tipi.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            guests = int(request.data.get('guests', 1))
+        except (TypeError, ValueError):
+            return Response({'error': 'Geçersiz kişi sayısı.'}, status=status.HTTP_400_BAD_REQUEST)
+        if guests < 1:
+            return Response({'error': 'Kişi sayısı en az 1 olmalıdır.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             tour = Tour.objects.get(id=tour_slug)
@@ -109,14 +122,20 @@ class BookingViewSet(viewsets.ModelViewSet):
                 booking = Booking.objects.create(
                     user=request.user,
                     tour=tour,
+                    service_type=service_type,
                     date_label=date_label,
                     start_date=start_date if start_date else None,
+                    start_time=request.data.get('start_time') or None,
                     end_date=end_date if end_date else None,
                     guests=guests,
                     total_price=total_price,
                     status='pending',
                     booking_ref=booking_ref,
-                    payment_intent_id=intent.id
+                    payment_intent_id=intent.id,
+                    guest_full_name=(request.data.get('guest_full_name') or '')[:150],
+                    guest_email=(request.data.get('guest_email') or '')[:254],
+                    guest_phone=(request.data.get('guest_phone') or '')[:32],
+                    guest_hotel=(request.data.get('guest_hotel') or '')[:255],
                 )
 
         except ValueError as e:
