@@ -162,13 +162,16 @@ class AgencyTourViewSet(viewsets.ModelViewSet):
             .select_related('user')
         )
 
+        # Misafir bilgileri rezervasyonu yapan hesaptan farklı olabilir;
+        # doluysa onlar, değilse hesabın kendi bilgileri kullanılır.
         manifest_data = [
             {
                 'booking_ref': b.booking_ref,
-                'passenger':   b.user.get_full_name() or b.user.username,
-                'phone':       b.user.email,
+                'passenger':   b.guest_full_name or b.user.get_full_name() or b.user.username,
+                'phone':       b.guest_phone or '—',
+                'email':       b.guest_email or b.user.email,
                 'pax':         b.guests,
-                'hotel':       getattr(b, 'hotel', '—'),
+                'hotel':       b.guest_hotel or '—',
                 'status':      b.status,
             }
             for b in bookings

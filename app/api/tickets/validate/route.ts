@@ -1,3 +1,6 @@
+// DEPRECATED: F2-05'te silinecek.
+// Bu route bellek içi sahte bir bilet listesi üzerinden doğrulama yapar;
+// Django tarafında karşılığı yazıldığında (F2-05) kaldırılacaktır.
 import { NextResponse } from 'next/server';
 
 // Geçici Bellek İçi Veritabanı

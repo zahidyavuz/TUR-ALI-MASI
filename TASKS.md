@@ -131,7 +131,7 @@ EOF
 
 ---
 
-### [ ] F1-05 · Ölü Next.js ödeme/rezervasyon route'larını sil
+### [x] F1-05 · Ölü Next.js ödeme/rezervasyon route'larını sil
 
 **Öncelik:** P0 · **Efor:** M
 
@@ -144,7 +144,7 @@ EOF
 
 **Doğrulama:** Build geçer (`npm run build`), silinen route'lara referans kalmadı; STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Referans taramasında tek canlı tüketici bulundu: `app/dashboard/agency/bookings/page.tsx` ham `fetch('/api/bookings?date=...')` ile tamamen uydurma bir manifesto çekiyordu (sabit "Kapadokya VIP Balon Turu", "John Doe" vb.). Adım 1 gereği önce bu sayfa gerçek akışa çevrildi: `fetchAPI('/agency/tours/')` + `fetchAPI('/agency/tours/<slug>/manifest/?date=...')`. Sayfadaki `time`/`vehicle` alanları Django `Tour` modelinde karşılığı olmadığı için kaldırıldı (`duration` kullanıldı), `Tour.id` string PK olarak düzeltildi, durum rozeti `'Onaylandı'` yerine backend'in döndürdüğü `'confirmed'` ile karşılaştırılıyor, hata durumu ekrana yazılıyor. Backend `agencies/agency_tours_views.py` manifest'i düzeltildi: `phone` alanı yanlışlıkla `b.user.email` döndürüyordu ve `hotel` için var olmayan `b.hotel` attribute'u okunuyordu — ikisi de F1-04'te eklenen `guest_phone`/`guest_hotel`/`guest_full_name` alanlarına bağlandı, ayrıca `email` alanı eklendi. Silinenler: `app/api/create-payment-intent/`, `app/api/webhooks/payment/`, `app/api/webhooks/cancellation/`, `app/api/bookings/`, `app/api/inventory/lock/` ve yalnız bu route'lar tarafından kullanılan `app/lib/orderCalculator.ts`, `app/lib/webhookArmor.ts`, `app/lib/inventoryLock.ts`. **Kapsam istisnası:** görev listesinde sayılmayan `app/api/checkout/route.tsx` de silindi — hiçbir yerden çağrılmayan, Django akışıyla çakışan ikinci bir Stripe Checkout Session route'uydu ve `sk_test_...` sabit gizli anahtar fallback'i içeriyordu (gizli anahtar invaryantı ihlali). `app/lib/qr.ts` korundu (`DownloadOfflineButton` kullanıyor). `app/api/tickets/validate/route.ts` başına `// DEPRECATED: F2-05'te silinecek` notu konuldu. Doğrulama: `tsc --noEmit` temiz (önce `.next` içindeki bayat route tipleri hata veriyordu, rebuild sonrası temiz), `npm run lint` temiz, `npm run build` başarılı, silinen route'lara referans grep'i boş, `makemigrations --check` "No changes detected", `migrate --check` exit 0, `manage.py test` 29/29 OK, AST duplicate taraması temiz.
 
 ---
 
@@ -576,6 +576,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P0 · bug] `AgentFinanceLedger.create_from_booking` float/Decimal karışımıyla patlıyor.** `backend/agencies/finance_models.py:67` → `TypeError: unsupported operand type(s) for /: 'float' and 'decimal.Decimal'`. `manage.py test` sırasında `bookings/signals.py:113` bu hatayı yakalayıp logluyor, yani testler "OK" geçiyor ama **her rezervasyonda acente komisyon kaydı sessizce oluşturulmuyor**. F1-04 kapsamı dışı (mevcut bug, benim değişikliğimden bağımsız) ama para ile ilgili olduğu için P0 — `gross`'un Decimal'e çevrilmesi gerek.
 * **[P1 · eksik akış] Restoran menüsü checkout'u kırık.** `/checkout?menuId=<id>&type=meal` linki (`app/restaurant-menu/[slug]/page.tsx` "Hemen Al") `tourId` göndermiyor; checkout `tourId` olmadan çalışamıyor. F1-04'te sahte başarı ekranı yerine dürüst bir "restoran menüsü rezervasyonu henüz çevrimiçi ödemeye açık değildir" mesajı gösterildi. Backend'de `DiningReservationViewSet` (`restaurant/reservations`) var ama ödemesiz ayrı bir akış. Yemek satın alma akışı baştan tasarlanmalı.
 * **[P2 · ölü kod] `vip_membership` localStorage'ını artık kimse yazmıyor.** F1-04'te tek yazan yer (checkout simülasyonu) silindi; `app/tour/[slug]/page.tsx:93` ve `app/taste/page.tsx:115` hâlâ okuyor, dolayısıyla VIP indirimi/rozeti artık hiç tetiklenmiyor. Ya gerçek bir üyelik modeli backend'e eklenmeli ya da bu okuma dalları silinmeli.
+* **[P1 · yanıltıcı] `app/success/page.tsx` sahipsiz kaldı ve sahte banka bilgisi içeriyor.** Tek girişi silinen `app/api/checkout/route.tsx`'in `success_url`'ü idi; artık hiçbir yerden ulaşılamıyor. Sayfa "Havale/EFT ile öde" akışı sunuyor ve **uydurma bir IBAN** (`TR12 0006 2000 0001 2345 6789 00`) ile "Tourkia Turizm ve Seyahat A.Ş." unvanını gösteriyor. Ya gerçek havale akışı tasarlanmalı ya da sayfa silinmeli — müşteriye yanlış IBAN göstermesi riski var. F1-05'te silinmedi çünkü iş kararı gerektiriyor.
+* **[P2 · sabit veri] `app/api/tickets/validate/route.ts` bellek içi sahte bilet listesiyle çalışıyor.** `TKT-VALID`/`TKT-USED` gibi sabit kayıtlar üzerinden QR doğrulaması yapıyor; gerçek bir bilet asla doğrulanamaz. F1-05'te `// DEPRECATED: F2-05'te silinecek` notu eklendi, silme işi F2-05'e bırakıldı.
 * **[P2 · ortam] Yerel geliştirme ortamı kurulu değildi.** `node_modules` yoktu (`npm install` ile kuruldu). Backend için Python venv de yok (`backend/venv`, `.venv` bulunamadı, `django` global olarak da kurulu değil) — bu yüzden STD-CHECK'in backend yarısı (makemigrations --check / migrate --check / test) F1-01'de çalıştırılamadı. F1-01 yalnız frontend dosyası değiştirdiği için sonucu etkilemez, ancak F1-04'ten itibaren backend ortamı şart.
 
 ---

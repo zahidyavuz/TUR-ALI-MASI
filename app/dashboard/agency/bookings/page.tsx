@@ -3,63 +3,82 @@
 import { useState, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
+import { fetchAPI } from '@/app/lib/api';
 
 interface Tour {
-  id: number;
+  // Tour.id bir SlugField'dır (string PK).
+  id: string;
   title: string;
-  time: string;
-  vehicle: string;
+  duration: string;
 }
 
 interface Passenger {
-  id: string;
-  tourId: number;
-  name: string;
+  booking_ref: string;
+  passenger: string;
   phone: string;
+  email: string;
   hotel: string;
   pax: number;
   status: string;
 }
 
 export default function AgencyDailyManifestPage() {
-  const [selectedDate, setSelectedDate] = useState('2026-05-15');
-  const [activeTour, setActiveTour] = useState<number | null>(null);
-  
+  const [selectedDate, setSelectedDate] = useState(
+    () => new Date().toISOString().slice(0, 10)
+  );
+  const [activeTour, setActiveTour] = useState<string | null>(null);
+
   const [tours, setTours] = useState<Tour[]>([]);
-  const [allPassengers, setAllPassengers] = useState<Passenger[]>([]);
+  const [currentPassengers, setCurrentPassengers] = useState<Passenger[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Veritabanı ile senkronizasyon (GET /api/bookings?date=X)
-  const fetchManifest = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/bookings?date=${selectedDate}&agencyId=123`);
-      const result = await res.json();
-      
-      if (result.success && result.data) {
-        setTours(result.data.tours || []);
-        setAllPassengers(result.data.passengers || []);
-        
-        // Eğer seçili tur listede yoksa, ilkini seç
-        if (result.data.tours && result.data.tours.length > 0) {
-          setActiveTour(result.data.tours[0].id);
-        } else {
-          setActiveTour(null);
-        }
-      }
-    } catch (error) {
-      console.error('Manifesto yüklenemedi:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Acentanın kendi turları — endpoint DB seviyesinde acentaya göre filtreli.
   useEffect(() => {
-    fetchManifest();
-  }, [selectedDate]);
+    let cancelled = false;
+    (async () => {
+      const data = await fetchAPI('/agency/tours/');
+      if (cancelled) return;
+      const list: Tour[] = Array.isArray(data) ? data : (data?.results ?? []);
+      setTours(list);
+      setActiveTour((prev) =>
+        prev && list.some((t) => t.id === prev) ? prev : (list[0]?.id ?? null)
+      );
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
-  // Sadece seçili turdaki yolcuları getir
-  const currentPassengers = allPassengers.filter(p => p.tourId === activeTour);
+  // Seçili tur + tarih için günlük yolcu manifestosu.
+  useEffect(() => {
+    if (!activeTour) {
+      setCurrentPassengers([]);
+      return;
+    }
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    (async () => {
+      try {
+        const data = await fetchAPI(
+          `/agency/tours/${activeTour}/manifest/?date=${selectedDate}`,
+          { throwOnHttpError: true }
+        );
+        if (cancelled) return;
+        setCurrentPassengers(data?.passengers ?? []);
+      } catch (err: any) {
+        if (cancelled) return;
+        setCurrentPassengers([]);
+        setError(err?.message || 'Manifesto yüklenemedi.');
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTour, selectedDate]);
 
   // jsPDF ile PDF Çıktısı Alma İşlemi
   const handleExportPDF = () => {
@@ -80,9 +99,8 @@ export default function AgencyDailyManifestPage() {
     doc.setTextColor(100);
     doc.text(`Tur: ${tour.title}`, 40, 65);
     doc.text(`Tarih: ${selectedDate}`, 40, 85);
-    doc.text(`Kalkis: ${tour.time}`, 250, 85);
-    doc.text(`Arac: ${tour.vehicle}`, 40, 105);
-    
+    doc.text(`Sure: ${tour.duration}`, 250, 85);
+
     const totalPax = currentPassengers.reduce((sum, p) => sum + p.pax, 0);
     doc.setFontSize(14);
     doc.setTextColor(15, 23, 42); // slate-900
@@ -95,8 +113,8 @@ export default function AgencyDailyManifestPage() {
     currentPassengers.forEach(p => {
       const rowData = [
         "[   ]", // Biniş kontrol kutucuğu için boşluk
-        p.id,
-        p.name,
+        p.booking_ref,
+        p.passenger,
         p.phone,
         p.hotel,
         p.pax.toString(),
@@ -158,13 +176,19 @@ export default function AgencyDailyManifestPage() {
         {/* Sol Sütun: Günün Turları */}
         <div className="lg:col-span-1 space-y-2 print:hidden">
           <div className="flex justify-between items-center mb-3 px-1 border-b border-slate-100 dark:border-slate-800 pb-2">
-             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Günün Planı</h2>
+             <h2 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Turlarınız</h2>
              {loading && <span className="text-[10px] text-slate-500 font-medium">Yükleniyor...</span>}
           </div>
-          
+
           {tours.length === 0 && !loading && (
             <div className="text-sm text-slate-500 font-medium p-4 text-center border border-dashed border-slate-300 dark:border-slate-700 rounded-md">
-              Bu tarihte aktif tur bulunamadı.
+              Kayıtlı tur bulunamadı.
+            </div>
+          )}
+
+          {error && (
+            <div className="text-xs font-medium text-red-600 dark:text-red-400 p-3 border border-red-200 dark:border-red-900 rounded-md bg-red-50 dark:bg-red-950/20">
+              {error}
             </div>
           )}
 
@@ -178,16 +202,11 @@ export default function AgencyDailyManifestPage() {
                   : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800'
               }`}
             >
-              <div className="flex items-center gap-2 mb-1.5">
-                <span className="text-[10px] font-semibold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-1.5 py-0.5 rounded tracking-wide">
-                  {tour.time}
-                </span>
-              </div>
               <h3 className={`font-semibold text-sm ${activeTour === tour.id ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-slate-300'}`}>
                 {tour.title}
               </h3>
               <p className="text-[11px] text-slate-500 font-medium mt-1">
-                Araç: {tour.vehicle}
+                {tour.duration}
               </p>
             </div>
           ))}
@@ -205,8 +224,7 @@ export default function AgencyDailyManifestPage() {
                 </h2>
                 <div className="flex gap-3 mt-2 text-xs font-medium text-slate-500 print:text-gray-700">
                   <span className="flex items-center gap-1">Tarih: {selectedDate}</span>
-                  <span className="flex items-center gap-1">Kalkış: {tours.find(t => t.id === activeTour)?.time || '-'}</span>
-                  <span className="flex items-center gap-1">Araç: {tours.find(t => t.id === activeTour)?.vehicle || '-'}</span>
+                  <span className="flex items-center gap-1">Süre: {tours.find(t => t.id === activeTour)?.duration || '-'}</span>
                 </div>
               </div>
               <div className="text-right">
@@ -226,14 +244,14 @@ export default function AgencyDailyManifestPage() {
               <p className="text-center text-gray-500 py-4">Bu tura ait kayıtlı yolcu bulunmuyor.</p>
             )}
             {currentPassengers.map((p) => (
-              <div key={p.id} className="bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+              <div key={p.booking_ref} className="bg-white dark:bg-slate-800/50 border border-gray-100 dark:border-slate-800 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
                 <div className="flex justify-between items-start border-b border-gray-50 dark:border-white/5 pb-3">
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Bilet No</p>
-                    <p className="font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{p.id}</p>
+                    <p className="font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{p.booking_ref}</p>
                   </div>
                   <span className={`text-[10px] uppercase font-black px-2.5 py-1 rounded-lg border ${
-                      p.status === 'Onaylandı' 
+                      p.status === 'confirmed' 
                         ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
                         : 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
                     }`}>
@@ -243,7 +261,7 @@ export default function AgencyDailyManifestPage() {
                 <div className="flex justify-between items-center">
                   <div>
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Yolcu</p>
-                    <p className="font-bold text-slate-800 dark:text-white">{p.name}</p>
+                    <p className="font-bold text-slate-800 dark:text-white">{p.passenger}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Kişi</p>
@@ -277,13 +295,13 @@ export default function AgencyDailyManifestPage() {
                 </thead>
                 <tbody className="">
                   {currentPassengers.map((p) => (
-                    <tr key={p.id} className="border-b border-gray-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors print:border-gray-300">
+                    <tr key={p.booking_ref} className="border-b border-gray-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-950/50 transition-colors print:border-gray-300">
                       <td className="p-4 pl-6 text-center ">
                         {/* Biniş (Boarding) Checkbox for physical paper usage */}
                         <div className="w-6 h-6 border-2 border-gray-300 dark:border-slate-600 rounded bg-white dark:bg-slate-800 mx-auto print:border-black"></div>
                       </td>
-                      <td className="p-4 font-mono text-xs font-bold text-gray-500 print:text-black ">{p.id}</td>
-                      <td className="p-4 font-bold text-slate-800 dark:text-white print:text-black ">{p.name}</td>
+                      <td className="p-4 font-mono text-xs font-bold text-gray-500 print:text-black ">{p.booking_ref}</td>
+                      <td className="p-4 font-bold text-slate-800 dark:text-white print:text-black ">{p.passenger}</td>
                       <td className="p-4 ">
                         <p className="text-xs font-bold text-slate-600 dark:text-slate-300 print:text-black">{p.phone}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5 print:text-gray-600">{p.hotel}</p>
@@ -291,7 +309,7 @@ export default function AgencyDailyManifestPage() {
                       <td className="p-4 text-center font-black text-lg text-slate-800 dark:text-white print:text-black ">{p.pax}</td>
                       <td className="p-4 pr-6 text-right print:hidden ">
                         <span className={`text-[10px] uppercase font-black px-2.5 py-1 rounded-lg border ${
-                          p.status === 'Onaylandı' 
+                          p.status === 'confirmed' 
                             ? 'bg-green-50 text-green-600 border-green-200 dark:bg-green-900/20 dark:border-green-800' 
                             : 'bg-yellow-50 text-yellow-600 border-yellow-200 dark:bg-yellow-900/20 dark:border-yellow-800'
                         }`}>
