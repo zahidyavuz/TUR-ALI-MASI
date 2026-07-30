@@ -23,6 +23,9 @@ from datetime import date, timedelta
 
 from django.shortcuts import get_object_or_404
 from django.db import transaction
+from django.db.models import Q, Sum
+from django.db.models.functions import Coalesce
+from django.utils.text import slugify
 from rest_framework import viewsets, status, parsers
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -32,7 +35,7 @@ from agencies.models import Agency
 from core.permissions import IsAgentOwner, IsVerifiedAgent, StrictMassAssignmentPermission
 from core.image_utils import optimize_image
 from tours.models import Tour, TourAvailability
-from tours.serializers import TourDetailSerializer, TourListSerializer
+from tours.serializers import AgencyTourListSerializer, TourDetailSerializer
 from bookings.models import Booking
 from bookings.serializers import BookingSerializer
 
@@ -64,36 +67,68 @@ class AgencyTourViewSet(viewsets.ModelViewSet):
         queryset.filter(agency=agency) → DB seviyesinde veri izolasyonu (RLS).
         """
         agency = self._get_agency()
-        return (
+        queryset = (
             Tour.objects
             .filter(agency=agency)
             .select_related('agency', 'category_obj')
-            .prefetch_related('availability_slots')
+            # Tour modelinde Meta.ordering yok; sırasız queryset'te sayfalama
+            # tutarsız sonuç verir (UnorderedObjectListWarning).
+            .order_by('title')
         )
+        if self.action == 'list':
+            # Panel kartlarındaki doluluk özeti: bugünden itibaren açık olan
+            # slotların toplam kontenjanı ve satılanı. Tek join üzerinden iki
+            # Sum alındığı için çarpım (fan-out) sorunu oluşmaz.
+            today = date.today()
+            return queryset.annotate(
+                capacity_total=Coalesce(
+                    Sum('availability_slots__max_capacity',
+                        filter=Q(availability_slots__date__gte=today)), 0),
+                booked_total=Coalesce(
+                    Sum('availability_slots__booked_count',
+                        filter=Q(availability_slots__date__gte=today)), 0),
+            )
+        return queryset.prefetch_related('availability_slots')
 
     def get_serializer_class(self):
         if self.action == 'list':
-            return TourListSerializer
+            return AgencyTourListSerializer
         return TourDetailSerializer
 
     # ─── CREATE ──────────────────────────────────────────────────────────────
     def perform_create(self, serializer):
         agency = self._get_agency()
         with transaction.atomic():
-            tour = serializer.save(agency=agency)
+            # `Tour.id` bir SlugField PK'dir ve otomatik üretilmez. Slug'ı
+            # istemciden almak yerine başlıktan türetiyoruz: acentanın başka
+            # bir turun slug'ını ele geçirmesi ya da URL'i kirletmesi mümkün
+            # olmasın diye serializer'da `id` read-only.
+            tour = serializer.save(
+                agency=agency,
+                id=self._generate_slug(serializer.validated_data.get('title', '')),
+            )
             # Önümüzdeki 90 günlük TourAvailability slot'larını otomatik oluştur
-            capacity = int(self.request.data.get('default_capacity', 20))
+            capacity = self._parse_capacity(self.request.data.get('default_capacity'))
             self._create_availability_slots(tour, days=90, capacity=capacity)
-        logger.info(f"[AGENCY_TOUR] Created tour '{tour.title}' for agency '{agency.name}'")
+        logger.info(f"[AGENCY_TOUR] Created tour '{tour.title}' ({tour.pk}) for agency '{agency.name}'")
 
     # ─── UPDATE ──────────────────────────────────────────────────────────────
+    # Panelden düzenlenebilen alanlar. Kasıtlı olarak DIŞARIDA bırakılanlar:
+    #   • id / agency        → sahiplik ve URL kimliği değiştirilemez
+    #   • rating / reviews_count / fomo_count → sosyal kanıt uydurulamaz
+    #   • image_*            → `upload-image` ucundan yüklenir (Pillow optimize)
+    ALLOWED_PATCH_FIELDS = {
+        'title', 'location', 'price', 'original_price', 'discount', 'duration',
+        'guide', 'accommodation', 'transportation', 'category', 'description',
+        'included', 'excluded', 'filmed_in',
+    }
+
     def partial_update(self, request, *args, **kwargs):
-        """PATCH — Yalnızca güvenli alanlara izin ver (fiyat, kapasite, açıklama)."""
-        ALLOWED_PATCH_FIELDS = {'price', 'original_price', 'discount', 'description', 'guide', 'accommodation', 'transportation'}
-        unknown = set(request.data.keys()) - ALLOWED_PATCH_FIELDS
+        """PATCH — Yalnızca beyaz listedeki alanlara izin ver."""
+        unknown = set(request.data.keys()) - self.ALLOWED_PATCH_FIELDS
         if unknown and not request.user.is_staff:
             return Response(
-                {'error': f'Bu alanlar güncellenemez: {unknown}'},
+                {'error': f"Bu alanlar güncellenemez: {', '.join(sorted(unknown))}"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().partial_update(request, *args, **kwargs)
@@ -222,6 +257,33 @@ class AgencyTourViewSet(viewsets.ModelViewSet):
         })
 
     # ─── YARDIMCI METODLAR ────────────────────────────────────────────────────
+    # slugify() ASCII dışını atar; "Günübirlik" → "gnbirlik" gibi okunaksız
+    # slug'lar çıkmasın diye Türkçe karakterler önce karşılıklarına çevrilir.
+    TR_CHAR_MAP = str.maketrans({
+        'ı': 'i', 'İ': 'i', 'ş': 's', 'Ş': 's', 'ğ': 'g', 'Ğ': 'g',
+        'ü': 'u', 'Ü': 'u', 'ö': 'o', 'Ö': 'o', 'ç': 'c', 'Ç': 'c',
+    })
+
+    @classmethod
+    def _generate_slug(cls, title: str) -> str:
+        """Başlıktan benzersiz slug üretir: 'Pamukkale Turu' → 'pamukkale-turu'."""
+        base = slugify(title.translate(cls.TR_CHAR_MAP))[:80] or 'tur'
+        slug = base
+        while Tour.objects.filter(pk=slug).exists():
+            # Çakışmada kısa rastgele ek — sayaçla denemeye göre hem yarış
+            # koşullarına dayanıklı hem de tek sorguda biter.
+            slug = f'{base}-{uuid.uuid4().hex[:6]}'
+        return slug
+
+    @staticmethod
+    def _parse_capacity(raw, default: int = 20) -> int:
+        """default_capacity serbest metin gelebilir; bozuksa varsayılana düş."""
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            return default
+        return value if 1 <= value <= 1000 else default
+
     @staticmethod
     def _create_availability_slots(tour: Tour, days: int = 90, capacity: int = 20):
         """Toplu TourAvailability kaydı oluşturur (bulk_create — N+1 yok)."""

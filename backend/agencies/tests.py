@@ -103,6 +103,121 @@ class PartnerOnboardingTestCase(TestCase):
         self.assertEqual(response.status_code, 403)
 
 
+class AgencyTourCrudTestCase(TestCase):
+    """F2-01 — Acenta panelinden tur CRUD'u."""
+
+    BASE = {
+        'title': 'Pamukkale Günübirlik Turu', 'location': 'Denizli', 'price': 500,
+        'duration': '1 Gün', 'guide': 'Türkçe', 'description': 'Açıklama',
+        'category': 'Doğa',
+    }
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = User.objects.create_user(username='ag_owner', password='pass')
+        self.agency = Agency.objects.create(
+            owner=self.owner, name='Test Acenta', is_verified=True, is_active=True
+        )
+        self.client.force_authenticate(user=self.owner)
+
+    def _create(self, **overrides):
+        return self.client.post('/api/v1/agency/tours/', {**self.BASE, **overrides}, format='json')
+
+    def test_create_generates_slug_and_availability(self):
+        """Slug başlıktan üretilir (Türkçe karakterler çevrilir) ve 90 günlük takvim açılır"""
+        response = self._create(default_capacity=15)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['id'], 'pamukkale-gunubirlik-turu')
+
+        from tours.models import TourAvailability
+        slots = TourAvailability.objects.filter(tour_id='pamukkale-gunubirlik-turu')
+        self.assertEqual(slots.count(), 90)
+        self.assertEqual(slots.first().max_capacity, 15)
+
+    def test_duplicate_title_gets_unique_slug(self):
+        first = self._create()
+        second = self._create()
+        self.assertEqual(second.status_code, 201, second.data)
+        self.assertNotEqual(first.data['id'], second.data['id'])
+        self.assertTrue(second.data['id'].startswith('pamukkale-gunubirlik-turu-'))
+
+    def test_agency_cannot_fabricate_social_proof(self):
+        """Puan / yorum sayısı acenta tarafından yazılamaz"""
+        response = self._create(reviews_count=9999)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['reviews_count'], 0)
+
+        slug = response.data['id']
+        patched = self.client.patch(f'/api/v1/agency/tours/{slug}/', {'rating': 5.0}, format='json')
+        self.assertEqual(patched.status_code, 400)
+
+    def test_patch_allows_whitelisted_fields(self):
+        slug = self._create().data['id']
+        response = self.client.patch(
+            f'/api/v1/agency/tours/{slug}/', {'title': 'Yeni Başlık', 'price': 777}, format='json'
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['title'], 'Yeni Başlık')
+
+    def test_list_returns_capacity_summary_and_draft_status(self):
+        self._create(default_capacity=10)
+        response = self.client.get('/api/v1/agency/tours/')
+        self.assertEqual(response.status_code, 200)
+        row = response.data['results'][0]
+        self.assertEqual(row['capacity_total'], 900)  # 90 gün x 10
+        self.assertEqual(row['booked_total'], 0)
+        self.assertFalse(row['is_published'])  # görsel yok → taslak
+
+    def test_delete_detaches_tour_from_agency(self):
+        slug = self._create().data['id']
+        self.assertEqual(self.client.delete(f'/api/v1/agency/tours/{slug}/').status_code, 200)
+        self.assertEqual(self.client.get('/api/v1/agency/tours/').data['count'], 0)
+
+    def test_other_agency_cannot_see_or_edit(self):
+        """A acentesi B'nin turunu görüntüleyemez ve düzenleyemez"""
+        slug = self._create().data['id']
+
+        intruder = User.objects.create_user(username='intruder_ag', password='pass')
+        Agency.objects.create(owner=intruder, name='Rakip Acenta', is_verified=True, is_active=True)
+        other = APIClient()
+        other.force_authenticate(user=intruder)
+
+        self.assertEqual(other.get('/api/v1/agency/tours/').data['count'], 0)
+        self.assertEqual(
+            other.patch(f'/api/v1/agency/tours/{slug}/', {'price': 1}, format='json').status_code, 404
+        )
+        self.assertEqual(other.delete(f'/api/v1/agency/tours/{slug}/').status_code, 404)
+
+    def test_anonymous_cannot_list(self):
+        anon = APIClient()
+        self.assertEqual(anon.get('/api/v1/agency/tours/').status_code, 401)
+
+    def test_created_tour_appears_in_public_catalog_after_image_upload(self):
+        """Panelden eklenen tur, görseli yüklendikten sonra genel katalogda görünür"""
+        import io
+        from PIL import Image as PILImage
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        slug = self._create().data['id']
+
+        anon = APIClient()
+        self.assertNotIn(slug, [t['id'] for t in anon.get('/api/v1/tours/').data['results']])
+
+        buffer = io.BytesIO()
+        PILImage.new('RGB', (64, 64), 'red').save(buffer, format='JPEG')
+        upload = self.client.post(
+            f'/api/v1/agency/tours/{slug}/upload-image/',
+            {'image': SimpleUploadedFile('t.jpg', buffer.getvalue(), content_type='image/jpeg'),
+             'field': 'image_main'},
+            format='multipart',
+        )
+        self.assertEqual(upload.status_code, 200, upload.data)
+
+        self.assertIn(slug, [t['id'] for t in anon.get('/api/v1/tours/').data['results']])
+        self.assertEqual(anon.get(f'/api/v1/tours/{slug}/').status_code, 200)
+        self.assertTrue(self.client.get('/api/v1/agency/tours/').data['results'][0]['is_published'])
+
+
 class AdminApplicationActionsTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()

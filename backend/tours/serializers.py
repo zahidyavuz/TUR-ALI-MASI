@@ -60,15 +60,50 @@ class TourListSerializer(serializers.ModelSerializer):
         ]
 
 
+class AgencyTourListSerializer(TourListSerializer):
+    """
+    Acenta panelindeki envanter listesi.
+
+    Genel listeden farkı: bugünden itibaren açık olan kontenjan slotlarının
+    toplamı (doluluk özeti) ve yayın durumu eklenir. Toplamlar view'daki
+    annotate'ten gelir (bkz. AgencyTourViewSet.get_queryset).
+    """
+    capacity_total = serializers.IntegerField(read_only=True)
+    booked_total = serializers.IntegerField(read_only=True)
+    is_published = serializers.SerializerMethodField()
+
+    class Meta(TourListSerializer.Meta):
+        fields = TourListSerializer.Meta.fields + [
+            'description', 'guide', 'capacity_total', 'booked_total', 'is_published',
+        ]
+
+    def get_is_published(self, obj) -> bool:
+        """
+        Görseli olmayan tur genel listede gösterilmez (bkz. TourViewSet),
+        dolayısıyla "taslak" sayılır. Durum türetilmiştir — ayrı bir bayrak
+        tutulmaz ki panelde gösterilen durum ile gerçek görünürlük ayrışmasın.
+        """
+        return bool(obj.image_main)
+
+
 class TourDetailSerializer(serializers.ModelSerializer):
     agency = AgencySerializer(read_only=True)
     itinerary_steps = TourItinerarySerializer(many=True, read_only=True)
     availability_slots = TourAvailabilitySerializer(many=True, read_only=True)
     category_detail = CategorySerializer(source='category_obj', read_only=True)
-    image_main = SmartImageField()
-    image_sub1 = SmartImageField()
-    image_sub2 = SmartImageField()
+    # Görseller ayrı bir uçtan (`upload-image`) yükleniyor; burada zorunlu
+    # olmamalılar. `required=False` verilmezse DRF açıkça bildirilen bu
+    # alanları model'deki blank/null'a bakmaksızın zorunlu sayar ve tur
+    # oluşturmak imkânsız hale gelir.
+    image_main = SmartImageField(required=False)
+    image_sub1 = SmartImageField(required=False, allow_null=True)
+    image_sub2 = SmartImageField(required=False, allow_null=True)
 
     class Meta:
         model = Tour
         fields = '__all__'
+        # `id` slug PK'dir ve sunucuda başlıktan üretilir (bkz.
+        # AgencyTourViewSet.perform_create). Puan/yorum/FOMO sayaçları
+        # sosyal kanıt alanlarıdır; acentanın kendi turuna 5.0 puan veya
+        # 9999 yorum yazabilmesi müşteriyi yanıltır.
+        read_only_fields = ['id', 'rating', 'reviews_count', 'fomo_count']

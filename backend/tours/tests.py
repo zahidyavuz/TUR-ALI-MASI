@@ -49,14 +49,32 @@ class TourAPITestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertGreaterEqual(len(response.data['results']), 1)
 
-    def test_unauthenticated_cannot_create(self):
-        """Unauthenticated users cannot create tours"""
-        response = self.client.post('/api/v1/tours/', {
-            'title': 'Unauthorized Tour',
-            'location': 'Test',
-            'price': 100,
-        })
-        self.assertEqual(response.status_code, 401)
+    def test_public_catalog_is_read_only(self):
+        """Genel katalog salt okunur: yazma yalnız /agency/tours/ üzerinden"""
+        payload = {'title': 'Unauthorized Tour', 'location': 'Test', 'price': 100}
+
+        self.assertEqual(self.client.post('/api/v1/tours/', payload).status_code, 405)
+
+        # Giriş yapmış sıradan bir müşteri de tur oluşturamaz.
+        customer = User.objects.create_user(username='rando', password='testpass123')
+        self.client.force_authenticate(user=customer)
+        self.assertEqual(self.client.post('/api/v1/tours/', payload).status_code, 405)
+        self.assertEqual(
+            self.client.patch('/api/v1/tours/test-tour/', {'price': 1}).status_code, 405
+        )
+        self.assertEqual(self.client.delete('/api/v1/tours/test-tour/').status_code, 405)
+
+    def test_imageless_tour_hidden_from_catalog(self):
+        """Görseli olmayan tur (taslak) genel katalogda listelenmez"""
+        Tour.objects.create(
+            id='draft-tour', agency=self.agency, title='Draft Tour', location='Izmir',
+            price=100, duration='1 Day', guide='Turkish', description='d',
+            category='adventure', image_main='',
+        )
+        response = self.client.get('/api/v1/tours/')
+        ids = [t['id'] for t in response.data['results']]
+        self.assertIn('test-tour', ids)
+        self.assertNotIn('draft-tour', ids)
 
     def test_category_list(self):
         """GET /api/v1/categories/ should return categories"""
