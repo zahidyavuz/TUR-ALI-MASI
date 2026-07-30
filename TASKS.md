@@ -89,7 +89,7 @@ EOF
 
 ---
 
-### [ ] F1-03 · Checkout'tan ham kart formunu ve mock'ları söküp Stripe Elements'e geç
+### [x] F1-03 · Checkout'tan ham kart formunu ve mock'ları söküp Stripe Elements'e geç
 
 **Öncelik:** P0 · **Efor:** M
 
@@ -105,7 +105,7 @@ EOF
 
 **Not:** Stripe TR'de tahsilat yapamaz — bu sandbox/mimari adımıdır; PSP adapter F2-06'da iyzico/PayTR'a çevrilecek. Elements soyutlaması bu geçişi kolaylaştırır.
 
-**Notlar:** _
+**Notlar:** Stripe paketleri zaten `package.json`'da mevcuttu (adım 1 hazırdı). `app/components/StripePaymentSection.tsx` eklendi (deferred-intent modunda `<Elements>` + `<PaymentElement>`, `onConfirmPayment` prop'u F1-04'te canlanacak). `app/checkout/page.tsx`'ten `MOCK_SAVED_CARDS`, `getCardType`, `cardForm`/`selectedSavedCard` state'i, kayıtlı kart karuseli, ham kart formu ve "canlı kart ön izleme" paneli silindi (~370 satır). `app/page.tsx`'te hiç açılmayan (ölü) ikinci bir ham kart modalı bulundu ve silindi. Sahipsiz `app/components/SecurePaymentForm.tsx` (ham kart state'i tutuyordu) silindi. `.env.example`'a `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` eklendi. Doğrulama: grep'te kart tutan state/input kalmadı (kalanlar yorum + Stripe hata mesajı), `tsc --noEmit` temiz, `npm run lint` temiz, `npm run build` başarılı.
 
 ---
 
@@ -569,6 +569,10 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · araç] `next lint` Next.js 16'da kaldırıldı.** TASKS.md'deki STD-CHECK `npx next lint` diyor ama Next 16 bu komutu kaldırdı ("Invalid project directory provided, no such directory: .../lint"). Doğru komut `npm run lint` (package.json'da `"lint": "eslint"`). STD-CHECK tanımı güncellenmeli.
 * **[P1 · yanıltıcı] Footer'da desteklenmeyen ödeme yöntemleri listeleniyor.** `app/components/Footer.tsx` "Ödeme Yöntemleri" bölümünde VISA, mastercard, MİR, UnionPay, WeChat Pay ve Alipay rozetleri var; gerçekte yalnız Stripe entegrasyonu mevcut ve MİR/UnionPay/WeChat/Alipay hiçbir şekilde desteklenmiyor. F1-02 kapsamı dışı olduğu için dokunulmadı — F2-06'da (PSP adapter) gerçekten desteklenen yöntemlere göre güncellenmeli.
 * **[P2 · ölü kod] `HoneypotTraps` kaldırıldı ama arkasındaki API'ler duruyor.** F1-02'de bileşen silindi; `app/api/security/honeypot/[id]/route.ts`, `app/api/security/honeypot/list/route.ts` ve `app/lib/honeypot.ts` hâlâ yerinde (artık hiçbir yerden linklenmiyor). Bunların silinmesi zaten F3-04 kapsamında.
+* **[P2 · ölü kod] `app/components/CheckoutForm.tsx` sahipsiz.** Hiçbir yerden import edilmiyor. İçeriği zaten Stripe `<PaymentElement>` tabanlı (ham kart inputu yok), bu yüzden F1-03'te silinmedi. Ancak `StripePaymentSection` ile işlevi çakışıyor; F1-04'te ikisinden biri seçilip diğeri silinmeli. Ayrıca içinde bir "döviz kuru" çağrısı var, kontrol edilmeli.
+* **[P2 · ölü kod] `app/lib/secureVault.ts` kart yardımcıları artık kullanılmıyor.** `formatCardInput`, `formatCvvInput`, `formatExpiryInput`, `maskCardNumber`, `storePaymentToken` tek kullanıcıları olan `SecurePaymentForm.tsx` F1-03'te silindiği için ölü kaldı. Dosyanın `isSessionValid`/`secureClear` kısmı `app/lib/auth.ts` tarafından hâlâ kullanılıyor, o yüzden dosya bütün olarak silinemez. F3-04'te (ölü kod temizliği) kart yardımcıları kaldırılmalı.
+* **[P1 · yanıltıcı] `app/page.tsx`'te açılması imkânsız bir ödeme modalı vardı.** `showPaymentModal` state'i hiçbir yerde `true` yapılmıyordu; modal ham kart no/SKT/CVC inputları, sabit "₺14.500" tutar ve `alert('Ödeme simülasyonu başarıyla tamamlandı!')` içeriyordu. F1-03 doğrulama grep'inde yakalandı ve silindi (görev kapsamıyla doğrudan ilgili olduğu için istisnaen aynı commit'te).
+* **[P2 · ölü kod] `recordFailedAttempt` import ediliyor ama kullanılmıyor.** `app/checkout/page.tsx:8`. Rate-limit sayacı hiç artırılmıyor olabilir; `checkRateLimit("checkout_attempts")` çağrılıyor fakat başarısız deneme kaydedilmiyor. F1-04'te ödeme hata yolu gerçek hale gelince gözden geçirilmeli.
 * **[P2 · ortam] Yerel geliştirme ortamı kurulu değildi.** `node_modules` yoktu (`npm install` ile kuruldu). Backend için Python venv de yok (`backend/venv`, `.venv` bulunamadı, `django` global olarak da kurulu değil) — bu yüzden STD-CHECK'in backend yarısı (makemigrations --check / migrate --check / test) F1-01'de çalıştırılamadı. F1-01 yalnız frontend dosyası değiştirdiği için sonucu etkilemez, ancak F1-04'ten itibaren backend ortamı şart.
 
 ---

@@ -169,9 +169,6 @@ export default function Home() {
   if (isAdmin) userRoleType = 'admin';
   else if (isAgency) userRoleType = 'agency';
 
-  // Checkout / Payment Modal State
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
-
   // Filtre State'leri
   const [selectedLocation, setSelectedLocation] = useState('Nereye gitmek istersin?');
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
@@ -1244,95 +1241,6 @@ export default function Home() {
 
                   </div>
                 )}
-              </div>
-            </div>
-          </div>
-        )
-      }
-
-      {/* Güvenli Ödeme Alt Yapısı (Checkout) Modalı */}
-      {
-        showPaymentModal && (
-          <div
-            className="fixed inset-0 bg-slate-900/70 z-[120] flex items-start justify-center backdrop-blur-md px-4 overflow-y-auto pt-20 md:pt-32 pb-10"
-            onClick={(e) => {
-              if (e.target === e.currentTarget) {
-                setShowPaymentModal(false);
-              }
-            }}
-          >
-            <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-[460px] overflow-hidden relative animate-in zoom-in-95 duration-200 border border-gray-100">
-
-              {/* Kapat Butonu */}
-              <button
-                onClick={() => setShowPaymentModal(false)}
-                className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-all bg-slate-100/50 hover:bg-red-50 p-3.5 rounded-full z-20 shadow-sm active:scale-90"
-              >
-                <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
-
-              {/* Fiş/Özet Header */}
-              <div className="bg-slate-50 pt-8 pb-6 px-4 md:px-8 relative border-b border-gray-100">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
-                    <svg width="20" height="20" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 2a1 1 0 011 1v1h1a1 1 0 010 2H6v1a1 1 0 01-2 0V6H3a1 1 0 010-2h1V3a1 1 0 011-1zm0 10a1 1 0 011 1v1h1a1 1 0 110 2H6v1a1 1 0 11-2 0v-1H3a1 1 0 110-2h1v-1a1 1 0 011-1zM12 2a1 1 0 01.967.744L14.146 7.2 17.5 9.134a1 1 0 010 1.732l-3.354 1.935-1.18 4.455a1 1 0 01-1.933 0L9.854 12.8 6.5 10.866a1 1 0 010-1.732l3.354-1.935 1.18-4.455A1 1 0 0112 2z" clipRule="evenodd" /></svg>
-                  </div>
-                  <h2 className="text-xl font-black text-slate-800">Güvenli Ödeme</h2>
-                </div>
-                <p className="text-gray-500 text-[13px] font-medium">Tur kaydınızın tamamlanması için son adım.</p>
-
-                <div className="mt-5 p-4 bg-white border border-gray-100 rounded-2xl shadow-sm flex justify-between items-center">
-                  <div>
-                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1">Toplam Tutar</p>
-                    <p className="text-2xl font-black text-[#008cb3]">₺14.500<span className="text-sm text-gray-400 font-medium">,00</span></p>
-                  </div>
-                  <div className="text-right">
-                    <span className="bg-green-100 text-green-700 text-[10px] uppercase font-black px-2.5 py-1 rounded-lg">256 Bit SSL Korumalı</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Kart Formu */}
-              <div className="p-8">
-                <form className="flex flex-col gap-5" onSubmit={(e) => { e.preventDefault(); alert('Ödeme simülasyonu başarıyla tamamlandı!'); setShowPaymentModal(false); }}>
-
-                  {/* Kart Görseli Simülasyonu */}
-                  <div className="w-full h-14 bg-gradient-to-r from-slate-800 to-slate-900 rounded-xl mb-2 flex items-center justify-between px-5">
-                    <div className="flex gap-1.5">
-                      <div className="w-8 h-5 bg-yellow-400/80 rounded rounded-sm"></div>
-                    </div>
-                    <div className="flex gap-2 items-center">
-                      <span className="text-white/80 font-bold text-xs">VISA</span>
-                      <span className="text-white/80 font-bold text-xs">M/C</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Kart Numarası</label>
-                    <input type="text" inputMode="numeric" maxLength={19} placeholder="0000 0000 0000 0000" autoComplete="cc-number" onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 tracking-wider" />
-                  </div>
-
-                  <div className="flex gap-4">
-                    <div className="flex-1">
-                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Son KULL. TA.</label>
-                      <input type="text" inputMode="numeric" maxLength={5} placeholder="AA/YY" autoComplete="cc-exp" onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 text-center" />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">CVV/CVC</label>
-                      <input type="password" inputMode="numeric" maxLength={3} placeholder="•••" autoComplete="cc-csc" onFocus={e => e.currentTarget.scrollIntoView({ behavior: 'smooth', block: 'center' })} className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-mono font-medium placeholder-gray-400 text-center tracking-widest" />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Kart Üzerindeki İsim</label>
-                    <input type="text" placeholder="Örn: Ahmet Yılmaz" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400 uppercase" />
-                  </div>
-
-                  <button type="submit" className="w-full bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-2xl mt-2 hover:bg-[#005e85] transition-colors shadow-lg shadow-blue-500/20 hover:shadow-xl active:scale-[0.98] duration-200 flex items-center justify-center gap-2">
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                    Ödemeyi Tamamla
-                  </button>
-                </form>
               </div>
             </div>
           </div>

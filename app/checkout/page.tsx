@@ -6,36 +6,41 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { fetchTour } from "@/app/lib/tours";
 import { useLocale } from "../context/LocaleContext";
 import { checkRateLimit, recordFailedAttempt } from "@/app/lib/rateLimit";
-import { auth } from "@/app/lib/auth";
+import StripePaymentSection from "@/app/components/StripePaymentSection";
 
-// --- MOCK DATA FOR SAVED CARDS ---
-const MOCK_SAVED_CARDS = [
-  {
-    id: "card_1",
-    brand: "mastercard",
-    last4: "4242",
-    expiry: "12/28",
-    holder: "AHMET YILMAZ",
-  },
-  {
-    id: "card_2",
-    brand: "visa",
-    last4: "8812",
-    expiry: "06/26",
-    holder: "AHMET YILMAZ",
-  },
-];
+/**
+ * Demo amaçlı rezervasyon kaydı (acente panelinde görünsün diye).
+ * F1-04'te gerçek `/bookings/` çağrısıyla birlikte tamamen kaldırılacak.
+ */
+function persistMockBooking(booking: Record<string, any> & { isVip: boolean }) {
+  if (typeof window === "undefined") return;
+  try {
+    const { isVip, ...rest } = booking;
+    const existingStr = localStorage.getItem("demo_new_bookings");
+    const existingBookings = existingStr ? JSON.parse(existingStr) : [];
 
-const getCardType = (number: string) => {
-  const cleanNumber = number.replace(/\s+/g, "");
-  if (/^4/.test(cleanNumber)) return "visa";
-  if (/^(5[1-5]|2[2-7])/.test(cleanNumber)) return "mastercard";
-  if (/^3[47]/.test(cleanNumber)) return "amex";
-  if (/^6(?:011|5)/.test(cleanNumber)) return "discover";
-  if (/^3(?:0[0-5]|[68])/.test(cleanNumber)) return "diners";
-  if (/^(?:2131|1800|35)/.test(cleanNumber)) return "jcb";
-  return "generic";
-};
+    // VIP-Badge-Logic-Engine: Bundle alımı veya 5000 TL üzeri harcama VIP yapar
+    if (isVip) {
+      const expiry = new Date();
+      expiry.setDate(expiry.getDate() + 30);
+      localStorage.setItem(
+        "vip_membership",
+        JSON.stringify({ level: "VIP", expiry: expiry.toISOString() }),
+      );
+    }
+
+    existingBookings.unshift({
+      id: Math.floor(Math.random() * 10000) + 1000,
+      ...rest,
+    }); // En başa ekle
+    localStorage.setItem(
+      "demo_new_bookings",
+      JSON.stringify(existingBookings),
+    );
+  } catch (e) {
+    console.error("Error saving mock booking", e);
+  }
+}
 
 function CheckoutLogic() {
   const searchParams = useSearchParams();
@@ -66,29 +71,6 @@ function CheckoutLogic() {
     reservationTime: "",
     pax: guests || 1,
   });
-
-  const [cardForm, setCardForm] = useState({
-    number: "",
-    expiry: "",
-    cvc: "",
-    holderName: "",
-    saveCard: false,
-  });
-
-  const [selectedSavedCard, setSelectedSavedCard] = useState<string | null>(
-    null,
-  );
-  const isLoggedIn = auth.isAuthenticated();
-
-  const handleSelectSavedCard = (card: any) => {
-    setSelectedSavedCard(card.id);
-    setCardForm({
-      ...cardForm,
-      number: `**** **** **** ${card.last4}`,
-      expiry: card.expiry,
-      holderName: card.holder,
-    });
-  };
 
   useEffect(() => {
     if (!tourId) return;
@@ -211,65 +193,42 @@ function CheckoutLogic() {
     setStep(2);
   };
 
-  const handleSimulatePaymentProcess = () => {
+  // NOT: Bu simülasyon F1-04'te gerçek `/bookings/` + Stripe PaymentIntent
+  // akışıyla değiştirilecek.
+  const handleSimulatePaymentProcess = async () => {
     // ZERO-TRUST: Ödeme ekranı hız sınırı (Spam/Carding Koruması)
     const limit = checkRateLimit("checkout_attempts");
     if (!limit.allowed) {
-      alert(
+      throw new Error(
         `Çok fazla ödeme denemesi yaptınız. Güvenlik sebebiyle işleminiz ${limit.remainingMinutes} dakikalığına durdurulmuştur.`,
       );
-      return;
     }
 
-    // Upsell Logic: Artik useEffect ile otomatik tetikleniyor
-
     setIsSimulatingPayment(true);
-    setTimeout(() => {
-      setIsSimulatingPayment(false);
+    await new Promise((resolve) => setTimeout(resolve, 3000));
+    setIsSimulatingPayment(false);
 
-      // Satın alımı test simülasyonu için localStorage'a kaydet (Acente panelinde görünsün)
-      if (typeof window !== "undefined") {
-        try {
-          const existingStr = localStorage.getItem("demo_new_bookings");
-          const existingBookings = existingStr ? JSON.parse(existingStr) : [];
-          const newBooking = {
-            id: Math.floor(Math.random() * 10000) + 1000,
-            user_full_name: `${formData.firstName} ${formData.lastName}`,
-            user_email: formData.email,
-            tour_detail: { title: itemType === 'meal' ? 'Restoran Rezervasyonu' : tour?.title || "Bilinmeyen Tur" },
-            start_date: date,
-            status: "confirmed",
-            total_price: totalPrice,
-            service_type: itemType === 'meal' ? 'meal' : 'tour',
-            category: itemType === 'meal' ? 'Gastronomi/Yemek' : 'Turizm/Aktivite',
-            reservation_time: formData.reservationTime,
-            pax: formData.pax
-          };
-          // VIP-Badge-Logic-Engine: Bundle alımı veya 5000 TL üzeri harcama VIP yapar
-          if (bundleLogic.isBundle || totalPrice >= 5000) {
-            const expiry = new Date();
-            expiry.setDate(expiry.getDate() + 30);
-            localStorage.setItem(
-              "vip_membership",
-              JSON.stringify({
-                level: "VIP",
-                expiry: expiry.toISOString(),
-              }),
-            );
-          }
+    // Satın alımı test simülasyonu için localStorage'a kaydet (Acente panelinde görünsün)
+    persistMockBooking({
+      user_full_name: `${formData.firstName} ${formData.lastName}`,
+      user_email: formData.email,
+      tour_detail: {
+        title:
+          itemType === "meal"
+            ? "Restoran Rezervasyonu"
+            : tour?.title || "Bilinmeyen Tur",
+      },
+      start_date: date,
+      status: "confirmed",
+      total_price: totalPrice,
+      service_type: itemType === "meal" ? "meal" : "tour",
+      category: itemType === "meal" ? "Gastronomi/Yemek" : "Turizm/Aktivite",
+      reservation_time: formData.reservationTime,
+      pax: formData.pax,
+      isVip: bundleLogic.isBundle || totalPrice >= 5000,
+    });
 
-          existingBookings.unshift(newBooking); // En başa ekle
-          localStorage.setItem(
-            "demo_new_bookings",
-            JSON.stringify(existingBookings),
-          );
-        } catch (e) {
-          console.error("Error saving mock booking", e);
-        }
-      }
-
-      setStep(3); // Success Output
-    }, 3000);
+    setStep(3); // Success Output
   };
 
   if (!tourId && !menuId)
@@ -536,378 +495,11 @@ function CheckoutLogic() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col lg:flex-row gap-12 items-start">
-                    {/* Sol Taraf: Form Alanı */}
-                    <div className="w-full lg:w-3/5 order-2 lg:order-1">
-                      {/* Kayıtlı Kartlar Bölümü */}
-                      {isLoggedIn && (
-                        <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
-                          <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center gap-2">
-                            KAYITLI KARTLARINIZ
-                          </h3>
-                          <div className="flex gap-4 overflow-x-auto pb-4 no-scrollbar">
-                            {MOCK_SAVED_CARDS.map((card) => (
-                              <div
-                                key={card.id}
-                                onClick={() => handleSelectSavedCard(card)}
-                                className={`min-w-[220px] p-5 rounded-[24px] border-2 cursor-pointer transition-all duration-300 relative group overflow-hidden ${selectedSavedCard === card.id ? "border-[#008cb3] bg-blue-50/50 shadow-lg" : "border-slate-100 bg-white hover:border-slate-300"}`}
-                              >
-                                <div className="flex justify-between items-start mb-6">
-                                  <div className="h-6 flex items-center">
-                                    {card.brand === "visa" && (
-                                      <img
-                                        src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png"
-                                        alt="Visa"
-                                        className="h-3 opacity-80"
-                                      />
-                                    )}
-                                    {card.brand === "mastercard" && (
-                                      <img
-                                        src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
-                                        alt="Mastercard"
-                                        className="h-6 opacity-80"
-                                      />
-                                    )}
-                                  </div>
-                                  {selectedSavedCard === card.id && (
-                                    <div className="w-6 h-6 bg-[#008cb3] rounded-full flex items-center justify-center shadow-md">
-                                      <svg
-                                        width="14"
-                                        height="14"
-                                        fill="none"
-                                        stroke="white"
-                                        strokeWidth="3"
-                                        viewBox="0 0 24 24"
-                                      >
-                                        <path
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                          d="M5 13l4 4L19 7"
-                                        />
-                                      </svg>
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="text-base font-black text-[#0B132B] tracking-widest mb-1">
-                                  •••• {card.last4}
-                                </div>
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                  {card.expiry}
-                                </div>
-                              </div>
-                            ))}
-                            <div className="min-w-[140px] p-5 rounded-[24px] border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 group hover:border-slate-400 cursor-pointer transition-all">
-                              <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-slate-100 group-hover:text-slate-600 transition-colors">
-                                +
-                              </div>
-                              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest text-center">
-                                YENİ KART
-                                <br />
-                                EKLE
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-
-                      <form
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleSimulatePaymentProcess();
-                        }}
-                        className="space-y-8"
-                      >
-                        <div className="space-y-6 bg-slate-50/50 p-8 rounded-[32px] border border-slate-100 shadow-xl backdrop-blur-sm">
-                          <div>
-                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">
-                              Kart Üzerindeki İsim
-                            </label>
-                            <input
-                              required
-                              type="text"
-                              placeholder="Örn: AHMET YILMAZ"
-                              value={cardForm.holderName}
-                              onChange={(e) =>
-                                setCardForm({
-                                  ...cardForm,
-                                  holderName: e.target.value.toUpperCase(),
-                                })
-                              }
-                              className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg focus:border-[#008cb3] focus:shadow-[0_0_20px_rgba(0,140,179,0.1)] outline-none transition-all placeholder:text-slate-300"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">
-                              Kart Numarası
-                            </label>
-                            <div className="relative">
-                              <input
-                                required
-                                type="text"
-                                maxLength={19}
-                                placeholder="0000 0000 0000 0000"
-                                value={cardForm.number}
-                                onChange={(e) => {
-                                  const val = e.target.value
-                                    .replace(/\s+/g, "")
-                                    .replace(/[^0-9]/gi, "");
-                                  const matches = val.match(/\d{4,16}/g);
-                                  const match = (matches && matches[0]) || "";
-                                  const parts = [];
-                                  for (
-                                    let i = 0, len = match.length;
-                                    i < len;
-                                    i += 4
-                                  ) {
-                                    parts.push(match.substring(i, i + 4));
-                                  }
-                                  if (parts.length) {
-                                    setCardForm({
-                                      ...cardForm,
-                                      number: parts.join(" "),
-                                    });
-                                  } else {
-                                    setCardForm({ ...cardForm, number: val });
-                                  }
-                                }}
-                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg tracking-wider focus:border-[#008cb3] focus:shadow-[0_0_20px_rgba(0,140,179,0.1)] outline-none transition-all placeholder:text-slate-300"
-                              />
-                              <div className="absolute right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                                {getCardType(cardForm.number) === "visa" && (
-                                  <img
-                                    src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png"
-                                    alt="Visa"
-                                    className="h-3"
-                                  />
-                                )}
-                                {getCardType(cardForm.number) ===
-                                  "mastercard" && (
-                                  <img
-                                    src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
-                                    alt="Mastercard"
-                                    className="h-5"
-                                  />
-                                )}
-                                {getCardType(cardForm.number) === "amex" && (
-                                  <span className="text-[10px] font-black italic text-blue-600">
-                                    AMEX
-                                  </span>
-                                )}
-                                {getCardType(cardForm.number) ===
-                                  "discover" && (
-                                  <span className="text-[10px] font-black text-orange-500">
-                                    DISCOVER
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-6">
-                            <div>
-                              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">
-                                Son Kullanma
-                              </label>
-                              <input
-                                required
-                                type="text"
-                                maxLength={5}
-                                placeholder="AA / YY"
-                                value={cardForm.expiry}
-                                onChange={(e) => {
-                                  let val = e.target.value.replace(
-                                    /[^0-9]/g,
-                                    "",
-                                  );
-                                  if (val.length > 2)
-                                    val =
-                                      val.substring(0, 2) +
-                                      "/" +
-                                      val.substring(2, 4);
-                                  setCardForm({ ...cardForm, expiry: val });
-                                }}
-                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg tracking-wider focus:border-[#008cb3] outline-none transition-all placeholder:text-slate-300"
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-[11px] font-black text-slate-500 uppercase tracking-[0.2em] mb-3">
-                                CVC
-                              </label>
-                              <input
-                                required
-                                type="password"
-                                maxLength={3}
-                                placeholder="***"
-                                value={cardForm.cvc}
-                                onChange={(e) =>
-                                  setCardForm({
-                                    ...cardForm,
-                                    cvc: e.target.value.replace(/[^0-9]/g, ""),
-                                  })
-                                }
-                                className="w-full bg-white border-2 border-slate-100 rounded-2xl px-6 py-4 text-slate-900 font-black text-lg tracking-wider focus:border-[#008cb3] outline-none transition-all placeholder:text-slate-300"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex items-center gap-4 px-4 py-4 bg-blue-50/30 rounded-2xl border border-blue-100/50">
-                          <label className="relative flex items-center cursor-pointer">
-                            <input
-                              type="checkbox"
-                              className="sr-only peer"
-                              checked={cardForm.saveCard}
-                              onChange={(e) =>
-                                setCardForm({
-                                  ...cardForm,
-                                  saveCard: e.target.checked,
-                                })
-                              }
-                            />
-                            <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#008cb3]"></div>
-                          </label>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-black text-slate-700">
-                              Kartı Gelecek Alışverişlerim İçin Kaydet
-                            </span>
-                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                              Bir sonraki ödemenizde zaman kazanın
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="flex flex-col gap-4">
-                          <button
-                            type="submit"
-                            className="w-full bg-orange-500 hover:bg-orange-600 text-white py-5 rounded-[20px] font-black transition-all shadow-[0_15px_35px_-5px_rgba(249,115,22,0.5)] active:scale-95 flex flex-col items-center justify-center gap-1.5 group overflow-hidden relative"
-                          >
-                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-80 flex items-center gap-1.5">
-                              <span className="w-2 h-2 bg-emerald-300 rounded-full animate-pulse shadow-[0_0_10px_rgba(110,231,183,0.8)]"></span> GÜVENLİ ÖDEME
-                            </span>
-                            <span className="text-2xl flex items-center gap-2" suppressHydrationWarning>
-                              {totalPrice.toLocaleString("tr-TR", {
-                                style: "currency",
-                                currency: "TRY",
-                              })}
-                              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 group-hover:translate-x-1 transition-transform">
-                                <path fillRule="evenodd" d="M12.97 3.97a.75.75 0 011.06 0l7.5 7.5a.75.75 0 010 1.06l-7.5 7.5a.75.75 0 11-1.06-1.06l6.22-6.22H3a.75.75 0 010-1.5h16.19l-6.22-6.22a.75.75 0 010-1.06z" clipRule="evenodd" />
-                              </svg>
-                            </span>
-                          </button>
-
-                          <p className="text-[10px] text-center font-bold text-slate-400 italic px-8 leading-relaxed">
-                            * Ödeme işleminiz güvenli bağlantı üzerinden
-                            gerçekleştirilir.
-                          </p>
-                        </div>
-                      </form>
-                    </div>
-
-                    {/* Sağ Taraf: Live Card Preview (Desktop Sticky) */}
-                    <div className="w-full lg:w-2/5 order-1 lg:order-2 lg:sticky lg:top-10">
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
-                        CANLI KART ÖN İZLEME
-                      </h3>
-                      <div className="perspective-2000">
-                        <div
-                          className={`relative w-full aspect-[1.6/1] rounded-[32px] p-8 text-white overflow-hidden shadow-[0_30px_60px_rgba(0,0,0,0.3)] transition-all duration-700 transform hover:rotate-y-12 bg-gradient-to-br ${
-                            getCardType(cardForm.number) === "visa"
-                              ? "from-[#1A1F71] to-[#00579F]"
-                              : getCardType(cardForm.number) === "mastercard"
-                                ? "from-[#EB001B] to-[#FF5F00]"
-                                : getCardType(cardForm.number) === "amex"
-                                  ? "from-[#2E77BB] to-[#016FD0]"
-                                  : getCardType(cardForm.number) === "discover"
-                                    ? "from-[#F68121] to-[#FFC220]"
-                                    : "from-[#1e293b] to-[#0f172a]"
-                          }`}
-                        >
-                          {/* Premium Patterns */}
-                          <div className="absolute top-0 left-0 w-full h-full opacity-20 pointer-events-none mix-blend-overlay">
-                            <div className="absolute top-[-50%] left-[-20%] w-[150%] h-[150%] border-[60px] border-white/20 rounded-full"></div>
-                            <div className="absolute bottom-[-40%] right-[-10%] w-[80%] h-[80%] border-[30px] border-white/20 rounded-full"></div>
-                          </div>
-
-                          {/* Chip & Logos */}
-                          <div className="relative h-full flex flex-col justify-between z-10">
-                            <div className="flex justify-between items-start">
-                              <div className="w-14 h-10 bg-gradient-to-br from-amber-200 via-amber-400 to-amber-100 rounded-lg shadow-xl flex flex-col gap-1 p-2 border border-white/20 overflow-hidden">
-                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
-                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
-                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
-                                <div className="w-full h-0.5 bg-black/10 rounded-full"></div>
-                              </div>
-                              <div className="h-10 flex items-center">
-                                {getCardType(cardForm.number) === "visa" && (
-                                  <img
-                                    src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png"
-                                    alt="Visa"
-                                    className="h-5 brightness-0 invert"
-                                  />
-                                )}
-                                {getCardType(cardForm.number) ===
-                                  "mastercard" && (
-                                  <img
-                                    src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
-                                    alt="Mastercard"
-                                    className="h-10"
-                                  />
-                                )}
-                                {getCardType(cardForm.number) === "amex" && (
-                                  <div className="text-lg font-black italic tracking-tighter">
-                                    AMEX
-                                  </div>
-                                )}
-                                {getCardType(cardForm.number) ===
-                                  "discover" && (
-                                  <div className="text-lg font-black italic">
-                                    Discover
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="text-xl md:text-2xl font-mono tracking-[0.25em] drop-shadow-2xl text-center my-4 font-bold">
-                              {cardForm.number || "•••• •••• •••• ••••"}
-                            </div>
-
-                            <div className="flex justify-between items-end">
-                              <div className="flex-1">
-                                <div className="text-[9px] uppercase tracking-[0.2em] opacity-60 mb-1.5 font-black">
-                                  Kart Sahibi
-                                </div>
-                                <div className="text-sm font-black tracking-widest uppercase truncate max-w-[200px]">
-                                  {cardForm.holderName || "AD SOYAD"}
-                                </div>
-                              </div>
-                              <div className="text-right">
-                                <div className="text-[9px] uppercase tracking-[0.2em] opacity-60 mb-1.5 font-black">
-                                  SKT
-                                </div>
-                                <div className="text-sm font-black tracking-widest">
-                                  {cardForm.expiry || "MM/YY"}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Premium Glass Effect */}
-                          <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-white/10 pointer-events-none"></div>
-                          <div className="absolute -inset-full bg-gradient-to-r from-transparent via-white/10 to-transparent rotate-45 animate-[shimmer_5s_infinite] pointer-events-none"></div>
-                        </div>
-                      </div>
-
-                      <div className="mt-8 p-6 bg-slate-50 rounded-[24px] border border-slate-100 flex items-start gap-4">
-                        <div className="w-10 h-10 bg-white rounded-full shadow-sm flex items-center justify-center shrink-0">
-                          <span className="text-xl">💡</span>
-                        </div>
-                        <p className="text-[11px] font-bold text-slate-500 leading-relaxed italic">
-                          "Kart numaranızı girerken sistemimiz kart tipini
-                          otomatik olarak algılar ve güvenlik protokollerini
-                          buna göre optimize eder."
-                        </p>
-                      </div>
-                    </div>
+                  <div className="max-w-2xl mx-auto">
+                    <StripePaymentSection
+                      amount={totalPrice}
+                      onConfirmPayment={handleSimulatePaymentProcess}
+                    />
                   </div>
 
                   <div className="mt-16 pt-8 border-t border-slate-100 flex flex-wrap justify-center gap-12 opacity-50 grayscale hover:opacity-100 transition-opacity duration-500">
