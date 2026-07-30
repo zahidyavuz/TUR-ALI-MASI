@@ -78,3 +78,65 @@ class BookingLifecycleTestCase(TestCase):
         )
         self.assertIn('TEST1234', str(booking))
         self.assertIn('booker', str(booking))
+
+    # ─── İPTAL AKIŞI ────────────────────────────────────────────────────────
+    def _make_booking(self, start_date, status='confirmed', guests=2, ref='CANCEL01'):
+        return Booking.objects.create(
+            user=self.user,
+            tour=self.tour,
+            start_date=start_date,
+            guests=guests,
+            total_price=3000 * guests,
+            booking_ref=ref,
+            status=status,
+        )
+
+    def test_cancel_requires_auth(self):
+        """İptal ucu kimlik doğrulaması ister"""
+        booking = self._make_booking(date.today() + timedelta(days=10))
+        response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(response.status_code, 401)
+
+    def test_cancel_rejected_within_cutoff(self):
+        """Hizmete 24 saatten az kalmışsa iptal reddedilir ve durum değişmez"""
+        self.client.force_authenticate(user=self.user)
+        booking = self._make_booking(self.tomorrow, ref='CUTOFF01')
+        response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(response.status_code, 400)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'confirmed')
+
+    def test_cancel_restores_capacity(self):
+        """Zamanında iptal: durum cancelled olur ve kontenjan geri döner"""
+        self.client.force_authenticate(user=self.user)
+        future = date.today() + timedelta(days=10)
+        availability = TourAvailability.objects.create(
+            tour=self.tour, date=future, max_capacity=20, booked_count=5
+        )
+        booking = self._make_booking(future, guests=3, ref='RESTORE1')
+
+        response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(response.status_code, 200)
+
+        booking.refresh_from_db()
+        availability.refresh_from_db()
+        self.assertEqual(booking.status, 'cancelled')
+        self.assertIsNotNone(booking.cancelled_at)
+        self.assertEqual(availability.booked_count, 2)
+
+    def test_cancel_twice_rejected(self):
+        """Zaten iptal edilmiş rezervasyon tekrar iptal edilemez"""
+        self.client.force_authenticate(user=self.user)
+        booking = self._make_booking(
+            date.today() + timedelta(days=10), status='cancelled', ref='TWICE001'
+        )
+        response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(response.status_code, 400)
+
+    def test_cannot_cancel_other_users_booking(self):
+        """Başka kullanıcının rezervasyonu iptal edilemez"""
+        other = User.objects.create_user(username='intruder', password='testpass123')
+        booking = self._make_booking(date.today() + timedelta(days=10), ref='OTHER001')
+        self.client.force_authenticate(user=other)
+        response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(response.status_code, 404)

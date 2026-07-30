@@ -225,7 +225,7 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
                     <button onClick={() => { router.push('/profile'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
                       <span className="text-lg">👤</span> Profilim
                     </button>
-                    <button onClick={() => { router.push('/tickets'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
+                    <button onClick={() => { router.push('/dashboard/customer/tickets'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">
                       <span className="text-lg">🎟️</span> Biletlerim & QR Cüzdan
                     </button>
                     <button onClick={() => { router.push('/favorites'); setActiveDropdown(null); }} className="w-full px-5 py-2.5 text-[14px] font-bold text-gray-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 hover:text-[#008cb3] dark:hover:text-blue-400 text-left flex items-center gap-3 transition-colors cursor-pointer group">

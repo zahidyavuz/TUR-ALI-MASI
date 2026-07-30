@@ -148,7 +148,7 @@ EOF
 
 ---
 
-### [ ] F1-06 · İptal akışını müşteri biletine bağla
+### [x] F1-06 · İptal akışını müşteri biletine bağla
 
 **Öncelik:** P1 · **Efor:** M
 
@@ -161,7 +161,18 @@ EOF
 
 **Doğrulama:** Test: iptal → Stripe refund mock/sandbox → kontenjan geri döner (shell teyidi). STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Görev bağlamı bayattı: `app/dashboard/customer/tickets/page.tsx`'teki iptal butonu zaten `fetchAPI('/bookings/<id>/cancel/', POST)` çağırıyordu. Protokol madde 2 gereği önce güncel kod okundu, gerçek eksikler tespit edilip onlar kapatıldı:
+
+1. **Backend 24 saat kuralı (adım 2) yoktu — eklendi.** `backend/bookings/views.py`'de `CANCELLATION_CUTOFF_HOURS = 24` sabiti ve `cancel()` içinde, "zaten iptal" kontrolünden sonra / refund'dan önce çalışan kısıt: `start_date` + `start_time` (yoksa 00:00) `timezone.make_aware` ile birleştirilip `starts_at - now() < 24s` ise 400 + Türkçe gerekçe döner. `start_date` boş olan eski kayıtlarda kısıt uygulanmaz. Kesim öncesi dönüşte hiçbir yan etki (refund/kontenjan/e-posta) tetiklenmez.
+2. **Backend'in ret gerekçesi kullanıcıya hiç ulaşmıyordu.** İptal çağrısı `throwOnHttpError` kullanmadığı için 400 gövdesindeki `error` yutuluyordu. `throwOnHttpError: true` + `err?.data?.error` ile 24 saat kuralı gibi gerekçeler artık olduğu gibi gösteriliyor.
+3. **Onay modalı (adım 1) yoktu**, `window.confirm` vardı. `pendingCancel` state'i + tam ekran modal ("Vazgeç"/"İptal Et") eklendi; modal, rezervasyon `confirmed` ise iade sürecinin başlayacağını, `pending` ise tahsilat olmadığı için iade oluşmayacağını önden söylüyor.
+4. **İade bilgi mesajı (adım 3) yoktu.** `cancelSuccess` emerald banner'ı eklendi; metin `confirmed`/`pending` durumuna göre farklılaşıyor (iade kartına gönderildi / tahsilat yapılmadığı için iade yok).
+
+**Kapsam istisnası — `/tickets` → `/dashboard/customer/tickets`:** İptal akışı kullanıcı için erişilemezdi; Navbar'daki "🎟️ Biletlerim & QR Cüzdan" (`app/components/Navbar.tsx`) ve F1-04'te yazdığım `app/checkout-success/page.tsx`'teki 3 link tamamen sabit/mock olan `app/tickets` sayfasına gidiyordu. 4 link gerçek sayfaya yönlendirildi (mock sayfanın kendisi silinmedi → aşağıya bulgu olarak düşüldü).
+
+**Testler:** `backend/bookings/tests.py`'ye `_make_booking` yardımcısı + 5 test eklendi: auth zorunluluğu (401), kesim içi ret (400 + durum `confirmed` kalır), zamanında iptal (200, durum `cancelled`, `cancelled_at` dolu, `booked_count` 5→2), ikinci kez iptal reddi (400), başkasının rezervasyonu (404 — queryset kullanıcıya göre filtreli).
+
+**Doğrulama:** `manage.py test bookings` → 10 test OK (kontenjan geri dönüşü test içinde doğrulandı, ayrıca shell teyidine gerek kalmadı). `manage.py test` (tümü) → 34 test OK (önce 29). `makemigrations --check --dry-run` → "No changes detected". `migrate --check` → exit 0. `tsc --noEmit` temiz. `npm run lint` temiz. `npm run build` başarılı. AST duplicate field/method taraması → temiz. Bu görevde migration gerekmedi (model değişmedi).
 
 ---
 
@@ -578,6 +589,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · ölü kod] `vip_membership` localStorage'ını artık kimse yazmıyor.** F1-04'te tek yazan yer (checkout simülasyonu) silindi; `app/tour/[slug]/page.tsx:93` ve `app/taste/page.tsx:115` hâlâ okuyor, dolayısıyla VIP indirimi/rozeti artık hiç tetiklenmiyor. Ya gerçek bir üyelik modeli backend'e eklenmeli ya da bu okuma dalları silinmeli.
 * **[P1 · yanıltıcı] `app/success/page.tsx` sahipsiz kaldı ve sahte banka bilgisi içeriyor.** Tek girişi silinen `app/api/checkout/route.tsx`'in `success_url`'ü idi; artık hiçbir yerden ulaşılamıyor. Sayfa "Havale/EFT ile öde" akışı sunuyor ve **uydurma bir IBAN** (`TR12 0006 2000 0001 2345 6789 00`) ile "Tourkia Turizm ve Seyahat A.Ş." unvanını gösteriyor. Ya gerçek havale akışı tasarlanmalı ya da sayfa silinmeli — müşteriye yanlış IBAN göstermesi riski var. F1-05'te silinmedi çünkü iş kararı gerektiriyor.
 * **[P2 · sabit veri] `app/api/tickets/validate/route.ts` bellek içi sahte bilet listesiyle çalışıyor.** `TKT-VALID`/`TKT-USED` gibi sabit kayıtlar üzerinden QR doğrulaması yapıyor; gerçek bir bilet asla doğrulanamaz. F1-05'te `// DEPRECATED: F2-05'te silinecek` notu eklendi, silme işi F2-05'e bırakıldı.
+* **[P1 · sahte veri] `app/tickets/*` tamamen sabit sahte bilet sayfası ve hâlâ URL ile erişilebilir.** `app/tickets/page.tsx` ve `app/tickets/[id]/page.tsx` `TKT-8932` / "Kapadokya Balon Turu" gibi hardcoded kayıtlar gösteriyor; kullanıcının gerçek rezervasyonlarıyla hiç ilgisi yok. F1-06'da bu sayfaya giden 4 link gerçek `/dashboard/customer/tickets` sayfasına çevrildi, ancak sayfalar silinmedi (F2-05 QR biletle doğrudan ilgili, orada karar verilmeli). O zamana kadar `/tickets` adresine elle giden bir kullanıcı sahte bilet görür.
+* **[P2 · sahte veri] `app/lib/auditLog.ts` build sırasında sahte güvenlik olayları basıyor.** `npm run build` çıktısındaki `[AUDIT] ... webhook-armor (system) | WEBHOOK_SIGNATURE_FAILED | webhook#WHK-STRIPE-FAKE | IP: 185.220.101.47` satırları F1-05'te silinen `webhookArmor.ts`'ten değil, bu dosyanın sonundaki `seedDemoLogs()` çağrısından geliyor (modül import edilir edilmez koşulsuz çalışıyor). Denetim kaydı bellek içi bir dizide tutuluyor, kalıcı değil ve "engellenen sahte webhook" gibi hiç yaşanmamış olayları gerçekmiş gibi gösteriyor. F3-04/F3-05 kapsamında ya gerçek bir denetim kaydı modeline bağlanmalı ya da silinmeli.
 * **[P2 · ortam] Yerel geliştirme ortamı kurulu değildi.** `node_modules` yoktu (`npm install` ile kuruldu). Backend için Python venv de yok (`backend/venv`, `.venv` bulunamadı, `django` global olarak da kurulu değil) — bu yüzden STD-CHECK'in backend yarısı (makemigrations --check / migrate --check / test) F1-01'de çalıştırılamadı. F1-01 yalnız frontend dosyası değiştirdiği için sonucu etkilemez, ancak F1-04'ten itibaren backend ortamı şart.
 
 ---

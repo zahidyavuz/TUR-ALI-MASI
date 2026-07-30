@@ -15,6 +15,9 @@ export default function TicketsPage() {
   const [error, setError] = useState('');
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [cancelError, setCancelError] = useState<string>('');
+  const [cancelSuccess, setCancelSuccess] = useState<string>('');
+  // Onay modalında bekleyen rezervasyon.
+  const [pendingCancel, setPendingCancel] = useState<any>(null);
 
   useEffect(() => {
     fetchAPI('/bookings/')
@@ -29,23 +32,34 @@ export default function TicketsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleCancel = async (bookingId: string, bookingRef: string) => {
-    if (!window.confirm(`${bookingRef} numaralı rezervasyonu iptal etmek istediğinizden emin misiniz?\nOnaylı rezervasyonlarda Stripe üzerinden iade başlatılır.`)) return;
+  const confirmCancel = async () => {
+    const booking = pendingCancel;
+    if (!booking) return;
 
-    setCancellingId(bookingId);
+    setPendingCancel(null);
+    setCancellingId(booking.id);
     setCancelError('');
+    setCancelSuccess('');
 
     try {
-      const result = await fetchAPI(`/bookings/${bookingId}/cancel/`, { method: 'POST' });
+      // throwOnHttpError: backend'in 400 gövdesindeki gerekçe (örn. 24 saat
+      // kuralı) kullanıcıya olduğu gibi gösterilmeli.
+      const result = await fetchAPI(`/bookings/${booking.id}/cancel/`, {
+        method: 'POST',
+        throwOnHttpError: true,
+      });
       if (!result) {
-        setCancelError('İptal işlemi gerçekleştirilemedi. Lütfen tekrar deneyin.');
+        setCancelError('İptal işlemi gerçekleştirilemedi. Sunucuya ulaşılamıyor olabilir.');
         return;
       }
-      setBookings(prev =>
-        prev.map(b => b.id === bookingId ? { ...b, status: 'cancelled', cancelled_at: new Date().toISOString() } : b)
+      setBookings(prev => prev.map(b => (b.id === booking.id ? result : b)));
+      setCancelSuccess(
+        booking.status === 'confirmed'
+          ? `${booking.booking_ref} iptal edildi. İade kartınıza ödeme sağlayıcısı üzerinden gönderildi; hesabınıza yansıması bankanıza bağlı olarak birkaç iş günü sürebilir.`
+          : `${booking.booking_ref} iptal edildi. Bu rezervasyon için tahsilat yapılmadığı için iade oluşturulmadı.`
       );
     } catch (err: any) {
-      setCancelError(err?.message || 'İptal işlemi sırasında bir hata oluştu.');
+      setCancelError(err?.data?.error || err?.message || 'İptal işlemi sırasında bir hata oluştu.');
     } finally {
       setCancellingId(null);
     }
@@ -74,6 +88,41 @@ export default function TicketsPage() {
 
       {cancelError && (
         <div className="bg-red-50 text-red-600 border border-red-200 rounded-2xl p-4 mb-6 text-sm font-bold">{cancelError}</div>
+      )}
+
+      {cancelSuccess && (
+        <div className="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-2xl p-4 mb-6 text-sm font-bold">{cancelSuccess}</div>
+      )}
+
+      {pendingCancel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-3xl p-7 max-w-md w-full shadow-2xl border border-gray-100 dark:border-slate-700">
+            <h3 className="text-lg font-black text-slate-800 dark:text-white mb-3">Rezervasyonu iptal et</h3>
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-300 leading-relaxed mb-2">
+              <strong className="font-black">{pendingCancel.booking_ref}</strong> numaralı rezervasyonu
+              iptal etmek istediğinizden emin misiniz? Bu işlem geri alınamaz.
+            </p>
+            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
+              {pendingCancel.status === 'confirmed'
+                ? 'Ödemeniz alındığı için iade süreci otomatik olarak başlatılacaktır.'
+                : 'Bu rezervasyon için henüz tahsilat yapılmadığından iade oluşturulmayacaktır.'}
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setPendingCancel(null)}
+                className="flex-1 border border-gray-200 dark:border-slate-600 text-slate-700 dark:text-slate-200 font-bold py-3 rounded-xl text-sm hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors"
+              >
+                Vazgeç
+              </button>
+              <button
+                onClick={confirmCancel}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white font-black py-3 rounded-xl text-sm transition-colors"
+              >
+                İptal Et
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {bookings.length === 0 && !error ? (
@@ -130,7 +179,7 @@ export default function TicketsPage() {
                       </span>
                       {isCancellable && (
                         <button
-                          onClick={() => handleCancel(booking.id, booking.booking_ref)}
+                          onClick={() => setPendingCancel(booking)}
                           disabled={isCancelling}
                           className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg border bg-red-50 text-red-600 border-red-200 hover:bg-red-100 transition-colors disabled:opacity-50"
                         >

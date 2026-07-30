@@ -86,7 +86,7 @@ function SuccessContent() {
                     görünecektir.
                 </p>
                 <Link
-                    href="/tickets"
+                    href="/dashboard/customer/tickets"
                     className="bg-[#008cb3] hover:bg-[#005e85] text-white font-black px-8 py-4 rounded-2xl transition-all"
                 >
                     Biletlerime Git
@@ -172,7 +172,7 @@ function SuccessContent() {
             <div className="flex flex-col items-center gap-6 w-full">
                 {isConfirmed ? (
                     <Link
-                        href="/tickets"
+                        href="/dashboard/customer/tickets"
                         className="w-full max-w-md bg-gradient-to-r from-[#008cb3] to-[#005e85] hover:from-slate-900 hover:to-slate-900 text-white font-black px-8 py-5 rounded-2xl shadow-[0_20px_50px_rgba(0,140,179,0.3)] transition-all hover:-translate-y-1 active:scale-95 text-lg flex items-center justify-center gap-3 group"
                     >
                         <span>Biletlerim ve QR Cüzdanıma Git</span>
@@ -182,7 +182,7 @@ function SuccessContent() {
                     </Link>
                 ) : (
                     <Link
-                        href="/tickets"
+                        href="/dashboard/customer/tickets"
                         className="w-full max-w-md border border-gray-200 dark:border-white/10 text-slate-700 dark:text-slate-200 font-black px-8 py-5 rounded-2xl transition-all hover:bg-gray-50 dark:hover:bg-white/5 text-base flex items-center justify-center gap-3"
                     >
                         Biletlerime Git

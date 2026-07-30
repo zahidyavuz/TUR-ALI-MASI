@@ -8,7 +8,7 @@ Kritik değişiklikler:
 """
 import logging
 import stripe
-from datetime import date as date_type, datetime
+from datetime import date as date_type, datetime, time as time_type, timedelta
 
 from django.conf import settings
 from django.core.mail import send_mail
@@ -30,6 +30,10 @@ from shuttles.models import ShuttleRoute, ShuttleAvailability
 from core.permissions import IsOwner, StrictMassAssignmentPermission
 
 logger = logging.getLogger('bookings')
+
+# Hizmet başlangıcına bu süreden az kalmışsa iptal kabul edilmez.
+# Basit sabit kural; esnek politika motoru F4-04'te gelecek.
+CANCELLATION_CUTOFF_HOURS = 24
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -316,6 +320,25 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         if booking.status == 'cancelled':
             return Response({'error': 'Bu rezervasyon zaten iptal edilmiş.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Son iptal anı: hizmet başlangıcından CANCELLATION_CUTOFF_HOURS saat önce.
+        # start_date yoksa (tarihsiz eski kayıtlar) kısıt uygulanmaz.
+        if booking.start_date:
+            start_time = booking.start_time or time_type(0, 0)
+            starts_at = timezone.make_aware(
+                datetime.combine(booking.start_date, start_time),
+                timezone.get_current_timezone(),
+            )
+            if starts_at - timezone.now() < timedelta(hours=CANCELLATION_CUTOFF_HOURS):
+                return Response(
+                    {
+                        'error': (
+                            f'Hizmet başlangıcına {CANCELLATION_CUTOFF_HOURS} saatten az kaldığı için '
+                            f'bu rezervasyon çevrimiçi iptal edilemez. Lütfen bizimle iletişime geçin.'
+                        )
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
         if booking.status == 'confirmed':
             stripe.api_key = settings.STRIPE_SECRET_KEY
