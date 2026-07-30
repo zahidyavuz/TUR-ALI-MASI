@@ -71,7 +71,7 @@ EOF
 
 ---
 
-### [ ] F1-02 · Sahte sosyal kanıt ve güven rozetlerini temizle
+### [x] F1-02 · Sahte sosyal kanıt ve güven rozetlerini temizle
 
 **Öncelik:** P0 · **Efor:** S
 
@@ -85,7 +85,7 @@ EOF
 
 **Doğrulama:** `grep -rn "Trustpilot\|9.906\|PCI\|honeypot" app/ | grep -v api/` boş dönmeli; STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Footer'dan Trustpilot bloğu ve "Canlı Kur Referansları" barı kaldırıldı (bar hardcoded kurlarla başlayıp 3 sn'de bir `Math.random()` ile dalgalandırıyordu — tamamen uydurma veriydi); `HoneypotTraps` bileşeni silinip `layout.tsx`'ten çıkarıldı; PCI-DSS / 3D Secure / 256-bit iddiaları checkout, tur detay, CheckoutForm, SecurePaymentForm, cart ve chatbot yanıtından temizlenip jenerik "Güvenli ödeme" ifadesiyle değiştirildi. tsc + lint + `npm run build` temiz.
 
 ---
 
@@ -567,6 +567,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 
 * ~~**[P0 · çökme] React Hooks kuralı ihlali — agency & restaurant dashboard layout.**~~ **ÇÖZÜLDÜ (upstream'de).** `useState(isMobileMenuOpen)` `if (isLoading || !user) return null;` erken dönüşünden SONRA çağrılıyordu; `isLoading` true→false geçişinde hook sayısı değiştiği için React "Rendered more hooks than during the previous render" ile çökebilirdi. Sorun eski yerel dalda tespit edildi; `origin/main`'de aynı düzeltme zaten yapılmış olduğu için rebase sırasında yerel düzeltme düştü. Güncel `main`'de `useState` doğru konumda ve `npm run lint` temiz.
 * **[P2 · araç] `next lint` Next.js 16'da kaldırıldı.** TASKS.md'deki STD-CHECK `npx next lint` diyor ama Next 16 bu komutu kaldırdı ("Invalid project directory provided, no such directory: .../lint"). Doğru komut `npm run lint` (package.json'da `"lint": "eslint"`). STD-CHECK tanımı güncellenmeli.
+* **[P1 · yanıltıcı] Footer'da desteklenmeyen ödeme yöntemleri listeleniyor.** `app/components/Footer.tsx` "Ödeme Yöntemleri" bölümünde VISA, mastercard, MİR, UnionPay, WeChat Pay ve Alipay rozetleri var; gerçekte yalnız Stripe entegrasyonu mevcut ve MİR/UnionPay/WeChat/Alipay hiçbir şekilde desteklenmiyor. F1-02 kapsamı dışı olduğu için dokunulmadı — F2-06'da (PSP adapter) gerçekten desteklenen yöntemlere göre güncellenmeli.
+* **[P2 · ölü kod] `HoneypotTraps` kaldırıldı ama arkasındaki API'ler duruyor.** F1-02'de bileşen silindi; `app/api/security/honeypot/[id]/route.ts`, `app/api/security/honeypot/list/route.ts` ve `app/lib/honeypot.ts` hâlâ yerinde (artık hiçbir yerden linklenmiyor). Bunların silinmesi zaten F3-04 kapsamında.
 * **[P2 · ortam] Yerel geliştirme ortamı kurulu değildi.** `node_modules` yoktu (`npm install` ile kuruldu). Backend için Python venv de yok (`backend/venv`, `.venv` bulunamadı, `django` global olarak da kurulu değil) — bu yüzden STD-CHECK'in backend yarısı (makemigrations --check / migrate --check / test) F1-01'de çalıştırılamadı. F1-01 yalnız frontend dosyası değiştirdiği için sonucu etkilemez, ancak F1-04'ten itibaren backend ortamı şart.
 
 ---

@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
             } else if (pathname.includes('/tour')) {
                 return NextResponse.json({ reply: "Şu an bir tur inceleme sayfasındasın. İstersen sana bu turun detaylarını daha iyi anlatabilir veya rezervasyon adımlarına geçmene yardım edebilirim." });
             } else if (pathname.includes('/checkout')) {
-                return NextResponse.json({ reply: "Ödeme adımındasın. Tüm işlemlerin 256-bit SSL ile korunuyor. Herhangi bir kart limit veya 3D doğrulama sorunu yaşarsan bana yazabilirsin." });
+                return NextResponse.json({ reply: "Ödeme adımındasın. Herhangi bir kart limiti veya doğrulama sorunu yaşarsan bana yazabilirsin." });
             } else {
                 return NextResponse.json({ reply: "Şu an anasayfadasın. Turları keşfetmek veya popüler rotalara göz atmak istersen, bana bir yer adı (ör. 'Kapadokya') söylemen yeterli!" });
             }

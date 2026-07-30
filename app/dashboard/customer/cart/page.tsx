@@ -311,7 +311,7 @@ export default function CartPage() {
               </button>
             </div>
             <p className="text-center text-[10px] text-gray-400 font-bold mt-4 tracking-wider uppercase">
-              256-Bit SSL ile Güvenli Ödeme
+              Güvenli Ödeme
             </p>
           </div>
         </div>

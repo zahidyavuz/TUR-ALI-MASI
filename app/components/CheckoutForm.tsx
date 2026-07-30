@@ -134,16 +134,13 @@ export default function CheckoutForm() {
             <div className="flex justify-between items-center mb-6">
                 <div>
                     <h2 className="text-2xl font-black text-[#005e85] tracking-tight">Güvenli Ödeme 🔒</h2>
-                    <p className="text-sm font-semibold text-gray-400 mt-1">PCI-DSS V3.0 Onaylı • 256-Bit SSL</p>
-                </div>
-                <div className="w-12 h-12 bg-indigo-50 flex items-center justify-center rounded-xl shrink-0 border border-indigo-100/50">
-                    <span className="font-bold text-indigo-500 text-[10px] tracking-widest leading-tight flex flex-col items-center"><div>3D</div><div>SECURE</div></span>
                 </div>
             </div>
 
             <div className="p-4 bg-orange-50 border-l-4 border-orange-400 rounded-r-lg mb-6 shadow-inner">
                 <p className="text-xs font-semibold text-orange-800">
-                    Sisteme girdiğiniz kredi kartı verileri kesinlikle sunucularımızda saklanmaz. Doğrudan Stripe'ın güvenli altyapısına (**Tokenization**) olarak iletilir. Bankanız tarafından **3D Secure** doğrulama istenecektir.
+                    Kart bilgileriniz sunucularımızda saklanmaz; doğrudan ödeme
+                    sağlayıcısına iletilir. Bankanız ek doğrulama isteyebilir.
                 </p>
             </div>
 
@@ -209,7 +206,7 @@ export default function CheckoutForm() {
                     </div>
                     <div className="flex items-center justify-center gap-4 mt-2">
                         <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block animate-pulse"></span> Banka Onayı 7/24 Aktif</span>
-                        <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5">🛡️ Verileriniz 256-Bit Şifrelenmektedir</span>
+                        <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1.5">🛡️ Güvenli ödeme</span>
                     </div>
                 </div>
             </div>

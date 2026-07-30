@@ -481,7 +481,7 @@ export default function DynamicTourPage() {
                         <div className="text-blue-600 dark:text-blue-400 mt-0.5 bg-white dark:bg-slate-800 p-1 rounded-full shadow-sm"><svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg></div>
                         <div>
                             <h4 className="text-[12px] font-black text-blue-800 dark:text-blue-200 uppercase tracking-widest mb-0.5">Güvenli Ödeme</h4>
-                            <p className="text-[10px] text-blue-700/80 dark:text-blue-400/80 font-bold leading-tight">256-bit SSL & PCI-DSS korumalı altyapı.</p>
+                            <p className="text-[10px] text-blue-700/80 dark:text-blue-400/80 font-bold leading-tight">Ödemeniz güvenli bağlantı üzerinden alınır.</p>
                         </div>
                     </div>
                 </div>

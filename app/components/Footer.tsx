@@ -1,106 +1,9 @@
-"use client";
-import { useState, useEffect } from 'react';
-import Link from 'next/link';
-
 export default function Footer() {
-  // Canlı Kur Simülasyonu State
-  const initialRates = [
-    { birim: '1 USD', karsilik: 35.150, ikon: '🇺🇸', isim: 'Amerikan Doları' },
-    { birim: '1 EUR', karsilik: 38.650, ikon: '🇪🇺', isim: 'Euro' },
-    { birim: '1 GBP', karsilik: 45.120, ikon: '🇬🇧', isim: 'İngiliz Sterlini' },
-    { birim: '1 CNY', karsilik: 4.880, ikon: '🇨🇳', isim: 'Çin Yuanı' },
-    { birim: '1 AED', karsilik: 9.570, ikon: '🇦🇪', isim: 'BAE Dirhemi' },
-    { birim: '1 RUB', karsilik: 0.380, ikon: '🇷🇺', isim: 'Rus Rublesi' },
-    { birim: '1 SAR', karsilik: 9.350, ikon: '🇸🇦', isim: 'Suudi Riyali' },
-    { birim: '1 INR', karsilik: 0.420, ikon: '🇮🇳', isim: 'Hindistan Rupisi' }
-  ];
-  const [liveRates, setLiveRates] = useState(initialRates);
-  const [rateColors, setRateColors] = useState<{ [key: string]: 'text-green-500' | 'text-red-500' | 'text-[#005e85]' }>({});
-
-  useEffect(() => {
-    
-
-    // API'den gerçek kurları çekme fonksiyonu
-    const fetchRealRates = async () => {
-      try {
-        // 5 saniye timeout ekle (bağlantı takılırsa UI donmasın)
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-        const res = await fetch('https://api.exchangerate-api.com/v4/latest/TRY', {
-          signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
-        if (data && data.rates) {
-          const tryRates = data.rates;
-          const updatedRates = [
-            { birim: '1 USD', karsilik: 1 / tryRates.USD, ikon: '🇺🇸', isim: 'Amerikan Doları' },
-            { birim: '1 EUR', karsilik: 1 / tryRates.EUR, ikon: '🇪🇺', isim: 'Euro' },
-            { birim: '1 GBP', karsilik: 1 / tryRates.GBP, ikon: '🇬🇧', isim: 'İngiliz Sterlini' },
-            { birim: '1 CNY', karsilik: 1 / tryRates.CNY, ikon: '🇨🇳', isim: 'Çin Yuanı' },
-            { birim: '1 AED', karsilik: 1 / tryRates.AED, ikon: '🇦🇪', isim: 'BAE Dirhemi' },
-            { birim: '1 RUB', karsilik: 1 / tryRates.RUB, ikon: '🇷🇺', isim: 'Rus Rublesi' },
-            { birim: '1 SAR', karsilik: 1 / tryRates.SAR, ikon: '🇸🇦', isim: 'Suudi Riyali' },
-            { birim: '1 INR', karsilik: 1 / tryRates.INR, ikon: '🇮🇳', isim: 'Hindistan Rupisi' }
-          ];
-          setLiveRates(updatedRates);
-        }
-      } catch (error) {
-        // Ağ hatası veya CSP engellemesi durumunda sessizce logla ve varsayılan kurları koru
-        console.warn("[Footer] Canlı kurlar güncellenemedi, statik veriler kullanılıyor.");
-      }
-    };
-
-    // İlk yüklemede kurları çek
-    fetchRealRates();
-    // Saatte bir API'den güncel veriyi al
-    const apiInterval = setInterval(fetchRealRates, 1000 * 60 * 60);
-
-    // Borsa efekti simülasyonunu (küçük dalgalanmaları) devam ettir
-    const simInterval = setInterval(() => {
-      setLiveRates(prevRates => {
-        const newColors: { [key: string]: 'text-green-500' | 'text-red-500' | 'text-[#005e85]' } = {};
-        const updated = prevRates.map(rate => {
-          // Borsa efekti: Kura çok çok ufak bir değişim ekle
-          const change = rate.karsilik * (Math.random() * 0.0004 - 0.0002);
-          newColors[rate.birim] = change > 0 ? 'text-green-500' : 'text-red-500';
-          return { ...rate, karsilik: rate.karsilik + change };
-        });
-        setRateColors(newColors);
-        return updated;
-      });
-    }, 3000);
-
-    return () => {
-      clearInterval(apiInterval);
-      clearInterval(simInterval);
-    };
-  }, []);
-
-
-
   return (
     <>
       {/* Kapsamlı Alt Bilgi (Footer) - Tourradar Tarzı */}
       <footer className="w-full bg-slate-50 dark:bg-slate-950/50 text-slate-800 dark:text-slate-300 pt-12 pb-24 border-t border-gray-200 dark:border-slate-800 mt-0 transition-colors duration-500">
         <div className="max-w-[1400px] mx-auto px-6">
-
-          {/* Üst Bar: Puan ve Logolar */}
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center pb-8 border-b border-gray-300 gap-6">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-bold text-lg">Harika</span>
-                <span className="bg-[#00b67a] text-white px-1.5 py-0.5 text-xs font-bold tracking-widest flex items-center gap-0.5">
-                  ★ ★ ★ ★ ★
-                </span>
-              </div>
-              <div className="text-xs text-gray-500 font-medium">9.906 değerlendirme <span className="font-bold text-[#00b67a] ml-1">★ Trustpilot</span></div>
-            </div>
-          </div>
 
           {/* Orta Kısım: Sütunlar */}
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-x-6 gap-y-12 py-10 text-[13px] leading-[22px] border-b border-gray-300">
@@ -165,28 +68,6 @@ export default function Footer() {
                 <li><a href="#" className="hover:text-blue-500 transition-colors">Yardım merkezi</a></li>
                 <li className="text-gray-900 dark:text-slate-200 mt-2">Türkiye <a href="#" className="hover:text-blue-500 block text-gray-500 dark:text-slate-400">+90 850 123 45 67</a></li>
               </ul>
-            </div>
-          </div>
-
-          {/* Yeni: Güncel Kurlar Barı */}
-          <div className="py-6 mt-8 border-t border-b border-gray-100 mb-8">
-            <h4 className="font-bold text-[12px] uppercase tracking-widest text-[#008cb3] mb-4 flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
-              Canlı Kur Referansları (₺)
-            </h4>
-            <div className="flex flex-wrap gap-4 md:gap-8 overflow-x-auto pb-2 scrollbar-hide">
-              {liveRates.map((kur) => (
-                <div key={kur.birim} className="flex flex-col flex-shrink-0 group cursor-default">
-                  <div className="flex items-center gap-1.5 text-slate-700 font-bold text-[14px]">
-                    <span className="text-sm">{kur.ikon}</span>
-                    {kur.birim} <span className="text-gray-400 text-xs font-medium mx-0.5">=</span>
-                    <span className={`transition-colors duration-500 ${rateColors[kur.birim] || 'text-[#005e85]'}`}>
-                      ₺{kur.karsilik.toFixed(3)}
-                    </span>
-                  </div>
-                  <span className="text-[10px] text-gray-400 font-semibold">{kur.isim}</span>
-                </div>
-              ))}
             </div>
           </div>
 

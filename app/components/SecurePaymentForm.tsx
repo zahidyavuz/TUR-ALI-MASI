@@ -12,7 +12,9 @@ import {
 /**
  * SECURE-SESSION-AND-COOKIE-ARMOR: Güvenli Ödeme Formu
  *
- * Bu bileşen PCI-DSS uyumlu güvenli kart girişi sağlar:
+ * DİKKAT: Bu bileşen kart verisini kendi inputlarında topluyor; PCI-DSS
+ * uyumlu DEĞİLDİR. F1-03'te Stripe Elements ile değiştirilecek.
+ *
  * - Kart numarası, CVV ve son kullanma tarihi ASLA localStorage/cookie'ye yazılmaz
  * - Kart numarası anında maskelenerek gösterilir
  * - Ödeme onaylandığında sadece ödeme sağlayıcısının token'ı saklanır
@@ -79,7 +81,7 @@ export default function SecurePaymentForm({ amount, onSuccess, onCancel }: Secur
           <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           <path d="M9 12l2 2 4-4" />
         </svg>
-        <span className="text-xs font-bold text-emerald-700">256-bit SSL şifreli güvenli ödeme. Kart bilgileri sunucularımızda saklanmaz.</span>
+        <span className="text-xs font-bold text-emerald-700">Güvenli ödeme. Kart bilgileri sunucularımızda saklanmaz.</span>
       </div>
 
       {error && (

@@ -363,11 +363,7 @@ function CheckoutLogic() {
               <div className="hidden md:flex gap-4">
                 <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
                   <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>{" "}
-                  SSL SECURED
-                </div>
-                <div className="flex items-center gap-2 text-[10px] font-black text-slate-400 bg-slate-50 px-3 py-1.5 rounded-full border border-slate-100">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full"></span>{" "}
-                  PCI-DSS
+                  GÜVENLİ ÖDEME
                 </div>
               </div>
             </div>
@@ -509,7 +505,7 @@ function CheckoutLogic() {
                   className="h-6 grayscale opacity-50"
                 />
                 <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400">
-                  🛡️ 256-BIT ENCRYPTION
+                  🛡️ GÜVENLİ ÖDEME
                 </div>
               </div>
             </form>
@@ -534,13 +530,7 @@ function CheckoutLogic() {
                       <div className="flex items-center gap-2 bg-emerald-50 px-3 py-1.5 rounded-full border border-emerald-100">
                         <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
                         <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">
-                          SSL SECURED
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-full border border-blue-100">
-                        <span className="w-2 h-2 bg-blue-500 rounded-full"></span>
-                        <span className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
-                          3D SECURE
+                          Güvenli Ödeme
                         </span>
                       </div>
                     </div>
@@ -806,9 +796,8 @@ function CheckoutLogic() {
                           </button>
 
                           <p className="text-[10px] text-center font-bold text-slate-400 italic px-8 leading-relaxed">
-                            * Bu ödeme 256-bit SSL sertifikası ile
-                            korunmaktadır. Kart bilgileriniz PCI-DSS
-                            standartlarında işlenir.
+                            * Ödeme işleminiz güvenli bağlantı üzerinden
+                            gerçekleştirilir.
                           </p>
                         </div>
                       </form>
@@ -931,33 +920,7 @@ function CheckoutLogic() {
                           Security
                         </div>
                         <div className="text-xs font-black text-slate-600">
-                          SSL SECURED
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-                        ✅
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-black tracking-widest uppercase text-slate-400">
-                          Compliant
-                        </div>
-                        <div className="text-xs font-black text-slate-600">
-                          PCI-DSS LEVEL 1
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-2xl shadow-inner">
-                        🔒
-                      </div>
-                      <div>
-                        <div className="text-[9px] font-black tracking-widest uppercase text-slate-400">
-                          Authentic
-                        </div>
-                        <div className="text-xs font-black text-slate-600">
-                          3D SECURE 2.0
+                          GÜVENLİ ÖDEME
                         </div>
                       </div>
                     </div>
@@ -1036,8 +999,7 @@ function CheckoutLogic() {
                   Güvenli İşlem
                 </h4>
                 <p className="text-xs font-bold text-slate-400 leading-relaxed">
-                  Ödemeniz PCI-DSS uyumlu altyapı ile %100 güvenli olarak
-                  tamamlanmıştır.
+                  Ödemeniz güvenli bağlantı üzerinden tamamlanmıştır.
                 </p>
               </div>
             </div>

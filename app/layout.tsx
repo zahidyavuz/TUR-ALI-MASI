@@ -36,7 +36,6 @@ import { GeofenceProvider } from "./context/GeofenceContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import GeofenceBanner from "./components/GeofenceBanner";
-import HoneypotTraps from "./components/HoneypotTraps";
 import BehavioralTracker from "./components/BehavioralTracker";
 import OfflineGuard from "./components/OfflineGuard";
 import RouteGuard from "./components/RouteGuard";
@@ -87,7 +86,6 @@ export default function RootLayout({
                       </RouteGuard>
                     </OfflineGuard>
                     <GeofenceBanner />
-                    <HoneypotTraps />
                     <BehavioralTracker />
                     <Chatbot />
                     <BottomTabBar />
