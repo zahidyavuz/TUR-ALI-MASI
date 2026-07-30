@@ -44,7 +44,10 @@ class TourAvailabilitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = TourAvailability
-        fields = ['id', 'date', 'max_capacity', 'booked_count', 'remaining', 'is_available']
+        fields = [
+            'id', 'date', 'max_capacity', 'booked_count', 'remaining', 'is_available',
+            'price_override', 'is_closed',
+        ]
 
 
 class TourListSerializer(serializers.ModelSerializer):

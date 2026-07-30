@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { fetchAPI } from '@/app/lib/api';
 
 /**
@@ -477,6 +478,7 @@ export default function AgencyToursPage() {
                                             </span>
                                         )}
                                         <div className="flex gap-3">
+                                            <Link href={`/dashboard/agency/tours/${tour.id}/calendar`} className="text-[11px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors underline">Takvim</Link>
                                             <button onClick={() => startEditing(tour)} className="text-[11px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors underline">Düzenle</button>
                                             <button onClick={() => setPendingDelete(tour)} className="text-[11px] font-medium text-red-500 hover:text-red-700 transition-colors underline">Kaldır</button>
                                         </div>

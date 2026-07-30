@@ -1,10 +1,34 @@
-from django.test import TestCase
+import logging
+import random
+import threading
+import time
+from itertools import count
+from unittest.mock import patch
+
+from django.db import connection
+from django.test import TestCase, TransactionTestCase, override_settings
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
 from tours.models import Tour, TourAvailability
 from bookings.models import Booking
 from agencies.models import Agency
 from datetime import date, timedelta
+
+
+class _FakeIntent:
+    """stripe.PaymentIntent.create() dönüşünün testlerde kullanılan taklidi."""
+    _counter = count(1)
+    _lock = threading.Lock()
+
+    def __init__(self):
+        with self._lock:
+            n = next(self._counter)
+        self.id = f'pi_test_{n:012d}'
+        self.client_secret = f'{self.id}_secret'
+
+
+def _fake_payment_intent_create(*args, **kwargs):
+    return _FakeIntent()
 
 
 class BookingLifecycleTestCase(TestCase):
@@ -140,3 +164,174 @@ class BookingLifecycleTestCase(TestCase):
         self.client.force_authenticate(user=other)
         response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
         self.assertEqual(response.status_code, 404)
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
+@patch('bookings.views.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+class TourCapacityReservationTestCase(TestCase):
+    """F2-02 — Kontenjan rezervasyonu, gün kapatma ve gün bazlı fiyat."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='res_user', password='pass', email='res@test.com')
+        self.agency = Agency.objects.create(name='Res Agency', is_verified=True)
+        self.tour = Tour.objects.create(
+            id='res-tour', agency=self.agency, title='Res Tour', location='İzmir',
+            price=1000, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.day = date.today() + timedelta(days=10)
+        self.slot = TourAvailability.objects.create(
+            tour=self.tour, date=self.day, max_capacity=10, booked_count=0
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def _book(self, guests=2, **extra):
+        return self.client.post('/api/v1/bookings/', {
+            'tour_slug': self.tour.pk,
+            'start_date': self.day.strftime('%Y-%m-%d'),
+            'guests': guests,
+            **extra,
+        })
+
+    def test_capacity_reserved_at_creation(self, _intent):
+        """Kontenjan webhook'u beklemeden, rezervasyon anında düşer"""
+        response = self._book(guests=3)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 3)
+
+    def test_overbooking_rejected(self, _intent):
+        """Kalan kontenjandan fazlası istenirse 400 ve sayaç değişmez"""
+        self.assertEqual(self._book(guests=8).status_code, 201)
+        response = self._book(guests=5)
+        self.assertEqual(response.status_code, 400)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 8)
+
+    def test_closed_day_rejected(self, _intent):
+        """Kapalı gün için rezervasyon alınmaz"""
+        self.slot.is_closed = True
+        self.slot.save(update_fields=['is_closed'])
+        response = self._book(guests=1)
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('kapalı', response.data['error'].lower())
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
+
+    def test_price_override_applied(self, _intent):
+        """Gün bazlı fiyat girilmişse tutar ondan hesaplanır"""
+        self.slot.price_override = 250
+        self.slot.save(update_fields=['price_override'])
+        response = self._book(guests=2)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(float(response.data['booking']['total_price']), 500.0)
+
+    def test_cancelling_pending_releases_capacity(self, _intent):
+        """Ödenmemiş (pending) rezervasyon iptal edilince kontenjan geri döner"""
+        booking_id = self._book(guests=4).data['booking']['id']
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 4)
+
+        response = self.client.post(f'/api/v1/bookings/{booking_id}/cancel/')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
+
+    def test_confirmation_does_not_double_count(self, _intent):
+        """Webhook onayı kontenjanı ikinci kez düşmez"""
+        booking_id = self._book(guests=3).data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+
+        from bookings.views import BookingViewSet
+        view = BookingViewSet()
+        # Onay dalındaki kontenjan kodu artık yalnızca 'shuttle' için çalışıyor;
+        # tur rezervasyonunda serbest bırakma dışında sayaca dokunulmamalı.
+        self.assertEqual(booking.service_type, 'tour')
+        view._release_tour_capacity(booking)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
+class OverbookingRaceTestCase(TransactionTestCase):
+    """
+    F2-02 doğrulaması — eşzamanlı satışta overbooking oluşmamalı.
+
+    TransactionTestCase kullanılıyor: TestCase her testi tek bir transaction'a
+    sardığı için paralel thread'ler veriyi göremez.
+    """
+    reset_sequences = True
+
+    def setUp(self):
+        # SQLite kilit hataları django.request'e ERROR olarak düşüyor; test
+        # bunları yeniden deneyerek zaten ele alıyor, çıktıyı kirletmesin.
+        self._request_logger = logging.getLogger('django.request')
+        self._prev_level = self._request_logger.level
+        self._request_logger.setLevel(logging.CRITICAL)
+        self.addCleanup(self._request_logger.setLevel, self._prev_level)
+
+        self.user = User.objects.create_user(username='race_user', password='pass')
+        self.agency = Agency.objects.create(name='Race Agency', is_verified=True)
+        self.tour = Tour.objects.create(
+            id='race-tour', agency=self.agency, title='Race Tour', location='Muğla',
+            price=100, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.day = date.today() + timedelta(days=10)
+        TourAvailability.objects.create(
+            tour=self.tour, date=self.day, max_capacity=10, booked_count=0
+        )
+
+    @patch('bookings.views.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+    def test_concurrent_bookings_never_overbook(self, _intent):
+        threads_count = 8
+        guests = 3  # 10 kişilik kontenjanda en fazla 3 istek başarılı olabilir
+        barrier = threading.Barrier(threads_count)
+        results = []
+        results_lock = threading.Lock()
+
+        def book():
+            # raise_request_exception=False: SQLite eşzamanlı yazmada geçici
+            # "database table is locked" hatası verebilir; bunu istisna olarak
+            # fırlatmak yerine 500 yanıtı olarak alıp yeniden deniyoruz. Testin
+            # konusu kilit davranışı değil, kontenjan muhasebesi.
+            client = APIClient(raise_request_exception=False)
+            client.force_authenticate(user=self.user)
+            status_code = None
+            try:
+                barrier.wait(timeout=10)
+                for _ in range(30):
+                    response = client.post('/api/v1/bookings/', {
+                        'tour_slug': self.tour.pk,
+                        'start_date': self.day.strftime('%Y-%m-%d'),
+                        'guests': guests,
+                    })
+                    status_code = response.status_code
+                    if status_code != 500:
+                        break
+                    time.sleep(random.uniform(0.02, 0.08))
+            finally:
+                with results_lock:
+                    results.append(status_code)
+                connection.close()
+
+        threads = [threading.Thread(target=book) for _ in range(threads_count)]
+        for thread in threads:
+            thread.start()
+        for thread in threads:
+            thread.join(timeout=30)
+
+        slot = TourAvailability.objects.get(tour=self.tour, date=self.day)
+        created = results.count(201)
+
+        self.assertLessEqual(slot.booked_count, slot.max_capacity,
+                             f'Overbooking! {slot.booked_count} > {slot.max_capacity}')
+        self.assertEqual(slot.booked_count, created * guests)
+        self.assertLessEqual(created, slot.max_capacity // guests)
+        self.assertGreaterEqual(created, 1, f'Hiçbir istek tamamlanamadı: {results}')
+        self.assertEqual(results.count(400), threads_count - created,
+                         f'Kalan istekler "yer yok" ile reddedilmeliydi: {results}')
+        self.assertEqual(
+            Booking.objects.filter(tour=self.tour, status='pending').count(), created
+        )

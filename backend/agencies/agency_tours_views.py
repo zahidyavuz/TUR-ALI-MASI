@@ -16,10 +16,14 @@ Endpoint'ler:
   DELETE /api/v1/agency/tours/<slug>/        → Turu pasife çek (soft delete)
   POST   /api/v1/agency/tours/<slug>/upload-image/ → Görsel yükle (Pillow optimize)
   GET    /api/v1/agency/tours/<slug>/manifest/     → Günlük yolcu listesi
+  GET    /api/v1/agency/tours/<slug>/availability/?month=YYYY-MM → Aylık kontenjan
+  PUT    /api/v1/agency/tours/<slug>/availability/ → Toplu kontenjan/fiyat kaydı
 """
+import calendar
 import logging
 import uuid
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
+from decimal import Decimal, InvalidOperation
 
 from django.shortcuts import get_object_or_404
 from django.db import transaction
@@ -222,7 +226,175 @@ class AgencyTourViewSet(viewsets.ModelViewSet):
             'passengers': manifest_data,
         })
 
-    # ─── KAPASITE GÜNCELLEME ──────────────────────────────────────────────────
+    # ─── KONTENJAN TAKVİMİ (aylık görünüm + toplu kayıt) ─────────────────────
+    MAX_BULK_DAYS = 62  # Tek istekte en fazla iki aylık gün gönderilebilir.
+
+    @action(detail=True, methods=['get', 'put'], url_path='availability')
+    def availability(self, request, pk=None):
+        """
+        GET /api/v1/agency/tours/<slug>/availability/?month=YYYY-MM
+        PUT /api/v1/agency/tours/<slug>/availability/
+            { "days": [{"date","max_capacity","price_override","is_closed"}, ...] }
+
+        Yetki: sınıf düzeyindeki IsAgentOwner + IsVerifiedAgent ve
+        get_queryset()'teki `agency=` filtresi (get_object burada da geçerli).
+        """
+        tour = self.get_object()
+        if request.method == 'GET':
+            return self._availability_month(tour, request.query_params.get('month'))
+        return self._availability_bulk_save(tour, request.data.get('days'))
+
+    def _availability_month(self, tour, month_param):
+        try:
+            first_day = self._parse_month(month_param)
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        last_day = first_day.replace(
+            day=calendar.monthrange(first_day.year, first_day.month)[1]
+        )
+        slots = TourAvailability.objects.filter(
+            tour=tour, date__gte=first_day, date__lte=last_day
+        ).order_by('date')
+
+        return Response({
+            'tour': tour.pk,
+            'month': first_day.strftime('%Y-%m'),
+            'base_price': tour.price,
+            'days': [
+                {
+                    'date': slot.date.isoformat(),
+                    'max_capacity': slot.max_capacity,
+                    'booked_count': slot.booked_count,
+                    'remaining': slot.remaining,
+                    'price_override': slot.price_override,
+                    'is_closed': slot.is_closed,
+                }
+                for slot in slots
+            ],
+        })
+
+    def _availability_bulk_save(self, tour, days):
+        if not isinstance(days, list) or not days:
+            return Response({'error': 'days listesi zorunludur.'}, status=status.HTTP_400_BAD_REQUEST)
+        if len(days) > self.MAX_BULK_DAYS:
+            return Response(
+                {'error': f'Tek istekte en fazla {self.MAX_BULK_DAYS} gün gönderilebilir.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            cleaned = [self._clean_day(raw) for raw in days]
+        except ValueError as exc:
+            return Response({'error': str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len({day['date'] for day in cleaned}) != len(cleaned):
+            return Response({'error': 'Aynı tarih birden fazla kez gönderildi.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        # Hepsi ya da hiçbiri: tek bir günde bile satılan bilet kontenjanın
+        # üstünde kalıyorsa istek tümüyle reddedilir; acenta yarım uygulanmış
+        # bir takvimle baş başa kalmasın.
+        with transaction.atomic():
+            existing = {
+                slot.date: slot
+                for slot in TourAvailability.objects
+                .select_for_update()
+                .filter(tour=tour, date__in=[day['date'] for day in cleaned])
+            }
+
+            conflicts = [
+                {'date': day['date'].isoformat(), 'booked': existing[day['date']].booked_count,
+                 'requested': day['max_capacity']}
+                for day in cleaned
+                if day['date'] in existing
+                and day['max_capacity'] < existing[day['date']].booked_count
+            ]
+            if conflicts:
+                detail = ', '.join(
+                    f"{c['date']} ({c['booked']} satılmış)" for c in conflicts
+                )
+                return Response(
+                    {
+                        'error': f'Satılan bilet sayısının altına düşürülemez: {detail}',
+                        'conflicts': conflicts,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            to_update, to_create = [], []
+            for day in cleaned:
+                slot = existing.get(day['date'])
+                if slot is None:
+                    to_create.append(TourAvailability(
+                        tour=tour, date=day['date'], max_capacity=day['max_capacity'],
+                        price_override=day['price_override'], is_closed=day['is_closed'],
+                    ))
+                else:
+                    slot.max_capacity = day['max_capacity']
+                    slot.price_override = day['price_override']
+                    slot.is_closed = day['is_closed']
+                    to_update.append(slot)
+
+            if to_create:
+                TourAvailability.objects.bulk_create(to_create)
+            if to_update:
+                TourAvailability.objects.bulk_update(
+                    to_update, ['max_capacity', 'price_override', 'is_closed']
+                )
+
+        logger.info(
+            f"[AGENCY_TOUR] Availability bulk save for '{tour.pk}': "
+            f"{len(to_create)} yeni, {len(to_update)} güncel"
+        )
+        return self._availability_month(tour, cleaned[0]['date'].strftime('%Y-%m'))
+
+    @staticmethod
+    def _parse_month(month_param):
+        """'YYYY-MM' → ayın ilk günü. Parametre yoksa içinde bulunulan ay."""
+        if not month_param:
+            return date.today().replace(day=1)
+        try:
+            return datetime.strptime(f'{month_param}-01', '%Y-%m-%d').date()
+        except (TypeError, ValueError):
+            raise ValueError('month parametresi YYYY-MM biçiminde olmalıdır.')
+
+    @staticmethod
+    def _clean_day(raw):
+        if not isinstance(raw, dict):
+            raise ValueError('Geçersiz gün kaydı.')
+
+        try:
+            day_date = datetime.strptime(str(raw.get('date')), '%Y-%m-%d').date()
+        except (TypeError, ValueError):
+            raise ValueError(f"Geçersiz tarih: {raw.get('date')}")
+
+        try:
+            capacity = int(raw.get('max_capacity'))
+        except (TypeError, ValueError):
+            raise ValueError(f'{day_date}: kontenjan tam sayı olmalıdır.')
+        if not 0 <= capacity <= 1000:
+            raise ValueError(f'{day_date}: kontenjan 0 ile 1000 arasında olmalıdır.')
+
+        price_override = raw.get('price_override')
+        if price_override in (None, ''):
+            price_override = None
+        else:
+            try:
+                price_override = Decimal(str(price_override))
+            except (InvalidOperation, TypeError, ValueError):
+                raise ValueError(f'{day_date}: fiyat geçersiz.')
+            if price_override < 0:
+                raise ValueError(f'{day_date}: fiyat negatif olamaz.')
+
+        return {
+            'date': day_date,
+            'max_capacity': capacity,
+            'price_override': price_override,
+            'is_closed': bool(raw.get('is_closed')),
+        }
+
+    # ─── KAPASITE GÜNCELLEME (tek gün — geriye dönük uyumluluk) ──────────────
     @action(detail=True, methods=['patch'], url_path='update-capacity')
     def update_capacity(self, request, pk=None):
         """

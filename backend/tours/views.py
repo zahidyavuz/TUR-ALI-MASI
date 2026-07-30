@@ -45,10 +45,14 @@ class TourViewSet(viewsets.ReadOnlyModelViewSet):
                 guests = int(guests_param) if guests_param else 1
                 queryset = queryset.filter(
                     availability_slots__date=date_param,
+                    availability_slots__is_closed=False,
                     availability_slots__max_capacity__gte=F('availability_slots__booked_count') + guests
                 ).distinct()
             except ValueError:
-                queryset = queryset.filter(availability_slots__date=date_param).distinct()
+                queryset = queryset.filter(
+                    availability_slots__date=date_param,
+                    availability_slots__is_closed=False,
+                ).distinct()
 
         return queryset
 

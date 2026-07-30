@@ -13,6 +13,7 @@ from datetime import date as date_type, datetime, time as time_type, timedelta
 from django.conf import settings
 from django.core.mail import send_mail
 from django.db import transaction, DatabaseError
+from django.db.models import F
 from django.http import HttpResponse
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
@@ -91,25 +92,41 @@ class BookingViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-        # ── ATOMIC: Kapasite kontrolü + rezervasyon kaydı ────────────────────
-        # select_for_update() → Bu satırı DB düzeyinde kilitler.
-        # İki istek aynı anda gelirse biri sırada bekler; Race Condition önlenir.
+        # ── ATOMIC: Kontenjan rezervasyonu + rezervasyon kaydı ───────────────
+        # Kontenjan BURADA düşülür, webhook'ta değil. Aksi halde N eşzamanlı
+        # istek aynı `remaining` değerini okuyup hepsi geçer, sonra hepsi
+        # onaylanır ve overbooking oluşur (para çoktan alınmıştır).
+        #
+        # Rezervasyon tek bir koşullu UPDATE ile yapılır:
+        #   UPDATE ... SET booked_count = booked_count + N
+        #   WHERE booked_count <= max_capacity - N AND is_closed = false
+        # Bu, satır kilidine (select_for_update) ihtiyaç duymadan her veritabanı
+        # motorunda atomiktir — SQLite'ta select_for_update'in etkisiz olduğunu
+        # da hesaba katar. Kaybeden istek 0 satır günceller ve hata alır.
         try:
             with transaction.atomic():
                 if start_date:
-                    try:
-                        availability = TourAvailability.objects.select_for_update().get(
-                            tour=tour, date=start_date
-                        )
-                    except TourAvailability.DoesNotExist:
+                    slot = TourAvailability.objects.filter(tour=tour, date=start_date).first()
+                    if slot is None:
                         raise ValueError('Seçilen tarih için müsaitlik bulunmamaktadır.')
+                    if slot.is_closed:
+                        raise ValueError('Seçilen tarih satışa kapalıdır.')
 
-                    if guests > availability.remaining:
+                    reserved = TourAvailability.objects.filter(
+                        pk=slot.pk,
+                        is_closed=False,
+                        booked_count__lte=F('max_capacity') - guests,
+                    ).update(booked_count=F('booked_count') + guests)
+                    if not reserved:
+                        slot.refresh_from_db()
                         raise ValueError(
-                            f'Seçilen tarihte en fazla {availability.remaining} kişilik yer kalmıştır.'
+                            f'Seçilen tarihte en fazla {max(slot.remaining, 0)} kişilik yer kalmıştır.'
                         )
+                    unit_price = slot.effective_price
+                else:
+                    unit_price = tour.price
 
-                total_price = tour.price * guests
+                total_price = unit_price * guests
 
                 # ── Stripe PaymentIntent ─────────────────────────────────────
                 stripe.api_key = settings.STRIPE_SECRET_KEY
@@ -307,6 +324,20 @@ class BookingViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
+    @staticmethod
+    def _release_tour_capacity(booking):
+        """
+        `create()` sırasında tutulan tur kontenjanını geri bırakır.
+        Koşullu UPDATE ile yapılır ki eksiye düşmesin ve kilit gerekmesin.
+        """
+        if booking.service_type == 'shuttle' or not (booking.tour_id and booking.start_date):
+            return
+        TourAvailability.objects.filter(
+            tour_id=booking.tour_id,
+            date=booking.start_date,
+            booked_count__gte=booking.guests,
+        ).update(booked_count=F('booked_count') - booking.guests)
+
     # ─────────────────────────────────────────────────────────────────────────
     # CANCEL — Rezervasyon iptali + Stripe iadesi
     # ─────────────────────────────────────────────────────────────────────────
@@ -353,9 +384,13 @@ class BookingViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-            # Kapasiteyi geri ver
-            with transaction.atomic():
-                if booking.service_type == 'shuttle' and booking.shuttle_route_id and booking.start_date and booking.start_time:
+        # Kontenjanı geri ver. Tur rezervasyonlarında kontenjan `create()`
+        # anında tutulduğu için 'pending' kayıtlar da yer işgal eder; bu yüzden
+        # iade yapılmayan (ödenmemiş) iptallerde de bırakılması gerekir.
+        with transaction.atomic():
+            if booking.service_type == 'shuttle' and booking.shuttle_route_id and booking.start_date and booking.start_time:
+                if booking.status == 'confirmed':
+                    # Transfer kontenjanı yalnızca onayda düşülüyor (F5-01).
                     try:
                         availability = ShuttleAvailability.objects.select_for_update().get(
                             shuttle_route=booking.shuttle_route, date=booking.start_date, time=booking.start_time
@@ -364,20 +399,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                         availability.save(update_fields=['booked_count'])
                     except ShuttleAvailability.DoesNotExist:
                         pass
-                elif booking.start_date:
-                    try:
-                        availability = TourAvailability.objects.select_for_update().get(
-                            tour=booking.tour, date=booking.start_date
-                        )
-                        availability.booked_count = max(0, availability.booked_count - booking.guests)
-                        availability.save(update_fields=['booked_count'])
-                    except TourAvailability.DoesNotExist:
-                        pass
+            elif booking.status in ('pending', 'confirmed'):
+                self._release_tour_capacity(booking)
 
-                booking.status = 'cancelled'
-                booking.cancelled_at = timezone.now()
-                booking.save(update_fields=['status', 'cancelled_at'])
-        else:
             booking.status = 'cancelled'
             booking.cancelled_at = timezone.now()
             booking.save(update_fields=['status', 'cancelled_at'])
@@ -435,7 +459,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                         booking.save(update_fields=['status'])
                         logger.info(f"Booking {booking.booking_ref} confirmed via webhook")
 
-                        # Kapasiteyi düş
+                        # Tur kontenjanı create() sırasında zaten rezerve
+                        # edildi; burada tekrar düşmek çift sayıma yol açar.
+                        # Transfer akışı (F5-01) hâlâ webhook'ta düşüyor.
                         if booking.service_type == 'shuttle' and booking.shuttle_route_id and booking.start_date and booking.start_time:
                             try:
                                 availability = ShuttleAvailability.objects.select_for_update().get(
@@ -446,17 +472,6 @@ class BookingViewSet(viewsets.ModelViewSet):
                             except ShuttleAvailability.DoesNotExist:
                                 logger.warning(
                                     f"ShuttleAvailability not found for {booking.shuttle_route_id} on {booking.start_date} {booking.start_time}"
-                                )
-                        elif booking.start_date:
-                            try:
-                                availability = TourAvailability.objects.select_for_update().get(
-                                    tour=booking.tour, date=booking.start_date
-                                )
-                                availability.booked_count += booking.guests
-                                availability.save(update_fields=['booked_count'])
-                            except TourAvailability.DoesNotExist:
-                                logger.warning(
-                                    f"TourAvailability not found for {booking.tour.id} on {booking.start_date}"
                                 )
 
                 # E-posta atomic dışında
@@ -484,9 +499,17 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         elif event_type == 'payment_intent.payment_failed':
             try:
-                booking = Booking.objects.get(payment_intent_id=payment_intent['id'])
-                booking.status = 'failed'
-                booking.save(update_fields=['status'])
+                with transaction.atomic():
+                    booking = Booking.objects.select_for_update().get(
+                        payment_intent_id=payment_intent['id']
+                    )
+                    already_failed = booking.status == 'failed'
+                    booking.status = 'failed'
+                    booking.save(update_fields=['status'])
+                    # Ödeme başarısız → create()'te tutulan kontenjanı bırak.
+                    # Bırakılmazsa gün, hiç satılmamış koltuklarla dolu görünür.
+                    if not already_failed:
+                        self._release_tour_capacity(booking)
                 logger.info(f"Booking {booking.booking_ref} marked as failed via webhook")
 
                 if booking.user.email:

@@ -69,6 +69,11 @@ class TourAvailability(models.Model):
     date = models.DateField()
     max_capacity = models.IntegerField(default=20)
     booked_count = models.IntegerField(default=0)
+    # Gün bazlı fiyat. Boşsa turun temel fiyatı (Tour.price) geçerlidir —
+    # 0 ile "ücretsiz" ayırt edilebilsin diye null kullanılıyor, 0 default değil.
+    price_override = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    # Kontenjan dolu olmasa da acenta günü satışa kapatabilir (tatil, bakım vb.).
+    is_closed = models.BooleanField(default=False)
 
     class Meta:
         unique_together = ('tour', 'date')
@@ -81,7 +86,12 @@ class TourAvailability(models.Model):
 
     @property
     def is_available(self):
-        return self.remaining > 0
+        return not self.is_closed and self.remaining > 0
+
+    @property
+    def effective_price(self):
+        """O güne uygulanacak kişi başı fiyat."""
+        return self.price_override if self.price_override is not None else self.tour.price
 
     def __str__(self):
         return f"{self.tour.title} - {self.date} ({self.remaining} remaining)"

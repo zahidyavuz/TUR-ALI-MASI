@@ -1,3 +1,5 @@
+from datetime import date
+
 from django.contrib.auth.models import User
 from django.test import TestCase
 from rest_framework.test import APIClient
@@ -216,6 +218,99 @@ class AgencyTourCrudTestCase(TestCase):
         self.assertIn(slug, [t['id'] for t in anon.get('/api/v1/tours/').data['results']])
         self.assertEqual(anon.get(f'/api/v1/tours/{slug}/').status_code, 200)
         self.assertTrue(self.client.get('/api/v1/agency/tours/').data['results'][0]['is_published'])
+
+
+class AgencyAvailabilityCalendarTestCase(TestCase):
+    """F2-02 — Kontenjan takvim editörü uçları."""
+
+    def setUp(self):
+        from tours.models import Tour, TourAvailability
+        self.TourAvailability = TourAvailability
+
+        self.client = APIClient()
+        self.owner = User.objects.create_user(username='cal_owner', password='pass')
+        self.agency = Agency.objects.create(
+            owner=self.owner, name='Cal Acenta', is_verified=True, is_active=True
+        )
+        self.tour = Tour.objects.create(
+            id='cal-tour', agency=self.agency, title='Cal Tour', location='Fethiye',
+            price=800, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.day = date(2026, 9, 10)
+        self.slot = TourAvailability.objects.create(
+            tour=self.tour, date=self.day, max_capacity=20, booked_count=4
+        )
+        self.client.force_authenticate(user=self.owner)
+
+    URL = '/api/v1/agency/tours/cal-tour/availability/'
+
+    def test_get_returns_month_days(self):
+        response = self.client.get(f'{self.URL}?month=2026-09')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['month'], '2026-09')
+        self.assertEqual(len(response.data['days']), 1)
+        self.assertEqual(response.data['days'][0]['booked_count'], 4)
+
+    def test_get_rejects_bad_month(self):
+        self.assertEqual(self.client.get(f'{self.URL}?month=2026').status_code, 400)
+
+    def test_bulk_put_creates_and_updates(self):
+        response = self.client.put(self.URL, {'days': [
+            {'date': '2026-09-10', 'max_capacity': 30, 'price_override': '999.50', 'is_closed': False},
+            {'date': '2026-09-11', 'max_capacity': 5, 'price_override': None, 'is_closed': True},
+        ]}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.max_capacity, 30)
+        self.assertEqual(str(self.slot.price_override), '999.50')
+
+        created = self.TourAvailability.objects.get(tour=self.tour, date=date(2026, 9, 11))
+        self.assertTrue(created.is_closed)
+        self.assertIsNone(created.price_override)
+
+    def test_bulk_put_rejects_quota_below_sold(self):
+        """Satılan bilet sayısının altına düşürme reddedilir; hiçbir gün yazılmaz"""
+        response = self.client.put(self.URL, {'days': [
+            {'date': '2026-09-12', 'max_capacity': 40, 'price_override': None, 'is_closed': False},
+            {'date': '2026-09-10', 'max_capacity': 3, 'price_override': None, 'is_closed': False},
+        ]}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('conflicts', response.data)
+
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.max_capacity, 20)  # değişmedi
+        self.assertFalse(
+            self.TourAvailability.objects.filter(tour=self.tour, date=date(2026, 9, 12)).exists()
+        )
+
+    def test_bulk_put_validates_payload(self):
+        for payload, label in [
+            ({'days': []}, 'boş liste'),
+            ({'days': [{'date': 'yarın', 'max_capacity': 5}]}, 'bozuk tarih'),
+            ({'days': [{'date': '2026-09-10', 'max_capacity': -1}]}, 'negatif kontenjan'),
+            ({'days': [{'date': '2026-09-10', 'max_capacity': 5, 'price_override': -5}]}, 'negatif fiyat'),
+            ({'days': [{'date': '2026-09-11', 'max_capacity': 5},
+                       {'date': '2026-09-11', 'max_capacity': 6}]}, 'tekrarlı tarih'),
+        ]:
+            with self.subTest(label):
+                self.assertEqual(self.client.put(self.URL, payload, format='json').status_code, 400)
+
+    def test_other_agency_cannot_read_or_write_calendar(self):
+        intruder = User.objects.create_user(username='cal_intruder', password='pass')
+        Agency.objects.create(owner=intruder, name='Rakip', is_verified=True, is_active=True)
+        other = APIClient()
+        other.force_authenticate(user=intruder)
+
+        self.assertEqual(other.get(self.URL).status_code, 404)
+        self.assertEqual(
+            other.put(self.URL, {'days': [{'date': '2026-09-10', 'max_capacity': 1}]},
+                      format='json').status_code, 404
+        )
+
+    def test_anonymous_cannot_access_calendar(self):
+        self.assertEqual(APIClient().get(self.URL).status_code, 401)
 
 
 class AdminApplicationActionsTestCase(TestCase):
