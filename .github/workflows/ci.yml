@@ -1,0 +1,105 @@
+name: CI
+
+# STD-CHECK'in tamamını PR ve main push'larında çalıştırır (F3-06).
+# Backend ve frontend paralel iki iş halinde koşar; ikisi de yeşil olmadan
+# PR birleştirilmemeli. NOT: "PR'da zorunlu" kuralı GitHub'da branch protection
+# ayarı gerektirir (bkz. TASKS.md notu) — bu YAML yalnız kontrolleri tanımlar.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Aynı dal/PR için yeni push gelince önceki koşumu iptal et (CI dakikası tasarrufu).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (test + migrate check + duplicate scan)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python 3.9 kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.9'
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Bağımlılıkları kur
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: makemigrations --check (unutulmuş migration var mı?)
+        run: python manage.py makemigrations --check --dry-run
+
+      - name: migrate + migrate --check (migration'lar temiz uygulanıyor mu?)
+        # Fresh CI'da DB yok; --check'in anlamlı olması için önce uygula.
+        run: |
+          python manage.py migrate --noinput
+          python manage.py migrate --check
+
+      - name: Testler
+        run: python manage.py test --verbosity=2
+
+      - name: Duplicate model field taraması (AST)
+        run: |
+          python - <<'EOF'
+          import ast, os, sys
+          dupes = []
+          for r, d, fs in os.walk('.'):
+              d[:] = [x for x in d if x not in ('.git', '__pycache__', 'migrations', 'venv', '.venv')]
+              for f in fs:
+                  if f == 'models.py' or f.endswith('_models.py'):
+                      p = os.path.join(r, f)
+                      tree = ast.parse(open(p).read())
+                      for n in ast.walk(tree):
+                          if isinstance(n, ast.ClassDef):
+                              seen = {}
+                              for s in n.body:
+                                  if isinstance(s, ast.Assign) and isinstance(s.targets[0], ast.Name):
+                                      t = s.targets[0].id
+                                      if t in seen:
+                                          dupes.append(f'{p}:{n.name}.{t}')
+                                      seen[t] = 1
+          if dupes:
+              print('DUPLICATE model field(ları) bulundu:')
+              for x in dupes:
+                  print('  ' + x)
+              sys.exit(1)
+          print('Duplicate field taraması temiz.')
+          EOF
+
+  frontend:
+    name: Frontend (tsc + lint + build)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node 22 kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Tip kontrolü (tsc)
+        run: npx tsc --noEmit
+
+      # NOT: STD-CHECK 'npx next lint' der ama Next 16 bu komutu kaldırdı;
+      # doğru komut package.json'daki 'npm run lint' (eslint). Bkz. TASKS.md notu.
+      - name: Lint (eslint)
+        run: npm run lint
+
+      - name: Build
+        run: npm run build

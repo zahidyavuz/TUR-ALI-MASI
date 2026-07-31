@@ -480,13 +480,27 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F3-06 · CI pipeline (GitHub Actions)
+### [x] F3-06 · CI pipeline (GitHub Actions)
 
 **Öncelik:** P2 · **Efor:** M
 
 **Adımlar:** `.github/workflows/ci.yml`: STD-CHECK'in tamamı (backend test + migrate check + duplicate scan + tsc + lint + `npm run build`). PR'da zorunlu.
 
-**Notlar:** _
+**Notlar:**
+
+`.github/workflows/ci.yml` eklendi. `push: [main]` ve `pull_request: [main]` tetikleyicileri; aynı ref için `concurrency` + `cancel-in-progress` (eski koşumu iptal eder). İki paralel iş:
+
+- **backend** (Python 3.9 — yerel venv 3.9.6 ile aynı, pip cache): `pip install -r requirements.txt` → `makemigrations --check --dry-run` → `migrate --noinput` + `migrate --check` → `manage.py test --verbosity=2` → STD-CHECK'teki AST duplicate-model-field taraması (inline python, duplicate bulursa `sys.exit(1)`).
+- **frontend** (Node 22 LTS, npm cache): `npm ci` → `npx tsc --noEmit` → `npm run lint` → `npm run build`.
+
+**Yerel gerçekle uyum için yapılan uyarlamalar (STD-CHECK metnine göre):**
+- **`migrate --check` fresh CI'da tek başına başarısız olurdu** (yeni checkout'ta DB yok → tüm migration'lar "uygulanmamış" → exit 1). STD-CHECK'in niyetini korumak için önce `migrate --noinput` (SQLite'a uygula) sonra `migrate --check` çalıştırıldı; böylece "bekleyen migration yok" kontrolü anlamlı oluyor. Asıl migration-uygulanabilirlik güvencesi zaten `test`'in taze test DB'sini kurmasıyla sağlanıyor.
+- **Lint komutu `npm run lint` (eslint).** STD-CHECK `npx next lint` diyor ama Next 16 bu komutu kaldırdı (bkz. mevcut bulgu). CI doğru komutu kullanıyor; adımda yorumla belirtildi.
+- Backend testleri harici servis (Postgres/Redis) veya secret gerektirmiyor: `settings.py` `DATABASE_URL` yoksa SQLite'a düşüyor ve tüm env değişkenlerinin güvenli varsayılanları var; `if 'test' in sys.argv` throttle'ı kapatıyor. Bu yüzden CI'da ekstra servis tanımlanmadı.
+
+**Doğrulama:** `ci.yml` YAML olarak parse edildi (geçerli). CI'daki AST duplicate-scan script'i yerelde `backend/` üzerinde aynen çalıştırıldı → "temiz". Her adımın komutu yerelde daha önce yeşil koştu: backend suite **197 test OK** (F3-04), `tsc`/`lint`/`build` temiz (F3-05); F3-06 yalnız CI dosyası ekledi, uygulama kodu değişmedi.
+
+**İnsan aksiyonu gerekiyor (bulgulara işlendi):** "PR'da zorunlu" yalnız workflow'la sağlanamaz — GitHub'da **branch protection** kuralı (`main` için "Require status checks to pass": `backend`, `frontend`) elle açılmalı. Repo ayarı olduğu için koddan yapılamaz.
 
 ---
 
@@ -724,6 +738,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · ölü kod] `app/lib/apiShield.ts` ve `app/lib/ssrfShield.ts` sahipsiz güvenlik-tiyatrosu lib'leri.** F3-04 grep'inde sıfır importer ile ölü teyit edildi. Görevde açıkça sıralanmadıkları için (enum edilen route/lib listesinde yoklar) bu turda silinmedi — kapsam disiplini. İçerikleri gerçek bir koruma sağlamıyor (hiçbir yerden çağrılmıyor); bir sonraki ölü-kod/güvenlik temizliğinde kaldırılmalı.
 
 * **[P2 · güvenlik] CSP `style-src` hâlâ `unsafe-inline` içeriyor (script-src temiz).** F3-05'te `script-src`'ten `unsafe-inline` tamamen kaldırıldı (nonce + strict-dynamic), ancak `style-src 'unsafe-inline'` bilinçli olarak korundu: kod tabanında 11 dosyada 21 React satır-içi `style={{}}` özniteliği + `next/font`/`styled-jsx` enjekte stilleri var ve **nonce satır-içi `style` özniteliklerine uygulanamaz** (yalnız `<style>` elemanlarına). Katı `style-src` uygulamayı kırar, kazancı düşüktür (CSS enjeksiyonu script yürütmez). Tamamen kaldırmak için: satır-içi stilleri Tailwind sınıflarına/`data-*`+CSS'e taşımak (21 nokta + font stratejisi) ya da CSP3 `'unsafe-hashes'` + her stil değeri için hash (kırılgan). Ayrı bir sıkılaştırma turunda ele alınabilir.
+
+* **[P1 · süreç] CI "PR'da zorunlu" için branch protection elle açılmalı.** F3-06'da `.github/workflows/ci.yml` eklendi (backend + frontend işleri PR ve main push'ta koşuyor), ancak "geçmeden merge edilemez" kuralı bir GitHub **repo ayarıdır**, koddan yapılamaz. Repo Settings → Branches → `main` için "Require status checks to pass before merging" açılıp `backend` ve `frontend` check'leri zorunlu işaretlenmeli (ideal olarak "Require branches to be up to date" + PR review de). Bu yapılmadan CI yeşil/kırmızı görünür ama merge'i engellemez.
 
 * **[P1 · performans] Nonce'lu CSP tüm sayfaları dinamik render'a çekti (ISR ile çakışıyor).** F3-05'te `layout.tsx` `headers()` ile istek-başına nonce okuduğu için build çıktısındaki tüm route'lar artık `ƒ (Dynamic)` — statik/ISR optimizasyonu devre dışı. Bu, `unsafe-inline`'sız CSP'nin Next.js'te kaçınılmaz bedeli (framework inline hidrasyon script'leri build başına değişir, hash'lenemez → nonce şart). **F5-07** (ilk yükleme/performans, hero+kategoriler ISR hedefi) doğrudan bununla çakışıyor: ISR isteniyorsa ya CSP nonce'u yalnız belirli route segment'lerinde uygulamak (layout'u bölmek) ya da statik sayfalarda `unsafe-inline`+hash'e dönmek gibi bir uzlaşı gerekecek. F5-07'de birlikte kararlaştırılmalı.
 
