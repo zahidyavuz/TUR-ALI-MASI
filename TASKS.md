@@ -540,7 +540,7 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F4-02 · Tur detay SSR/ISR + JSON-LD (SEO)
+### [x] F4-02 · Tur detay SSR/ISR + JSON-LD (SEO)
 
 **Öncelik:** P1 · **Efor:** M
 
@@ -548,7 +548,7 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 **Doğrulama:** `curl` çıktısında içerik + JSON-LD görünür (JS'siz); Rich Results test. STD-CHECK.
 
-**Notlar:** _
+**Notlar:** İnteraktif eski `page.tsx` → `TourDetailClient.tsx` (client) olarak ayrıldı; yeni `page.tsx` server component: `export const revalidate = 3600`, `generateMetadata` (title/desc/OG/twitter + `metadataBase` + canonical + 7 dile hreflang & x-default) ve sunucu tarafı JSON-LD. JSON-LD tek `@graph` içinde `Product` + `TouristTrip` (offer TRY, `itinerary` → ItemList), `reviews_count>0` ise `AggregateRating`. Fazlalık `layout.tsx` kaldırıldı (generateMetadata+JSON-LD tek yerde). `next-sitemap.config.js`'e `additionalPaths` eklendi: katalog uçunu sayfalayarak yayındaki tüm `/tour/<slug>`'ları toplar, backend kapalıysa sessizce atlar. Doğrulama: prod sunucuda `curl` ile JSON-LD (Product+TouristTrip+AggregateRating), `<title>`, canonical ve 8 hreflang satırı JS'siz göründü; sitemap backend açıkken 3 slug topladı. Bulunup düzeltilen: eski `layout.tsx` `aggregateRating`'ı olmayan `average_rating`/`review_count` alanlarını okuduğu için hiç render olmuyordu (serializer'da `rating`/`reviews_count` var) — yeni sürümde doğru alanlarla çalışıyor. tsc/lint/build temiz; makemigrations/migrate --check temiz (backend değişmedi). **Uyarı:** kök `layout.tsx` CSP nonce'u istek başına header okuduğundan (F3-05) build tüm rotaları `ƒ (Dynamic)` işaretliyor; bu yüzden `revalidate=3600` şu an gerçek statik ISR üretmiyor, sayfa istek başına render ediliyor (JSON-LD yine sunucuda). Bu çakışma F5-07'de zaten kayıtlı; nonce route bazına kapsamlanınca ISR etkinleşir.
 
 ---
 
