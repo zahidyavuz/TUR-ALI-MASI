@@ -105,6 +105,12 @@ class IsAgentOwner(permissions.BasePermission):
         if hasattr(obj, 'tour') and hasattr(obj.tour, 'agency') and obj.tour.agency:
             return obj.tour.agency.owner == request.user
 
+        # Transfer rezervasyonunda `tour` boştur; bağ `shuttle_route` üzerinden
+        # kurulur. Bu dal olmadan acenta kendi transfer rezervasyonuna 403 alır.
+        route = getattr(obj, 'shuttle_route', None)
+        if route is not None and getattr(route, 'agency', None):
+            return route.agency.owner == request.user
+
         # Nesnenin 'agency' alanı varsa genel kontrol
         if hasattr(obj, 'agency') and obj.agency:
             return getattr(obj.agency, 'owner', None) == request.user

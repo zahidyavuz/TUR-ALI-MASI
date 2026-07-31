@@ -48,6 +48,10 @@ class Booking(models.Model):
     guest_phone = models.CharField(max_length=32, blank=True, default='')
     guest_hotel = models.CharField(max_length=255, blank=True, default='')
 
+    # Rehber/şoför hizmet günü buluşmaya gelmeyen misafiri işaretler.
+    # İptalden ayrıdır: para iade edilmez, kontenjan geri verilmez.
+    no_show = models.BooleanField(default=False)
+
     booking_ref = models.CharField(max_length=50, unique=True)
     payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
     

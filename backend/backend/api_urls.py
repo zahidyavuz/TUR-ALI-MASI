@@ -14,6 +14,7 @@ from contacts.views import ContactMessageViewSet, LeadViewSet
 # ── Acenta B2B Modülleri ──────────────────────────────────────────────────────
 from agencies.agency_tours_views import AgencyTourViewSet
 from agencies.agency_shuttles_views import AgencyShuttleViewSet
+from agencies.agency_bookings_views import AgencyBookingViewSet
 from agencies.finance_views import (
     AgencyFinanceSummaryView,
     AgencyFinanceLedgerView,
@@ -48,6 +49,7 @@ router.register(r'restaurant/reservations', DiningReservationViewSet, basename='
 # ── Acenta Tur Yönetimi (RLS korumalı) ───────────────────────────────────────
 router.register(r'agency/tours', AgencyTourViewSet, basename='agency-tour')
 router.register(r'agency/shuttles', AgencyShuttleViewSet, basename='agency-shuttle')
+router.register(r'agency/bookings', AgencyBookingViewSet, basename='agency-booking')
 
 
 

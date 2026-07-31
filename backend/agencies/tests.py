@@ -313,6 +313,163 @@ class AgencyAvailabilityCalendarTestCase(TestCase):
         self.assertEqual(APIClient().get(self.URL).status_code, 401)
 
 
+class AgencyBookingsTestCase(TestCase):
+    """F2-03 — Acenta rezervasyon listesi, manifest ve no-show."""
+
+    def setUp(self):
+        from tours.models import Tour
+        from bookings.models import Booking
+        self.Booking = Booking
+
+        self.client = APIClient()
+        self.owner = User.objects.create_user(username='bk_owner', password='pass')
+        self.agency = Agency.objects.create(
+            owner=self.owner, name='BK Acenta', is_verified=True, is_active=True
+        )
+        self.tour = Tour.objects.create(
+            id='bk-tour', agency=self.agency, title='BK Tour', location='Antalya',
+            price=500, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.customer = User.objects.create_user(
+            username='bk_customer', password='pass', email='c@test.com', first_name='Ada'
+        )
+        self.day = date(2026, 10, 5)
+        self.booking = Booking.objects.create(
+            user=self.customer, tour=self.tour, start_date=self.day, guests=2,
+            total_price=1000, booking_ref='BK000001', status='confirmed',
+            guest_full_name='Ada Yolcu', guest_phone='+905551112233',
+            guest_hotel='Otel Deniz',
+        )
+        self.pending = Booking.objects.create(
+            user=self.customer, tour=self.tour, start_date=self.day, guests=1,
+            total_price=500, booking_ref='BK000002', status='pending',
+        )
+
+        # Başka acenta + onun rezervasyonu (izolasyon testi için)
+        self.rival_owner = User.objects.create_user(username='bk_rival', password='pass')
+        self.rival_agency = Agency.objects.create(
+            owner=self.rival_owner, name='Rakip', is_verified=True, is_active=True
+        )
+        self.rival_tour = Tour.objects.create(
+            id='rival-tour', agency=self.rival_agency, title='Rakip Tur', location='Kaş',
+            price=400, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.rival_booking = Booking.objects.create(
+            user=self.customer, tour=self.rival_tour, start_date=self.day, guests=3,
+            total_price=1200, booking_ref='RIVAL001', status='confirmed',
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+    URL = '/api/v1/agency/bookings/'
+
+    def _refs(self, response):
+        results = response.data.get('results', response.data)
+        return {row['booking_ref'] for row in results}
+
+    def test_list_shows_only_own_bookings(self):
+        """İzolasyon: A acentesi B'nin rezervasyonunu göremez"""
+        response = self.client.get(self.URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(self._refs(response), {'BK000001', 'BK000002'})
+
+    def test_rival_cannot_read_or_patch_our_booking(self):
+        other = APIClient()
+        other.force_authenticate(user=self.rival_owner)
+        self.assertNotIn('BK000001', self._refs(other.get(self.URL)))
+        self.assertEqual(other.get(f'{self.URL}{self.booking.id}/').status_code, 404)
+        self.assertEqual(
+            other.patch(f'{self.URL}{self.booking.id}/', {'no_show': True},
+                        format='json').status_code, 404
+        )
+
+    def test_anonymous_denied(self):
+        self.assertEqual(APIClient().get(self.URL).status_code, 401)
+
+    def test_filters(self):
+        for params, expected in [
+            ('?status=confirmed', {'BK000001'}),
+            ('?date=2026-10-05', {'BK000001', 'BK000002'}),
+            ('?date=2026-10-06', set()),
+            ('?tour=bk-tour', {'BK000001', 'BK000002'}),
+            ('?tour=rival-tour', set()),
+            ('?q=BK000001', {'BK000001'}),
+            ('?q=Ada Yolcu', {'BK000001'}),
+        ]:
+            with self.subTest(params):
+                self.assertEqual(self._refs(self.client.get(f'{self.URL}{params}')), expected)
+
+    def test_manifest_groups_confirmed_only(self):
+        response = self.client.get(f'{self.URL}manifest/?date=2026-10-05')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['total_pax'], 2)
+        self.assertEqual(response.data['total_bookings'], 1)
+        self.assertEqual(len(response.data['groups']), 1)
+
+        group = response.data['groups'][0]
+        self.assertEqual(group['service_id'], 'bk-tour')
+        self.assertEqual(group['pax'], 2)
+        passenger = group['passengers'][0]
+        self.assertEqual(passenger['passenger'], 'Ada Yolcu')
+        self.assertEqual(passenger['hotel'], 'Otel Deniz')
+        # Rakip acentanın aynı gündeki rezervasyonu manifeste sızmamalı
+        self.assertNotIn('RIVAL001', {p['booking_ref'] for p in group['passengers']})
+
+    def test_manifest_requires_date(self):
+        self.assertEqual(self.client.get(f'{self.URL}manifest/').status_code, 400)
+        self.assertEqual(self.client.get(f'{self.URL}manifest/?date=abc').status_code, 400)
+
+    def test_manifest_falls_back_to_account_details(self):
+        """Misafir alanları boşsa hesabın kendi bilgileri gösterilir"""
+        self.booking.guest_full_name = ''
+        self.booking.guest_phone = ''
+        self.booking.save(update_fields=['guest_full_name', 'guest_phone'])
+        response = self.client.get(f'{self.URL}manifest/?date=2026-10-05')
+        passenger = response.data['groups'][0]['passengers'][0]
+        self.assertEqual(passenger['passenger'], 'Ada')
+        self.assertEqual(passenger['phone'], '—')
+        self.assertEqual(passenger['email'], 'c@test.com')
+
+    def test_no_show_marking(self):
+        response = self.client.patch(f'{self.URL}{self.booking.id}/',
+                                     {'no_show': True}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.booking.refresh_from_db()
+        self.assertTrue(self.booking.no_show)
+
+    def test_no_show_only_for_confirmed(self):
+        response = self.client.patch(f'{self.URL}{self.pending.id}/',
+                                     {'no_show': True}, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.pending.refresh_from_db()
+        self.assertFalse(self.pending.no_show)
+
+    def test_patch_rejects_other_fields(self):
+        """Mass assignment: no_show dışındaki hiçbir alan yazılamaz"""
+        for payload in [
+            {'status': 'cancelled'},
+            {'total_price': '1'},
+            {'guests': 99},
+            {'no_show': True, 'total_price': '1'},
+        ]:
+            with self.subTest(payload):
+                response = self.client.patch(f'{self.URL}{self.booking.id}/',
+                                             payload, format='json')
+                self.assertEqual(response.status_code, 400)
+
+        self.booking.refresh_from_db()
+        self.assertEqual(self.booking.status, 'confirmed')
+        self.assertEqual(self.booking.guests, 2)
+        self.assertFalse(self.booking.no_show)
+
+    def test_put_not_allowed(self):
+        response = self.client.put(f'{self.URL}{self.booking.id}/',
+                                   {'no_show': True}, format='json')
+        self.assertEqual(response.status_code, 405)
+
+
 class AdminApplicationActionsTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
