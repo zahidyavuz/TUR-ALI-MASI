@@ -1,0 +1,1 @@
+Rezervasyonunuz onaylandı — {{ booking_ref }}

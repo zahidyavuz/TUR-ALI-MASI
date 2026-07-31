@@ -1,0 +1,1 @@
+Rezervasyonunuz iptal edildi — {{ booking_ref }}

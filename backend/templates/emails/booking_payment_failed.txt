@@ -1,0 +1,12 @@
+{% autoescape off %}Merhaba {{ user_name }},
+
+{{ service_label }} için ödemeniz alınamadı ve rezervasyonunuz tamamlanamadı.
+Ayrılan kontenjan serbest bırakıldı.
+
+Referans no: {{ booking_ref }}
+
+Tekrar denemek veya farklı bir ödeme yöntemi kullanmak için:
+{{ frontend_url }}
+
+{{ site_name }}
+{% endautoescape %}

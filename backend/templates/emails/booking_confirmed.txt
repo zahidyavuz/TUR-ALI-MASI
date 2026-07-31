@@ -1,0 +1,15 @@
+{% autoescape off %}Merhaba {{ user_name }},
+
+{{ service_label }} için ödemeniz alındı ve rezervasyonunuz onaylandı.
+
+Tarih: {{ date_label }}
+Referans no: {{ booking_ref }}
+
+Biletinizi ve QR kodunuzu buradan görüntüleyebilirsiniz:
+{{ ticket_url }}
+
+QR kodunuzu hizmet günü görevliye okutmanız yeterlidir.
+
+İyi tatiller dileriz.
+{{ site_name }}
+{% endautoescape %}

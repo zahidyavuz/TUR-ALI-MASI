@@ -4,13 +4,12 @@ from rest_framework.views import APIView
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.core.mail import send_mail
-from django.conf import settings
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from datetime import timedelta
 
 from backend.admin_permissions import IsAdminUser
+from core.emails import display_name, frontend_url, send_templated_mail
 from agencies.models import Agency
 from tours.models import Tour
 from bookings.models import Booking
@@ -243,8 +242,9 @@ class AdminAgencyViewSet(viewsets.ModelViewSet):
         self._notify_owner(
             agency,
             title='Başvurunuz Reddedildi',
-            message=f'{agency.name} başvurunuz reddedildi. Sebep: {reason}',
+            message=f'{agency.name} başvurunuz reddedildi.',
             icon='❌',
+            reason=reason,
         )
         logger.info(f"[ONBOARDING] Rejected: agency '{agency.name}' by {request.user.username}")
 
@@ -271,8 +271,9 @@ class AdminAgencyViewSet(viewsets.ModelViewSet):
         self._notify_owner(
             agency,
             title='Başvurunuzda Eksik Bilgi Var',
-            message=f'{agency.name} başvurunuzda eksik bilgi tespit edildi: {note}',
+            message=f'{agency.name} başvurunuzda eksik bilgi tespit edildi.',
             icon='⚠️',
+            reason=note,
         )
         logger.info(f"[ONBOARDING] More info requested: agency '{agency.name}' by {request.user.username}")
 
@@ -284,18 +285,20 @@ class AdminAgencyViewSet(viewsets.ModelViewSet):
         })
 
     @staticmethod
-    def _notify_owner(agency, title, message, icon):
+    def _notify_owner(agency, title, message, icon, reason=''):
         if not agency.owner:
             return
+        # Uygulama içi bildirimin tek bir metin alanı var; sebep oraya iliştirilir.
+        # E-postada ise ayrı bir blokta gösterilebildiği için ayrı geçirilir.
         Notification.objects.create(
-            user=agency.owner, title=title, message=message, icon=icon,
+            user=agency.owner, title=title, icon=icon,
+            message=f'{message} Sebep: {reason}' if reason else message,
             type='agency_status', action_url='/dashboard/agency',
         )
-        if agency.owner.email:
-            try:
-                send_mail(
-                    title, message, settings.DEFAULT_FROM_EMAIL,
-                    [agency.owner.email], fail_silently=True,
-                )
-            except Exception as e:
-                logger.warning(f"[ONBOARDING] Notification email failed for {agency.name}: {e}")
+        send_templated_mail('agency_status', agency.owner.email, {
+            'user_name': display_name(agency.owner),
+            'title': title,
+            'message': message,
+            'reason': reason,
+            'dashboard_url': frontend_url('/dashboard/agency'),
+        })

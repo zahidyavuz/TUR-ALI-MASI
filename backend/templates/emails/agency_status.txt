@@ -1,0 +1,11 @@
+{% autoescape off %}Merhaba {{ user_name }},
+
+{{ message }}
+{% if reason %}
+Açıklama: {{ reason }}
+{% endif %}
+İşletme panelinize buradan ulaşabilirsiniz:
+{{ dashboard_url }}
+
+{{ site_name }}
+{% endautoescape %}

@@ -135,11 +135,26 @@ REST_AUTH = {
     'USE_JWT': True,
     'JWT_AUTH_COOKIE': 'auth-token',
     'JWT_AUTH_REFRESH_COOKIE': 'refresh-token',
-    'PASSWORD_RESET_CONFIRM_URL': 'reset-password/?uid={uid}&token={token}',
+    # dj_rest_auth'un varsayılan url üreteci `reverse('password_reset_confirm')`
+    # çağırır; o url adı bu projede kayıtlı olmadığı için şifre sıfırlama ucu
+    # NoReverseMatch ile 500 dönüyordu. Aşağıdaki serializer bağlantıyı doğrudan
+    # ön yüzdeki /reset-password sayfasına kurar.
+    'PASSWORD_RESET_SERIALIZER': 'users.auth_serializers.FrontendPasswordResetSerializer',
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'LOGOUT_ON_PASSWORD_CHANGE': False,
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
 }
+
+# ── ALLAUTH ──────────────────────────────────────────────────────────────────
+# Adapter, doğrulama bağlantısını backend API ucu yerine ön yüzdeki
+# /verify-email sayfasına yönlendirir (sayfa `key` parametresini bekliyor).
+ACCOUNT_ADAPTER = 'users.adapters.FrontendAccountAdapter'
+ACCOUNT_EMAIL_VERIFICATION = 'optional'
+ACCOUNT_LOGIN_METHODS = {'email', 'username'}
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'username*', 'password1*', 'password2*']
+# Varsayılan önek "[example.com] " üretir; Site kaydı kuruluma bağlı olduğundan
+# konu satırını şablon belirlesin.
+ACCOUNT_EMAIL_SUBJECT_PREFIX = ''
 
 # ── ÖDEME SAĞLAYICISI ────────────────────────────────────────────────────────
 # Aktif PSP: 'stripe' | 'iyzico'. Stripe TR'de yerleşik işletmeden tahsilat
@@ -160,7 +175,7 @@ ROOT_URLCONF = 'backend.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / 'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -270,14 +285,31 @@ if not DEBUG:
 # CSP (Django-CSP is not installed, so we set basic headers via SecurityMiddleware if needed)
 # SecurityMiddleware covers X-Content-Type, X-XSS, X-Frame-Options.
 
-# Email Settings
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# ── E-POSTA ──────────────────────────────────────────────────────────────────
+# Sağlayıcı seçimi SMTP üzerinden env ile yapılır: SendGrid, Resend, Postmark ve
+# SES'in hepsi SMTP konuşur, dolayısıyla sağlayıcı değiştirmek için kodda değil
+# sadece .env'de değişiklik gerekir (sağlayıcıya özel SDK bağımlılığı yok).
 EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.sendgrid.net')
 EMAIL_PORT = int(os.getenv('EMAIL_PORT', 587))
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER', 'apikey')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD', '')
 DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'noreply@tur-ali-masi.com')
+
+# SMTP parolası yoksa gönderim her seferinde patlar; çağrı yerlerinin çoğu
+# `fail_silently=True` kullandığı için bu hata sessizce yutulur ve geliştirici
+# mailin hiç üretilmediğini sanır. Bu yüzden yapılandırma eksikse konsola yazan
+# backend'e düşülür — şablonlar terminalde görünür.
+EMAIL_BACKEND = os.getenv(
+    'EMAIL_BACKEND',
+    'django.core.mail.backends.smtp.EmailBackend' if EMAIL_HOST_PASSWORD
+    else 'django.core.mail.backends.console.EmailBackend',
+)
+
+# Maillerdeki bağlantılar ön yüze gitmeli. `django.contrib.sites` varsayılanı
+# example.com olduğundan buna güvenilemez.
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
+SITE_NAME = os.getenv('SITE_NAME', 'Tourkia')
 
 # Logging
 LOGGING = {

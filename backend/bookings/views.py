@@ -11,8 +11,6 @@ Kritik değişiklikler:
 import logging
 from datetime import date as date_type, datetime, time as time_type, timedelta
 
-from django.conf import settings
-from django.core.mail import send_mail
 from django.db import transaction, DatabaseError
 from django.db.models import F
 from django.http import HttpResponse
@@ -35,6 +33,7 @@ from .payments import (
 from .serializers import BookingSerializer
 from tours.models import Tour, TourAvailability
 from shuttles.models import ShuttleRoute, ShuttleAvailability
+from core.emails import display_name, frontend_url, send_templated_mail
 from core.permissions import IsOwner, StrictMassAssignmentPermission
 
 logger = logging.getLogger('bookings')
@@ -42,6 +41,21 @@ logger = logging.getLogger('bookings')
 # Hizmet başlangıcına bu süreden az kalmışsa iptal kabul edilmez.
 # Basit sabit kural; esnek politika motoru F4-04'te gelecek.
 CANCELLATION_CUTOFF_HOURS = 24
+
+
+def service_label(booking):
+    """E-postalarda kullanılan okunabilir hizmet adı."""
+    if booking.tour:
+        return f'{booking.tour.title} turu'
+    if booking.shuttle_route:
+        return f'{booking.shuttle_route.title} transferi'
+    return 'hizmetiniz'
+
+
+def ticket_url():
+    # /tickets/<id> sayfası henüz sabit veriyle çalışıyor; müşterinin gerçek
+    # biletlerini gösteren tek sayfa panel altındaki liste.
+    return frontend_url('/dashboard/customer/tickets')
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -171,25 +185,16 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # ── E-posta bildirimi (atomic dışında — hata rezervasyonu geri almaz) ─
-        if request.user.email:
-            try:
-                send_mail(
-                    'Rezervasyonunuz Alındı!',
-                    (
-                        f'Merhaba {request.user.first_name or request.user.username},\n\n'
-                        f'{tour.title} turu için rezervasyonunuz alınmıştır.\n'
-                        f'Tarih: {date_label or start_date}\n'
-                        f'Kişi sayısı: {guests}\n'
-                        f'Toplam tutar: ₺{total_price}\n'
-                        f'Referans no: {booking_ref}\n\n'
-                        f'Ödeme onaylandıktan sonra size bilgi verilecektir.'
-                    ),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [request.user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                logger.warning(f"Booking creation email failed: {e}")
+        send_templated_mail('booking_created', request.user.email, {
+            'user_name': display_name(request.user),
+            'service_label': f'{tour.title} turu',
+            'date_label': date_label or start_date,
+            'guest_label': 'Kişi sayısı',
+            'guests': guests,
+            'total_price': total_price,
+            'booking_ref': booking_ref,
+            'ticket_url': ticket_url(),
+        })
 
         serializer = self.get_serializer(booking)
         return Response(
@@ -296,25 +301,16 @@ class BookingViewSet(viewsets.ModelViewSet):
         except PaymentError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        if request.user.email:
-            try:
-                send_mail(
-                    'Transfer Rezervasyonunuz Alındı!',
-                    (
-                        f'Merhaba {request.user.first_name or request.user.username},\n\n'
-                        f'{shuttle_route.title} transferi için rezervasyonunuz alınmıştır.\n'
-                        f'Tarih/Saat: {start_date} {start_time}\n'
-                        f'Yolcu sayısı: {guests}\n'
-                        f'Toplam tutar: ₺{total_price}\n'
-                        f'Referans no: {booking_ref}\n\n'
-                        f'Ödeme onaylandıktan sonra size bilgi verilecektir.'
-                    ),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [request.user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                logger.warning(f"Shuttle booking creation email failed: {e}")
+        send_templated_mail('booking_created', request.user.email, {
+            'user_name': display_name(request.user),
+            'service_label': f'{shuttle_route.title} transferi',
+            'date_label': f'{start_date} {start_time}',
+            'guest_label': 'Yolcu sayısı',
+            'guests': guests,
+            'total_price': total_price,
+            'booking_ref': booking_ref,
+            'ticket_url': ticket_url(),
+        })
 
         serializer = self.get_serializer(booking)
         return Response(
@@ -418,25 +414,12 @@ class BookingViewSet(viewsets.ModelViewSet):
                     exc_info=True,
                 )
 
-        if request.user.email:
-            service_label = booking.tour.title if booking.tour else (
-                f"{booking.shuttle_route.title} transferi" if booking.shuttle_route else 'hizmet'
-            )
-            try:
-                send_mail(
-                    'Rezervasyonunuz İptal Edildi',
-                    (
-                        f'Merhaba {request.user.first_name or request.user.username},\n\n'
-                        f'{service_label} için olan rezervasyonunuz '
-                        f'(Ref: {booking.booking_ref}) iptal edilmiştir.\n\n'
-                        f'Sorularınız için bizimle iletişime geçebilirsiniz.'
-                    ),
-                    settings.DEFAULT_FROM_EMAIL,
-                    [request.user.email],
-                    fail_silently=True,
-                )
-            except Exception as e:
-                logger.warning(f"Cancellation email failed: {e}")
+        send_templated_mail('booking_cancelled', request.user.email, {
+            'user_name': display_name(request.user),
+            'service_label': service_label(booking),
+            'booking_ref': booking.booking_ref,
+            'refunded': refunded,
+        })
 
         serializer = self.get_serializer(booking)
         return Response(serializer.data)
@@ -482,24 +465,13 @@ class BookingViewSet(viewsets.ModelViewSet):
                                 )
 
                 # E-posta atomic dışında
-                if booking.user.email:
-                    service_label = booking.tour.title if booking.tour else (
-                        f"{booking.shuttle_route.title} transferi" if booking.shuttle_route else 'hizmetiniz'
-                    )
-                    send_mail(
-                        'Rezervasyonunuz Onaylandı! ✅',
-                        (
-                            f'Merhaba {booking.user.first_name or booking.user.username},\n\n'
-                            f'{service_label} için ödemeniz alınmış ve '
-                            f'rezervasyonunuz onaylanmıştır!\n\n'
-                            f'Tarih: {booking.date_label or booking.start_date}\n'
-                            f'Referans no: {booking.booking_ref}\n\n'
-                            f'İyi tatiller dileriz!'
-                        ),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [booking.user.email],
-                        fail_silently=True,
-                    )
+                send_templated_mail('booking_confirmed', booking.user.email, {
+                    'user_name': display_name(booking.user),
+                    'service_label': service_label(booking),
+                    'date_label': booking.date_label or booking.start_date,
+                    'booking_ref': booking.booking_ref,
+                    'ticket_url': ticket_url(),
+                })
 
             except Booking.DoesNotExist:
                 logger.warning(f"Webhook: No booking found for payment_intent {event.intent_id}")
@@ -519,22 +491,11 @@ class BookingViewSet(viewsets.ModelViewSet):
                         self._release_tour_capacity(booking)
                 logger.info(f"Booking {booking.booking_ref} marked as failed via webhook")
 
-                if booking.user.email:
-                    service_label = booking.tour.title if booking.tour else (
-                        f"{booking.shuttle_route.title} transferi" if booking.shuttle_route else 'hizmetiniz'
-                    )
-                    send_mail(
-                        'Ödeme Başarısız Oldu',
-                        (
-                            f'Merhaba {booking.user.first_name or booking.user.username},\n\n'
-                            f'{service_label} için ödemeniz başarısız olmuştur.\n'
-                            f'Lütfen tekrar deneyiniz veya farklı bir ödeme yöntemi kullanınız.\n\n'
-                            f'Referans no: {booking.booking_ref}'
-                        ),
-                        settings.DEFAULT_FROM_EMAIL,
-                        [booking.user.email],
-                        fail_silently=True,
-                    )
+                send_templated_mail('booking_payment_failed', booking.user.email, {
+                    'user_name': display_name(booking.user),
+                    'service_label': service_label(booking),
+                    'booking_ref': booking.booking_ref,
+                })
             except Booking.DoesNotExist:
                 logger.warning(f"Webhook: No booking found for failed payment_intent {event.intent_id}")
 

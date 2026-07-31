@@ -1,0 +1,17 @@
+{% autoescape off %}Merhaba {{ user_name }},
+
+{{ service_label }} için rezervasyonunuz alınmıştır.
+
+Tarih: {{ date_label }}
+{{ guest_label }}: {{ guests }}
+Toplam tutar: {{ total_price }} TL
+Referans no: {{ booking_ref }}
+
+Ödemeniz onaylandığında size ayrıca bilgi vereceğiz. Rezervasyonunuz bu
+aşamada henüz kesinleşmemiştir.
+
+Biletlerinizi buradan takip edebilirsiniz:
+{{ ticket_url }}
+
+{{ site_name }}
+{% endautoescape %}

@@ -1,0 +1,14 @@
+{% extends "emails/base.html" %}
+{% block heading %}Rezervasyonunuz onaylandı{% endblock %}
+{% block content %}
+<p style="margin:0 0 16px 0;">Merhaba {{ user_name }},</p>
+<p style="margin:0 0 16px 0;"><strong>{{ service_label }}</strong> için ödemeniz alındı ve rezervasyonunuz onaylandı.</p>
+
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="border:1px solid #e2e8f0;border-radius:12px;padding:16px;font-size:14px;color:#334155;">
+  <tr><td style="padding:4px 0;color:#64748b;">Tarih</td><td style="padding:4px 0;text-align:right;font-weight:bold;">{{ date_label }}</td></tr>
+  <tr><td style="padding:4px 0;color:#64748b;">Referans no</td><td style="padding:4px 0;text-align:right;font-weight:bold;">{{ booking_ref }}</td></tr>
+</table>
+
+<p style="margin:16px 0 0 0;">QR kodunuzu hizmet günü görevliye okutmanız yeterlidir.</p>
+{% include "emails/_button.html" with url=ticket_url label="Biletimi Görüntüle" %}
+{% endblock %}

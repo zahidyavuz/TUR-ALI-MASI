@@ -1,0 +1,12 @@
+{% extends "emails/base.html" %}
+{% block heading %}Rezervasyonunuz iptal edildi{% endblock %}
+{% block content %}
+<p style="margin:0 0 16px 0;">Merhaba {{ user_name }},</p>
+<p style="margin:0 0 16px 0;"><strong>{{ service_label }}</strong> için olan rezervasyonunuz (Ref: <strong>{{ booking_ref }}</strong>) iptal edilmiştir.</p>
+{% if refunded %}
+<p style="margin:0 0 16px 0;">Ödemenizin iadesi başlatıldı. Tutarın kartınıza yansıması bankanıza bağlı olarak birkaç iş günü sürebilir.</p>
+{% else %}
+<p style="margin:0 0 16px 0;">Bu rezervasyon için bir tahsilat yapılmadığından iade işlemi gerekmemektedir.</p>
+{% endif %}
+<p style="margin:0;">Sorularınız için bizimle iletişime geçebilirsiniz.</p>
+{% endblock %}

@@ -53,21 +53,31 @@ function ResetPasswordForm() {
         try {
             const data = await fetchAPI('/auth/password/reset/confirm/', {
                 method: 'POST',
+                // Süresi dolmuş bağlantı ve zayıf şifre en sık iki hata; ikisi de
+                // alan bazlı mesajla döner. Yutulursa kullanıcı neyi düzelteceğini
+                // bilemeden aynı şifreyi tekrar dener.
+                throwOnHttpError: true,
+                // Alan adları dj_rest_auth'un PasswordResetConfirmSerializer'ı
+                // tarafından belirlenir; new_password/re_new_password (Djoser
+                // adlandırması) gönderildiğinde uç 400 dönüyordu.
                 body: JSON.stringify({
                     uid,
                     token,
-                    new_password: password,
-                    re_new_password: passwordConfirm
+                    new_password1: password,
+                    new_password2: passwordConfirm
                 })
             });
 
             if (data) {
                 setSuccessMsg('Şifreniz başarıyla sıfırlandı! Artık yeni şifrenizle giriş yapabilirsiniz.');
             } else {
-                setErrorMsg('Bir hata oluştu. Lütfen tekrar deneyin.');
+                setErrorMsg('Sunucu ile iletişim kurulamadı. Lütfen tekrar deneyin.');
             }
         } catch (err) {
-            setErrorMsg('Sunucu ile iletişim kurulamadı.');
+            setErrorMsg(
+                (err as Error)?.message ||
+                'Bağlantının süresi dolmuş olabilir. Yeni bir sıfırlama bağlantısı isteyin.'
+            );
         } finally {
             setIsSubmitting(false);
         }

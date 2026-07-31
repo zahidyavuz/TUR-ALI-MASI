@@ -1,0 +1,8 @@
+{% extends "emails/base.html" %}
+{% block heading %}Ödemeniz alınamadı{% endblock %}
+{% block content %}
+<p style="margin:0 0 16px 0;">Merhaba {{ user_name }},</p>
+<p style="margin:0 0 16px 0;"><strong>{{ service_label }}</strong> için ödemeniz alınamadı ve rezervasyonunuz tamamlanamadı. Ayrılan kontenjan serbest bırakıldı.</p>
+<p style="margin:0 0 16px 0;">Referans no: <strong>{{ booking_ref }}</strong></p>
+{% include "emails/_button.html" with url=frontend_url label="Tekrar Dene" %}
+{% endblock %}

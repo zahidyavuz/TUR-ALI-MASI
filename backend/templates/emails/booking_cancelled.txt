@@ -1,0 +1,15 @@
+{% autoescape off %}Merhaba {{ user_name }},
+
+{{ service_label }} için olan rezervasyonunuz (Ref: {{ booking_ref }}) iptal
+edilmiştir.
+{% if refunded %}
+Ödemenizin iadesi başlatıldı. Tutarın kartınıza yansıması bankanıza bağlı
+olarak birkaç iş günü sürebilir.
+{% else %}
+Bu rezervasyon için bir tahsilat yapılmadığından iade işlemi
+gerekmemektedir.
+{% endif %}
+Sorularınız için bizimle iletişime geçebilirsiniz.
+
+{{ site_name }}
+{% endautoescape %}

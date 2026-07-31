@@ -1,0 +1,10 @@
+{% autoescape off %}Merhaba{% if user.first_name %} {{ user.first_name }}{% endif %},
+
+Kaydınızı tamamlamak için e-posta adresinizi doğrulamanız gerekiyor.
+Aşağıdaki bağlantıya tıklamanız yeterli:
+
+{{ activate_url }}
+
+Bu hesabı siz oluşturmadıysanız bu e-postayı yok sayabilirsiniz.
+
+{{ site_name }}{% endautoescape %}
