@@ -72,6 +72,22 @@ export async function fetchTours(params: Record<string, string> = {}) {
     }
 }
 
+/**
+ * Boş arama sonucu için alternatif tarih önerileri (F4-01).
+ * Aramadaki `date` dışındaki filtreleri backend'e iletir; yeri olan en yakın
+ * günleri (ISO string) döndürür. Hata/backend kapalıysa boş dizi.
+ */
+export async function fetchAvailableDates(params: Record<string, string> = {}): Promise<string[]> {
+    try {
+        const query = new URLSearchParams(params).toString();
+        const endpoint = query ? `/tours/available-dates/?${query}` : '/tours/available-dates/';
+        const response = await fetchAPI(endpoint, { next: { revalidate: 60 } });
+        return Array.isArray(response?.dates) ? response.dates : [];
+    } catch {
+        return [];
+    }
+}
+
 export async function fetchTour(slug: string) {
     try {
         const t = await fetchAPI(`/tours/${slug}/`, {

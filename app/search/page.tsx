@@ -4,7 +4,8 @@ import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { fetchTours } from '@/app/lib/tours';
+import { fetchTours, fetchAvailableDates } from '@/app/lib/tours';
+import { fetchAPI } from '@/app/lib/api';
 import CurrencySelector from '../components/CurrencySelector';
 import Navbar from '../components/Navbar';
 import { useLocale } from '../context/LocaleContext';
@@ -17,34 +18,58 @@ function SearchResultsContent() {
   const { currency, rates, formatPrice } = useCurrency();
 
   const [tours, setTours] = useState<any[]>([]);
-  const [popularTours, setPopularTours] = useState<any[]>([]);
+  const [count, setCount] = useState<number>(0);
+  const [categories, setCategories] = useState<{ slug: string; name: string }[]>([]);
+  const [altDates, setAltDates] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  // URL Params
+
+  // ── Tüm filtreler TEK kaynaktan (URL query) okunur ──────────────────────
+  // Böylece arama paylaşılabilir/derin-bağlanabilir ve geri/ileri tuşları
+  // çalışır. Eskiden fiyat/kategori/süre/dil ön yüzde, üstelik yalnız 12
+  // kayıtlık geçerli sayfa üzerinde filtreleniyordu → yanlış sonuç veriyordu.
   const location = searchParams.get('location') || '';
   const date = searchParams.get('date') || '';
   const guests = searchParams.get('guests') || '';
+  const maxPrice = searchParams.get('max_price') || '';
+  const minRating = searchParams.get('min_rating') || '';
+  const duration = searchParams.get('duration') || '';
+  const selectedCategories = (searchParams.get('category_obj') || '').split(',').filter(Boolean);
+  const selectedLanguages = (searchParams.get('guide') || '').split(',').filter(Boolean);
 
-  // Filtreler
-  const [maxPrice, setMaxPrice] = useState<number>(10000);
-  const [duration, setDuration] = useState<string>('');
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
+  const languages = ['Türkçe', 'İngilizce', 'Rusça', 'Çince'];
 
-  const getCityCategories = () => {
-    const loc = (location || '').toLowerCase();
-    if (loc.includes('istanbul')) {
-      return ['Boğaz Turları', 'Tarihi Yarımada Gezileri', 'Gece Hayatı & Roof-top Restoranlar'];
-    }
-    if (loc.includes('antalya')) {
-      return ['Yat Turları', 'Antik Kent Gezileri', 'Beach Club & Deniz Ürünleri'];
-    }
-    // Varsayılan: Kapadokya
-    return ['Sıcak Hava Balonu', 'ATV Safari', 'Tarihi Turlar', 'VIP Gurme Deneyimler'];
+  // Filtreyi URL'e yazar; searchParams değişimi aşağıdaki useEffect'i tetikler.
+  const setFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (value) params.set(key, value);
+    else params.delete(key);
+    router.replace(`/search?${params.toString()}`, { scroll: false });
   };
 
-  const categories = getCityCategories();
-  const languages = ['Türkçe', 'İngilizce', 'Rusça', 'Çince'];
+  const toggleMulti = (key: string, current: string[], val: string) => {
+    const next = current.includes(val)
+      ? current.filter((v) => v !== val)
+      : [...current, val];
+    setFilter(key, next.join(','));
+  };
+
+  // Fiyat kaydırıcısı sürüklenirken her piksel için URL yazmamak adına yerel
+  // durumda tutulur; bırakılınca (onPointerUp) URL'e işlenir.
+  const [priceValue, setPriceValue] = useState<number>(maxPrice ? parseInt(maxPrice) : 10000);
+  useEffect(() => {
+    setPriceValue(maxPrice ? parseInt(maxPrice) : 10000);
+  }, [maxPrice]);
+
+  // Gerçek kategoriler backend'den (eski şehir bazlı uydurma etiketler yerine).
+  useEffect(() => {
+    fetchAPI('/categories/')
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setCategories(data.map((c: any) => ({ slug: c.slug, name: c.name })));
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const mockNotes = [
     "Cappo'nun Notu: Kapadokya'nın ayazına dikkat! Sabahları kalın giyinmek şart ama manzaraya kesinlikle değecek. 🎈",
@@ -59,60 +84,31 @@ function SearchResultsContent() {
   useEffect(() => {
     async function loadData() {
       setLoading(true);
-      const params: any = {};
-      if (location) params.location = location;
-      if (date) params.date = date;
-      if (guests) params.guests = guests;
-      if (maxPrice < 10000) params.max_price = maxPrice;
+      setAltDates([]);
+
+      // Tüm filtreler sunucuya iletilir; ön yüzde ayrıca filtreleme YOK.
+      const params: Record<string, string> = {};
+      ['location', 'date', 'guests', 'max_price', 'min_rating', 'duration', 'category_obj', 'guide']
+        .forEach((k) => {
+          const v = searchParams.get(k);
+          if (v) params[k] = v;
+        });
 
       const data = await fetchTours(params);
+      setTours(data.tours);
+      setCount(data.count);
 
-      // Eğer hiç tur bulunamazsa alternatifleri/popülerleri getir
-      if (data.tours.length === 0) {
-        const popParams: any = { is_popular: true };
-        if (location) popParams.location = location;
-        const popData = await fetchTours(popParams);
-        setPopularTours(popData.tours.slice(0, 3));
-        setTours([]);
-      } else {
-        let filtered: any[] = data.tours;
-
-        // Süre filtresi (client-side)
-        if (duration) {
-          filtered = filtered.filter((tour: any) => {
-            const d = (tour.duration || '').toLowerCase();
-            const hoursMatch = d.match(/(\d+)\s*saat/);
-            if (hoursMatch) {
-              const hours = parseInt(hoursMatch[1]);
-              return duration === 'short' ? hours <= 4 : hours > 4;
-            }
-            // Saat bilgisi yoksa tam gün sayılır
-            return duration === 'full';
-          });
-        }
-
-        // Kategori filtresi (client-side)
-        if (selectedCategories.length > 0) {
-          filtered = filtered.filter((tour: any) =>
-            selectedCategories.includes(tour.category)
-          );
-        }
-
-        // Rehber dili filtresi (client-side)
-        if (selectedLanguages.length > 0) {
-          filtered = filtered.filter((tour: any) => {
-            const guide = (tour.guide || '').toLowerCase();
-            return selectedLanguages.some(lang => guide.includes(lang.toLowerCase()));
-          });
-        }
-
-        setTours(filtered);
-        setPopularTours([]);
+      // Boş sonuç + tarih seçili → aynı kriterlerde yeri olan alternatif günler.
+      if (data.tours.length === 0 && params.date) {
+        const altParams = { ...params };
+        delete altParams.date;
+        const dates = await fetchAvailableDates(altParams);
+        setAltDates(dates.filter((d) => d !== params.date).slice(0, 6));
       }
       setLoading(false);
     }
     loadData();
-  }, [location, date, guests, maxPrice, duration, selectedCategories, selectedLanguages]);
+  }, [searchParams]);
 
   return (
     <div className="min-h-screen bg-background font-sans text-slate-900 dark:text-white pb-12 transition-colors duration-500">
@@ -147,37 +143,57 @@ function SearchResultsContent() {
             {/* Fiyat Filtresi */}
             <div className="mb-6">
               <label className="text-sm font-bold text-gray-700 block mb-3">Maksimum Fiyat</label>
-              <input 
-                type="range" 
-                min="500" 
-                max="10000" 
-                step="500" 
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(parseInt(e.target.value))}
+              <input
+                type="range"
+                min="500"
+                max="10000"
+                step="500"
+                value={priceValue}
+                onChange={(e) => setPriceValue(parseInt(e.target.value))}
+                onPointerUp={() => setFilter('max_price', priceValue >= 10000 ? '' : String(priceValue))}
+                onKeyUp={() => setFilter('max_price', priceValue >= 10000 ? '' : String(priceValue))}
                 className="w-full accent-[#008cb3]"
               />
               <div className="flex justify-between text-xs font-semibold text-gray-500 mt-2">
                 <span>{formatPrice(500)}</span>
-                <span>{maxPrice >= 10000 ? 'Limitsiz' : formatPrice(maxPrice)}</span>
+                <span>{priceValue >= 10000 ? 'Limitsiz' : formatPrice(priceValue)}</span>
               </div>
             </div>
 
-            {/* Kategoriler */}
+            {/* Kategoriler (backend'deki gerçek kategoriler) */}
+            {categories.length > 0 && (
+              <div className="mb-6">
+                <label className="text-sm font-bold text-gray-700 block mb-3">Kategoriler</label>
+                <div className="flex flex-col gap-2">
+                  {categories.map(cat => (
+                    <label key={cat.slug} className="flex items-center gap-2 text-sm cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        className="accent-[#008cb3] rounded"
+                        checked={selectedCategories.includes(cat.slug)}
+                        onChange={() => toggleMulti('category_obj', selectedCategories, cat.slug)}
+                      />
+                      <span className="group-hover:text-[#008cb3] transition-colors">{cat.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Puan */}
             <div className="mb-6">
-              <label className="text-sm font-bold text-gray-700 block mb-3">Kategoriler</label>
+              <label className="text-sm font-bold text-gray-700 block mb-3">Minimum Puan</label>
               <div className="flex flex-col gap-2">
-                {categories.map(cat => (
-                  <label key={cat} className="flex items-center gap-2 text-sm cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      className="accent-[#008cb3] rounded" 
-                      checked={selectedCategories.includes(cat)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedCategories([...selectedCategories, cat]);
-                        else setSelectedCategories(selectedCategories.filter(c => c !== cat));
-                      }}
+                {[['', 'Tümü'], ['4', '4+ ★'], ['4.5', '4.5+ ★']].map(([val, label]) => (
+                  <label key={val} className="flex items-center gap-2 text-sm cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="min_rating"
+                      checked={minRating === val}
+                      onChange={() => setFilter('min_rating', val)}
+                      className="accent-[#008cb3]"
                     />
-                    <span className="group-hover:text-[#008cb3] transition-colors">{cat}</span>
+                    <span className="group-hover:text-[#008cb3] transition-colors">{label}</span>
                   </label>
                 ))}
               </div>
@@ -187,18 +203,18 @@ function SearchResultsContent() {
             <div className="mb-6">
               <label className="text-sm font-bold text-gray-700 block mb-3">Tur Süresi</label>
               <div className="flex flex-col gap-2">
-                <label className="flex items-center gap-2 text-sm cursor-pointer group">
-                  <input type="radio" name="duration" value="" onChange={() => setDuration('')} defaultChecked className="accent-[#008cb3]" />
-                  <span className="group-hover:text-[#008cb3] transition-colors">Tümü</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm cursor-pointer group">
-                  <input type="radio" name="duration" value="short" onChange={() => setDuration('short')} className="accent-[#008cb3]" />
-                  <span className="group-hover:text-[#008cb3] transition-colors">Yarım Gün (1-4 Saat)</span>
-                </label>
-                <label className="flex items-center gap-2 text-sm cursor-pointer group">
-                  <input type="radio" name="duration" value="full" onChange={() => setDuration('full')} className="accent-[#008cb3]" />
-                  <span className="group-hover:text-[#008cb3] transition-colors">Tam Gün</span>
-                </label>
+                {[['', 'Tümü'], ['Saat', 'Saatlik (Yarım Gün)'], ['Gün', 'Günlük']].map(([val, label]) => (
+                  <label key={val} className="flex items-center gap-2 text-sm cursor-pointer group">
+                    <input
+                      type="radio"
+                      name="duration"
+                      checked={duration === val}
+                      onChange={() => setFilter('duration', val)}
+                      className="accent-[#008cb3]"
+                    />
+                    <span className="group-hover:text-[#008cb3] transition-colors">{label}</span>
+                  </label>
+                ))}
               </div>
             </div>
 
@@ -208,14 +224,11 @@ function SearchResultsContent() {
               <div className="flex flex-col gap-2">
                 {languages.map(lang => (
                   <label key={lang} className="flex items-center gap-2 text-sm cursor-pointer group">
-                    <input 
-                      type="checkbox" 
-                      className="accent-[#008cb3] rounded" 
+                    <input
+                      type="checkbox"
+                      className="accent-[#008cb3] rounded"
                       checked={selectedLanguages.includes(lang)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedLanguages([...selectedLanguages, lang]);
-                        else setSelectedLanguages(selectedLanguages.filter(l => l !== lang));
-                      }}
+                      onChange={() => toggleMulti('guide', selectedLanguages, lang)}
                     />
                     <span className="group-hover:text-[#008cb3] transition-colors">{lang}</span>
                   </label>
@@ -243,7 +256,32 @@ function SearchResultsContent() {
                   />
                 </div>
                 <h2 className="text-3xl font-black text-slate-800 mb-2 italic">Aramanıza Uygun Tur Bulunmamaktadır</h2>
-                <p className="text-gray-500 font-medium mb-8 max-w-md">Şu an seçtiğiniz kriterlerde bir turumuz bulunmuyor, ancak aşağıdaki popüler seçeneklere göz atabilirsiniz.</p>
+                <p className="text-gray-500 font-medium mb-8 max-w-md">
+                  {altDates.length > 0
+                    ? 'Seçtiğiniz tarihte yer yok, ancak aşağıdaki tarihlerde aynı kriterlere uygun turlar mevcut.'
+                    : 'Şu an seçtiğiniz kriterlerde bir turumuz bulunmuyor, ancak aşağıdaki popüler seçeneklere göz atabilirsiniz.'}
+                </p>
+
+                {/* Alternatif tarih önerileri (boş sonuç + tarih seçili) */}
+                {altDates.length > 0 && (
+                  <div className="flex flex-wrap justify-center gap-3 mb-8">
+                    {altDates.map((d) => {
+                      const label = new Date(d).toLocaleDateString('tr-TR', {
+                        day: 'numeric', month: 'long', weekday: 'short',
+                      });
+                      return (
+                        <button
+                          key={d}
+                          onClick={() => setFilter('date', d)}
+                          className="bg-blue-50 border border-blue-200 text-[#005e85] px-5 py-3 rounded-2xl font-bold text-sm hover:bg-[#008cb3] hover:text-white transition-all active:scale-95"
+                        >
+                          📅 {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
                 <button onClick={() => router.push('/')} className="bg-[#008cb3] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#005e85] transition-all hover:shadow-lg active:scale-95">
                   Tüm Turları Keşfet
                 </button>
@@ -253,7 +291,7 @@ function SearchResultsContent() {
             <>
               <div className="flex justify-between items-end mb-2">
                 <h2 className="text-xl font-black text-slate-800 dark:text-white transition-colors duration-500">
-                  {tours.length} Tur Bulundu
+                  {count} Tur Bulundu
                 </h2>
                 <span className="text-xs font-semibold text-gray-500 uppercase tracking-widest">Önerilen Sıralama</span>
               </div>

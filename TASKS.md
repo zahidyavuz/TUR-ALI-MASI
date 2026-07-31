@@ -528,7 +528,7 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ## FAZ 4 — MÜŞTERİ DENEYİMİ VE BÜYÜME
 
-### [ ] F4-01 · Müsaitlik bazlı arama ve filtreler
+### [x] F4-01 · Müsaitlik bazlı arama ve filtreler
 
 **Öncelik:** P1 · **Efor:** L
 
@@ -536,7 +536,7 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 **Doğrulama:** Filtre kombinasyon testleri; sorgu sayısı sabit. STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Tüm filtreler sunucuya taşındı (`backend/tours/views.py → TourFilter`). Önceki `/search` fiyat/kategori/süre/dil filtrelerini sayfalanmış 12 kayıtlık yanıt üzerinde uyguluyordu → yanlış sonuç; artık `django_filters` ile: `date`(+`guests`) müsaitlik join'i (`max_capacity >= booked_count + guests`, `is_closed=False`, `.distinct()`), `min_price/max_price`, `min_rating`, `category_obj`(slug, virgülle çoklu `in`), `guide`(virgülle çoklu OR `icontains`), `location/category/duration`(`icontains` — exact match serbest metinde kırılıyordu). `available-dates` action'ı boş sonuç için alternatif tarih önerir (date dışı filtreleri uygular). Frontend tüm filtreleri URL-query'den okur/yazar (`setFilter`/`toggleMulti`, `router.replace scroll:false`), fiyat kaydırıcısı `onPointerUp/onKeyUp`'ta commit eder; boş sonuç + tarih seçiliyse alternatif tarih chip'leri render eder; başlık `count` (toplam) kullanır. `select_related('agency','category_obj')` ile N+1 yok — `test_list_query_count_constant` sorgu sayısını tur sayısından bağımsız 2'de sabitler. tours: 21/21, tam suite: 212/212 OK; tsc/lint/build temiz; AST duplicate taraması temiz.
 
 ---
 
@@ -756,6 +756,10 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P1 · performans] Nonce'lu CSP tüm sayfaları dinamik render'a çekti (ISR ile çakışıyor).** F3-05'te `layout.tsx` `headers()` ile istek-başına nonce okuduğu için build çıktısındaki tüm route'lar artık `ƒ (Dynamic)` — statik/ISR optimizasyonu devre dışı. Bu, `unsafe-inline`'sız CSP'nin Next.js'te kaçınılmaz bedeli (framework inline hidrasyon script'leri build başına değişir, hash'lenemez → nonce şart). **F5-07** (ilk yükleme/performans, hero+kategoriler ISR hedefi) doğrudan bununla çakışıyor: ISR isteniyorsa ya CSP nonce'u yalnız belirli route segment'lerinde uygulamak (layout'u bölmek) ya da statik sayfalarda `unsafe-inline`+hash'e dönmek gibi bir uzlaşı gerekecek. F5-07'de birlikte kararlaştırılmalı.
 
 * ~~**[P0 · bug] Transfer (shuttle) rezervasyonu oluşturmak her seferinde 500 veriyordu.**~~ **ÇÖZÜLDÜ (F3-07):** `tours/signals.py::update_fomo_count` post_save sinyali `instance.tour.fomo_count`'a koşulsuz erişiyordu; shuttle rezervasyonunda `tour=None` olduğundan (`bookings/views.py:295` `tour=None` ile create) her `Booking.objects.create` çağrısı `AttributeError: 'NoneType' object has no attribute 'fomo_count'` fırlatıp transfer satın almayı tamamen kırıyordu. F3-07(b) shuttle webhook idempotency testi yazılırken yüzeye çıktı. `if created and instance.tour_id:` guard'ı eklendi; `WebhookIdempotencyTestCase::test_shuttle_webhook_increments_quota_once` regresyonu kilitliyor. (NOT: transfer akışındaki overbooking yarışı ayrı bir [P0] bulgu olarak F5-01'de duruyor — bu yalnız oluşturma-anı crash'ini giderdi.)
+
+* **[P2 · veri] `Tour.duration` serbest metin — süre filtresi kırılgan.** F4-01'de süre filtresi `duration icontains` ile yapıldı ve ön yüz iki seçenek sunuyor: "Saat" / "Gün". Ama DB'de değerler tutarsız (Türkçe "4 Saat"/"3 Gün" ile İngilizce "2 Days"/"1 Day" karışık — bkz. `tests.py` seed'i). İngilizce "Days" içeren turlar "Gün" filtresiyle eşleşmez, yani sahadaki bazı turlar süre filtresinde görünmez. Kalıcı çözüm: `Tour`'a yapısal bir süre alanı (dakika/gün cinsinden sayısal + tip enum) eklemek ve serbest metni göç ettirmek. F2-01'deki `Tour.category` taksonomi sorunuyla aynı kök (serbest metin katalog verisi); birlikte ele alınmalı.
+
+* **[P2 · UX/veri] Kategori filtresi `Category` tablosu seyrek olduğu için pratikte boş.** F4-01 kategori filtresi artık gerçek `Category` kayıtlarını (`category_obj__slug`) kullanıyor — doğru mimari — ama `Category` tablosu neredeyse boş ve turların çoğu `category_obj` FK'siz (yalnız legacy serbest metin `category` alanı dolu). Sonuç: ön yüzde kategori kutucukları ya hiç görünmüyor (`categories.length === 0` gizliyor) ya da seçilince çoğu turu eler. F2-01 bulgusuyla (`Tour.category` taksonomi kargaşası) aynı; kategoriler netleştirilip turlar `category_obj`'e bağlanana kadar bu filtre eksik çalışır.
 
 ---
 
