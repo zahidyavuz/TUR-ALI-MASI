@@ -27,6 +27,7 @@ from .onboarding_serializers import (
     OnboardingStartSerializer,
     AgencyOnboardingStepSerializer,
     AgencyOnboardingSubmitSerializer,
+    collect_missing_fields,
 )
 from .serializers import AgencySerializer
 
@@ -97,7 +98,10 @@ class OnboardingUpdateView(APIView):
 
     def get(self, request):
         agency = self._get_agency(request)
-        return Response(AgencySerializer(agency).data)
+        data = AgencySerializer(agency).data
+        # Panel "eksik bilgi" ekranı hangi alanların beklendiğini buradan okur.
+        data['missing_fields'] = collect_missing_fields(agency)
+        return Response(data)
 
     def patch(self, request):
         agency = self._get_agency(request)

@@ -4,13 +4,13 @@ from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum, Count
 from django.utils import timezone
 from .models import Agency, DiningReservation
-from core.permissions import IsAgentOwner
+from core.permissions import IsAgentOwner, IsVerifiedAgent
 
 class RestaurantDailyStatsView(views.APIView):
     """
     GET /api/v1/restaurant/daily-stats/
     """
-    permission_classes = [IsAuthenticated, IsAgentOwner]
+    permission_classes = [IsAuthenticated, IsAgentOwner, IsVerifiedAgent]
 
     def get(self, request):
         restaurant = request.user.agency_profile
@@ -46,7 +46,7 @@ class DiningReservationViewSet(viewsets.ModelViewSet):
     """
     ViewSet for restaurant reservations.
     """
-    permission_classes = [IsAuthenticated, IsAgentOwner]
+    permission_classes = [IsAuthenticated, IsAgentOwner, IsVerifiedAgent]
     serializer_class = None # I should create a serializer, but for now I'll use raw data if needed or create one.
 
     def get_queryset(self):

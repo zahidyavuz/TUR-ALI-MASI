@@ -13,7 +13,7 @@ class ReviewTestCase(TestCase):
         self.user = User.objects.create_user(username='reviewer', password='testpass123')
         self.other_user = User.objects.create_user(username='other', password='testpass123')
         self.agency_owner = User.objects.create_user(username='agencyowner', password='testpass123')
-        self.agency = Agency.objects.create(owner=self.agency_owner, name='Review Agency', is_verified=True)
+        self.agency = Agency.objects.create(owner=self.agency_owner, name='Review Agency', status='onaylandi', is_verified=True)
 
         self.tour = Tour.objects.create(
             id='review-tour',

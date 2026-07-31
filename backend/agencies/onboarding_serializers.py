@@ -42,6 +42,58 @@ def _validate_file(value, max_mb, allowed_types, label):
     return value
 
 
+BASE_REQUIRED_FIELDS = {
+    'name': 'İşletme adı',
+    'tax_id': 'Vergi Kimlik No / TCKN',
+    'tax_office': 'Vergi dairesi',
+    'logo': 'İşletme logosu',
+    'description': 'İşletme açıklaması',
+    'city': 'Şehir',
+    'address': 'İşletme adresi',
+    'iban': 'IBAN',
+    'bank_account_holder': 'Hesap sahibi',
+    'bank_name': 'Banka adı',
+}
+
+# TÜRSAB yalnız seyahat acentası tarafında zorunlu; restoran/kafe muaf.
+TURSAB_REQUIRED_FIELDS = {
+    'tursab_no': 'TÜRSAB İşletme Belgesi Numarası',
+    'tursab_group': 'Acenta grubu',
+    'tursab_document': 'TÜRSAB İşletme Belgesi',
+}
+
+TURSAB_BUSINESS_TYPES = ('acenta', 'her_ikisi')
+
+
+def collect_missing_fields(agency):
+    """
+    Başvurunun gönderilebilmesi için eksik olan alanları
+    `{alan_adı: kullanıcıya gösterilecek mesaj}` biçiminde döner.
+
+    Hem nihai gönderim doğrulaması (`AgencyOnboardingSubmitSerializer`) hem de
+    panelin "eksik bilgi" ekranı bu tek kaynağı kullanır — ikisi ayrışırsa
+    kullanıcıya eksik gösterilmeyen bir alan yüzünden gönderim reddedilir.
+    """
+    missing = {}
+
+    for field, label in BASE_REQUIRED_FIELDS.items():
+        if not getattr(agency, field, None):
+            missing[field] = f'{label} zorunludur.'
+
+    if agency.legal_entity_type == 'company' and not agency.trade_registry_document:
+        missing['trade_registry_document'] = 'Şirketler için ticaret sicil belgesi zorunludur.'
+
+    if agency.description and len(agency.description) < 50:
+        missing['description'] = 'İşletme açıklaması en az 50 karakter olmalıdır.'
+
+    if agency.business_type in TURSAB_BUSINESS_TYPES:
+        for field, label in TURSAB_REQUIRED_FIELDS.items():
+            if not getattr(agency, field, None):
+                missing[field] = f'{label} seyahat acentaları için zorunludur.'
+
+    return missing
+
+
 class OnboardingStartSerializer(serializers.Serializer):
     """Adım 1 — Hesap & İşletme Türü. User + Agency'yi birlikte oluşturur."""
     email = serializers.EmailField()
@@ -143,43 +195,7 @@ class AgencyOnboardingSubmitSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        agency = self.instance
-        errors = {}
-
-        base_required = {
-            'name': 'İşletme adı',
-            'tax_id': 'Vergi Kimlik No / TCKN',
-            'tax_office': 'Vergi dairesi',
-            'logo': 'İşletme logosu',
-            'description': 'İşletme açıklaması',
-            'city': 'Şehir',
-            'address': 'İşletme adresi',
-            'iban': 'IBAN',
-            'bank_account_holder': 'Hesap sahibi',
-            'bank_name': 'Banka adı',
-        }
-        for field, label in base_required.items():
-            if not getattr(agency, field, None):
-                errors[field] = f'{label} zorunludur.'
-
-        if agency.legal_entity_type == 'company' and not agency.trade_registry_document:
-            errors['trade_registry_document'] = 'Şirketler için ticaret sicil belgesi zorunludur.'
-
-        if agency.description and len(agency.description) < 50:
-            errors['description'] = 'İşletme açıklaması en az 50 karakter olmalıdır.'
-
-        # Koşullu TÜRSAB zorunluluğu — sadece seyahat acentası / her ikisi
-        if agency.business_type in ('acenta', 'her_ikisi'):
-            tursab_required = {
-                'tursab_no': 'TÜRSAB İşletme Belgesi Numarası',
-                'tursab_group': 'Acenta grubu',
-                'tursab_document': 'TÜRSAB İşletme Belgesi',
-            }
-            for field, label in tursab_required.items():
-                if not getattr(agency, field, None):
-                    errors[field] = f'{label} seyahat acentaları için zorunludur.'
-
+        errors = collect_missing_fields(self.instance)
         if errors:
             raise serializers.ValidationError(errors)
-
         return data

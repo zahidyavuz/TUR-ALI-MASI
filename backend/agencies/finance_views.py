@@ -22,7 +22,7 @@ from rest_framework.pagination import PageNumberPagination
 
 from agencies.models import Agency
 from agencies.finance_models import AgentFinanceLedger, AgentPayoutRequest
-from core.permissions import IsAgentOwner
+from core.permissions import IsAgentOwner, IsVerifiedAgent
 
 logger = logging.getLogger('agencies')
 
@@ -38,7 +38,7 @@ class AgencyFinanceSummaryView(APIView):
     GET /api/v1/agency/finance/summary/
     Finansal özet: toplam ciro, komisyon, net bakiye, bekleyen talepler.
     """
-    permission_classes = [IsAuthenticated, IsAgentOwner]
+    permission_classes = [IsAuthenticated, IsAgentOwner, IsVerifiedAgent]
 
     def get(self, request):
         try:
@@ -89,7 +89,7 @@ class AgencyFinanceLedgerView(APIView):
     İşlem dökümü — sayfalı, filtrelenebilir.
     Query params: ?month=2026-05 (opsiyonel)
     """
-    permission_classes = [IsAuthenticated, IsAgentOwner]
+    permission_classes = [IsAuthenticated, IsAgentOwner, IsVerifiedAgent]
 
     def get(self, request):
         try:
@@ -133,7 +133,7 @@ class AgencyPayoutRequestView(APIView):
     POST /api/v1/agency/finance/payout-request/  → Hakediş talebi oluştur
     GET  /api/v1/agency/finance/payout-request/  → Talep geçmişi
     """
-    permission_classes = [IsAuthenticated, IsAgentOwner]
+    permission_classes = [IsAuthenticated, IsAgentOwner, IsVerifiedAgent]
 
     def get(self, request):
         try:

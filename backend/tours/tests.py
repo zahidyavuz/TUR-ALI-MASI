@@ -9,7 +9,7 @@ class TourAPITestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(username='testuser', password='testpass123')
-        self.agency = Agency.objects.create(owner=self.user, name='Test Agency', is_verified=True)
+        self.agency = Agency.objects.create(owner=self.user, name='Test Agency', status='onaylandi', is_verified=True)
         self.category = Category.objects.create(name='Adventure', slug='adventure')
 
         self.tour = Tour.objects.create(
@@ -85,7 +85,7 @@ class TourAPITestCase(TestCase):
 
 class TourAvailabilityTestCase(TestCase):
     def setUp(self):
-        self.agency = Agency.objects.create(name='Test Agency', is_verified=True)
+        self.agency = Agency.objects.create(name='Test Agency', status='onaylandi', is_verified=True)
         self.tour = Tour.objects.create(
             id='avail-tour',
             agency=self.agency,

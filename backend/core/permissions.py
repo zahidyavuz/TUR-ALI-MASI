@@ -4,7 +4,8 @@ core/permissions.py — PRODUCTION-READY (genişletildi)
 Yeni eklenenler:
   • IsAgentOwner      → Acenta API'lerinde kendi acentasına ait veri dışında
                         hiçbir şeye erişememesini garantiler.
-  • IsVerifiedAgent   → Sadece is_verified=True acentalar işlem yapabilir.
+  • IsVerifiedAgent   → Sadece başvurusu onaylanmış (status='onaylandi')
+                        acentalar panel uçlarını kullanabilir.
   • IsAgentOwner + StrictMassAssignmentPermission kombinasyonu
     önerilir: bunlar birlikte RLS (Row-Level Security) davranışı sağlar.
 """
@@ -123,25 +124,28 @@ class IsAgentOwner(permissions.BasePermission):
 # ─────────────────────────────────────────────────────────────────────────────
 class IsVerifiedAgent(permissions.BasePermission):
     """
-    Yalnızca is_verified=True olan acentaların işlem yapmasına izin verir.
-    Başvurusu onaylanmamış acentalar tur ekleyemez, rezervasyon yönetemez.
+    Acenta/işletme paneli uçları için onboarding durum kapısı.
+
+    Yetki veren tek durum `Agency.status == 'onaylandi'`. `is_verified` eski bir
+    bayrak; admin approve/reject aksiyonlarıyla `status` ile senkron tutuluyor
+    ama asıl kaynak `status` (bkz. `agencies/migrations/0012_backfill_agency_status`).
+
+    Okuma da kapalıdır. Eskiden SAFE_METHODS bypass'ı vardı; bu yüzden
+    onaylanmamış bir partner panel uçlarını GET'leyip kendi taslak verisini
+    (ve dashboard toplamlarını) çekebiliyordu. Onaylanmamış hesabın panelde
+    hiçbir işi olmadığı için tüm metotlar 403 döner.
     """
-    message = 'Hesabınız henüz onaylanmamış. Lütfen admin onayını bekleyin.'
+    message = 'Hesabınız henüz onaylanmamış. Lütfen başvurunuzun sonuçlanmasını bekleyin.'
 
     def has_permission(self, request, view):
         if request.user.is_staff:
             return True
 
-        # Salt okunur isteklere izin ver
-        if request.method in permissions.SAFE_METHODS:
-            return True
-
         from agencies.models import Agency
-        try:
-            agency = Agency.objects.get(owner=request.user)
-            return agency.is_verified and agency.is_active
-        except Agency.DoesNotExist:
+        agency = Agency.objects.filter(owner=request.user).only('status', 'is_active').first()
+        if agency is None:
             return False
+        return agency.status == 'onaylandi' and agency.is_active
 
 
 # ─────────────────────────────────────────────────────────────────────────────

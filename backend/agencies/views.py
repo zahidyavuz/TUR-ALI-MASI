@@ -8,6 +8,7 @@ from .serializers import (
     MenuSerializer, DiningReservationSerializer
 )
 from backend.permissions import IsOwnerOrReadOnly
+from core.permissions import IsAgentOwner, IsVerifiedAgent
 
 
 class AgencyViewSet(viewsets.ModelViewSet):
@@ -53,14 +54,19 @@ class MenuViewSet(viewsets.ModelViewSet):
     PATCH  /api/v1/menus/<id>/        — Update
     DELETE /api/v1/menus/<id>/        — Delete
     POST   /api/v1/menus/<id>/set-daily-price/ — Set daily special price
+
+    Yalnızca işletme sahibinin kendi menüsü — queryset sahibe göre daraltılır,
+    bu olmadan `IsAgentOwner` liste ucunda hiçbir şey korumaz.
     """
     serializer_class = MenuSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAgentOwner, IsVerifiedAgent]
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'category']
 
     def get_queryset(self):
         qs = Menu.objects.all()
+        if not self.request.user.is_staff:
+            qs = qs.filter(restaurant__owner=self.request.user)
         restaurant_id = self.request.query_params.get('restaurant')
         if restaurant_id:
             qs = qs.filter(restaurant_id=restaurant_id)
@@ -71,6 +77,11 @@ class MenuViewSet(viewsets.ModelViewSet):
         if daily_special == 'true':
             qs = qs.filter(is_daily_special=True)
         return qs
+
+    def perform_create(self, serializer):
+        # İstemcinin gönderdiği `restaurant` yok sayılır; menü her zaman
+        # isteği yapanın kendi işletmesine bağlanır.
+        serializer.save(restaurant=self.request.user.agency_profile)
 
     @action(detail=True, methods=['post'], url_path='set-daily-price')
     def set_daily_price(self, request, pk=None):

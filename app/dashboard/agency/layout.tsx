@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import PartnerApplicationStatus from '../../components/PartnerApplicationStatus';
+import OnboardingGate from '../../components/OnboardingGate';
 
 export default function AgencyDashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -23,12 +23,6 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
 
   if (isLoading || !user) return null;
 
-  // Onaylanmamış (henüz başvurusu tamamlanmamış/incelemede/reddedilmiş) bir
-  // partner tam dashboard'a erişemez — durum ekranı gösterilir.
-  if (user.agency_status && user.agency_status !== 'onaylandi') {
-    return <PartnerApplicationStatus status={user.agency_status} rejectionReason={user.agency_rejection_reason} />;
-  }
-
   const navItems = [
     { name: 'İstatistik Merkezi', path: '/dashboard/agency', icon: '📊' },
     { name: 'Tur Yönetimi', path: '/dashboard/agency/tours', icon: '🗺️' },
@@ -38,6 +32,7 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
   ];
 
   return (
+    <OnboardingGate status={user.agency_status} rejectionReason={user.agency_rejection_reason}>
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col md:flex-row pb-20 md:pb-0">
       {/* Mobile Header */}
       <div className="md:hidden bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-sm border-b border-slate-200 dark:border-slate-800 p-4 sticky top-0 z-30 flex justify-between items-center">
@@ -127,5 +122,6 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
         })}
       </div>
     </div>
+    </OnboardingGate>
   );
 }

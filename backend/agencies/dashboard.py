@@ -13,9 +13,11 @@ from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 
+from core.permissions import IsAgentOwner, IsVerifiedAgent
+
 
 class AgencyDashboardView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAgentOwner, IsVerifiedAgent]
 
     def get(self, request):
         try:

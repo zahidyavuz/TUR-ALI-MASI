@@ -36,7 +36,7 @@ class BookingLifecycleTestCase(TestCase):
         self.client = APIClient()
         self.user = User.objects.create_user(username='booker', password='testpass123', email='booker@test.com')
         self.agency_owner = User.objects.create_user(username='agencyowner', password='testpass123')
-        self.agency = Agency.objects.create(owner=self.agency_owner, name='Test Agency', is_verified=True)
+        self.agency = Agency.objects.create(owner=self.agency_owner, name='Test Agency', status='onaylandi', is_verified=True)
 
         self.tour = Tour.objects.create(
             id='booking-test-tour',
@@ -174,7 +174,7 @@ class TourCapacityReservationTestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
         self.user = User.objects.create_user(username='res_user', password='pass', email='res@test.com')
-        self.agency = Agency.objects.create(name='Res Agency', is_verified=True)
+        self.agency = Agency.objects.create(name='Res Agency', status='onaylandi', is_verified=True)
         self.tour = Tour.objects.create(
             id='res-tour', agency=self.agency, title='Res Tour', location='İzmir',
             price=1000, duration='1 Gün', guide='Türkçe', description='d',
@@ -272,7 +272,7 @@ class OverbookingRaceTestCase(TransactionTestCase):
         self.addCleanup(self._request_logger.setLevel, self._prev_level)
 
         self.user = User.objects.create_user(username='race_user', password='pass')
-        self.agency = Agency.objects.create(name='Race Agency', is_verified=True)
+        self.agency = Agency.objects.create(name='Race Agency', status='onaylandi', is_verified=True)
         self.tour = Tour.objects.create(
             id='race-tour', agency=self.agency, title='Race Tour', location='Muğla',
             price=100, duration='1 Gün', guide='Türkçe', description='d',

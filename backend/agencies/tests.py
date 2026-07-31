@@ -118,7 +118,7 @@ class AgencyTourCrudTestCase(TestCase):
         self.client = APIClient()
         self.owner = User.objects.create_user(username='ag_owner', password='pass')
         self.agency = Agency.objects.create(
-            owner=self.owner, name='Test Acenta', is_verified=True, is_active=True
+            owner=self.owner, name='Test Acenta', status='onaylandi', is_verified=True, is_active=True
         )
         self.client.force_authenticate(user=self.owner)
 
@@ -180,7 +180,7 @@ class AgencyTourCrudTestCase(TestCase):
         slug = self._create().data['id']
 
         intruder = User.objects.create_user(username='intruder_ag', password='pass')
-        Agency.objects.create(owner=intruder, name='Rakip Acenta', is_verified=True, is_active=True)
+        Agency.objects.create(owner=intruder, name='Rakip Acenta', status='onaylandi', is_verified=True, is_active=True)
         other = APIClient()
         other.force_authenticate(user=intruder)
 
@@ -230,7 +230,7 @@ class AgencyAvailabilityCalendarTestCase(TestCase):
         self.client = APIClient()
         self.owner = User.objects.create_user(username='cal_owner', password='pass')
         self.agency = Agency.objects.create(
-            owner=self.owner, name='Cal Acenta', is_verified=True, is_active=True
+            owner=self.owner, name='Cal Acenta', status='onaylandi', is_verified=True, is_active=True
         )
         self.tour = Tour.objects.create(
             id='cal-tour', agency=self.agency, title='Cal Tour', location='Fethiye',
@@ -299,7 +299,7 @@ class AgencyAvailabilityCalendarTestCase(TestCase):
 
     def test_other_agency_cannot_read_or_write_calendar(self):
         intruder = User.objects.create_user(username='cal_intruder', password='pass')
-        Agency.objects.create(owner=intruder, name='Rakip', is_verified=True, is_active=True)
+        Agency.objects.create(owner=intruder, name='Rakip', status='onaylandi', is_verified=True, is_active=True)
         other = APIClient()
         other.force_authenticate(user=intruder)
 
@@ -324,7 +324,7 @@ class AgencyBookingsTestCase(TestCase):
         self.client = APIClient()
         self.owner = User.objects.create_user(username='bk_owner', password='pass')
         self.agency = Agency.objects.create(
-            owner=self.owner, name='BK Acenta', is_verified=True, is_active=True
+            owner=self.owner, name='BK Acenta', status='onaylandi', is_verified=True, is_active=True
         )
         self.tour = Tour.objects.create(
             id='bk-tour', agency=self.agency, title='BK Tour', location='Antalya',
@@ -349,7 +349,7 @@ class AgencyBookingsTestCase(TestCase):
         # Başka acenta + onun rezervasyonu (izolasyon testi için)
         self.rival_owner = User.objects.create_user(username='bk_rival', password='pass')
         self.rival_agency = Agency.objects.create(
-            owner=self.rival_owner, name='Rakip', is_verified=True, is_active=True
+            owner=self.rival_owner, name='Rakip', status='onaylandi', is_verified=True, is_active=True
         )
         self.rival_tour = Tour.objects.create(
             id='rival-tour', agency=self.rival_agency, title='Rakip Tur', location='Kaş',
@@ -503,3 +503,183 @@ class AdminApplicationActionsTestCase(TestCase):
         self.assertEqual(response.status_code, 200)
         self.agency.refresh_from_db()
         self.assertEqual(self.agency.status, 'eksik_bilgi')
+
+    def test_reject_and_more_info_clear_verified_flag(self):
+        """Onaylı bir acenta sonradan reddedilirse yetkisi de düşmeli."""
+        self.agency.status = 'onaylandi'
+        self.agency.is_verified = True
+        self.agency.save(update_fields=['status', 'is_verified'])
+
+        self.client.post(f'/api/v1/admin/agencies/{self.agency.id}/reject/', {'reason': 'Belge sahte'})
+        self.agency.refresh_from_db()
+        self.assertFalse(self.agency.is_verified)
+
+        self.client.post(f'/api/v1/admin/agencies/{self.agency.id}/request-more-info/', {'message': 'Yeni belge'})
+        self.agency.refresh_from_db()
+        self.assertEqual(self.agency.status, 'eksik_bilgi')
+        self.assertFalse(self.agency.is_verified)
+
+    def test_more_info_reopens_editing_then_resubmit_returns_to_pending(self):
+        """eksik_bilgi → partner düzenleyip tekrar gönderebilir (uçtan uca)."""
+        self.client.post(f'/api/v1/admin/agencies/{self.agency.id}/request-more-info/', {'message': 'IBAN eksik'})
+
+        partner = APIClient()
+        partner.force_authenticate(user=self.owner)
+
+        # Eksik bilgi durumunda düzenleme yeniden açılır
+        response = partner.patch('/api/v1/agencies/onboarding/', {'bank_name': 'Ziraat'}, format='json')
+        self.assertEqual(response.status_code, 200)
+
+        # Kalan eksikler kullanıcıya açıkça bildirilir
+        missing = partner.get('/api/v1/agencies/onboarding/').data['missing_fields']
+        self.assertIn('iban', missing)
+
+        # Eksikler tamamlanmadan gönderim reddedilir
+        response = partner.post('/api/v1/agencies/onboarding/submit/', {
+            'accept_contract': True, 'accept_kvkk': True,
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertIn('iban', response.data)
+
+
+class PartnerGatingTestCase(TestCase):
+    """
+    F2-04 — onboarding durum kapısı.
+
+    Onaylanmamış bir partner token'ı ile acenta/işletme paneli uçlarının
+    tamamı 403 döner; yalnızca onboarding uçları açık kalır.
+    """
+
+    PANEL_ENDPOINTS = [
+        ('get', '/api/v1/agency/tours/'),
+        ('post', '/api/v1/agency/tours/'),
+        ('get', '/api/v1/agency/shuttles/'),
+        ('get', '/api/v1/agency/bookings/'),
+        ('get', '/api/v1/agency/finance/summary/'),
+        ('get', '/api/v1/agency/finance/ledger/'),
+        ('post', '/api/v1/agency/finance/payout-request/'),
+        ('get', '/api/v1/agencies/dashboard/'),
+        ('get', '/api/v1/menus/'),
+        ('post', '/api/v1/menus/'),
+        ('get', '/api/v1/restaurant/daily-stats/'),
+        ('get', '/api/v1/restaurant/reservations/'),
+    ]
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = User.objects.create_user(username='gate-owner', password='pass', email='gate@test.com')
+        self.agency = Agency.objects.create(
+            owner=self.owner, name='Gate Co', business_type='her_ikisi',
+            legal_entity_type='individual', status='beklemede', is_verified=False,
+        )
+        self.client.force_authenticate(user=self.owner)
+
+    def _assert_all(self, expected_status):
+        for method, url in self.PANEL_ENDPOINTS:
+            with self.subTest(endpoint=f'{method.upper()} {url}'):
+                response = getattr(self.client, method)(url, {}, format='json')
+                self.assertEqual(response.status_code, expected_status)
+
+    def test_pending_agency_is_blocked_everywhere(self):
+        self._assert_all(403)
+
+    def test_read_only_requests_are_blocked_too(self):
+        """
+        Eski `IsVerifiedAgent` SAFE_METHODS'a izin veriyordu; onaysız hesap
+        panel verisini GET'leyebiliyordu. Regresyon koruması.
+        """
+        for status_value in ('taslak', 'inceleniyor', 'reddedildi', 'eksik_bilgi'):
+            with self.subTest(status=status_value):
+                Agency.objects.filter(pk=self.agency.pk).update(status=status_value)
+                response = self.client.get('/api/v1/agency/tours/')
+                self.assertEqual(response.status_code, 403)
+
+    def test_approved_agency_passes_the_gate(self):
+        Agency.objects.filter(pk=self.agency.pk).update(status='onaylandi', is_verified=True)
+        for url in ('/api/v1/agency/tours/', '/api/v1/agency/bookings/',
+                    '/api/v1/agency/finance/summary/', '/api/v1/agencies/dashboard/',
+                    '/api/v1/menus/'):
+            with self.subTest(endpoint=url):
+                self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_deactivated_agency_is_blocked_even_if_approved(self):
+        Agency.objects.filter(pk=self.agency.pk).update(
+            status='onaylandi', is_verified=True, is_active=False,
+        )
+        self.assertEqual(self.client.get('/api/v1/agency/tours/').status_code, 403)
+
+    def test_legacy_verified_flag_alone_does_not_open_the_gate(self):
+        """`is_verified` eski bayrak; tek başına yetki vermemeli — kaynak `status`."""
+        Agency.objects.filter(pk=self.agency.pk).update(status='taslak', is_verified=True)
+        self.assertEqual(self.client.get('/api/v1/agency/tours/').status_code, 403)
+
+    def test_onboarding_endpoints_stay_open_while_blocked(self):
+        """Kapı kapalıyken başvuruya devam edebilmek şart, aksi halde kilitlenme olur."""
+        Agency.objects.filter(pk=self.agency.pk).update(status='eksik_bilgi')
+        self.assertEqual(self.client.get('/api/v1/agencies/onboarding/').status_code, 200)
+        self.assertEqual(self.client.get('/api/v1/agencies/my-profile/').status_code, 200)
+        response = self.client.patch('/api/v1/agencies/onboarding/', {'city': 'Nevsehir'}, format='json')
+        self.assertEqual(response.status_code, 200)
+
+    def test_user_without_agency_is_blocked(self):
+        outsider = User.objects.create_user(username='outsider', password='pass')
+        self.client.force_authenticate(user=outsider)
+        self._assert_all(403)
+
+
+class MissingFieldsTestCase(TestCase):
+    """`collect_missing_fields` — panelin eksik alan listesi ile gönderim doğrulaması tek kaynak."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def _agency(self, **kwargs):
+        owner = User.objects.create_user(username=kwargs.pop('username'), password='pass')
+        defaults = dict(
+            owner=owner, name='X', legal_entity_type='individual', status='taslak',
+            tax_id='12345678901', tax_office='Merkez', description='a' * 60,
+            city='Nevsehir', address='Adres 1', iban='TR' + '1' * 24,
+            bank_account_holder='X Y', bank_name='Ziraat',
+        )
+        defaults.update(kwargs)
+        return Agency.objects.create(**defaults)
+
+    def test_restaurant_is_exempt_from_tursab(self):
+        agency = self._agency(username='resto', business_type='restoran')
+        agency.logo = 'agencies/logos/x.png'
+        agency.save(update_fields=['logo'])
+
+        self.client.force_authenticate(user=agency.owner)
+        missing = self.client.get('/api/v1/agencies/onboarding/').data['missing_fields']
+        self.assertEqual(missing, {})
+
+        response = self.client.post('/api/v1/agencies/onboarding/submit/', {
+            'accept_contract': True, 'accept_kvkk': True,
+        }, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        agency.refresh_from_db()
+        self.assertEqual(agency.status, 'beklemede')
+
+    def test_travel_agency_requires_tursab(self):
+        agency = self._agency(username='acenta', business_type='acenta')
+        agency.logo = 'agencies/logos/x.png'
+        agency.save(update_fields=['logo'])
+
+        self.client.force_authenticate(user=agency.owner)
+        missing = self.client.get('/api/v1/agencies/onboarding/').data['missing_fields']
+        self.assertEqual(set(missing), {'tursab_no', 'tursab_group', 'tursab_document'})
+
+        response = self.client.post('/api/v1/agencies/onboarding/submit/', {
+            'accept_contract': True, 'accept_kvkk': True,
+        }, format='json')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(set(response.data), set(missing))
+
+    def test_company_requires_trade_registry_document(self):
+        agency = self._agency(username='sirket', business_type='restoran', legal_entity_type='company')
+        agency.logo = 'agencies/logos/x.png'
+        agency.save(update_fields=['logo'])
+
+        self.client.force_authenticate(user=agency.owner)
+        missing = self.client.get('/api/v1/agencies/onboarding/').data['missing_fields']
+        self.assertIn('trade_registry_document', missing)

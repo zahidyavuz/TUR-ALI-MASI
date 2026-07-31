@@ -263,7 +263,7 @@ EOF
 
 ---
 
-### [ ] F2-04 · Onboarding durum makinesi UI + panel gating
+### [x] F2-04 · Onboarding durum makinesi UI + panel gating
 
 **Öncelik:** P1 · **Efor:** M
 
@@ -278,7 +278,19 @@ EOF
 
 **Doğrulama:** Onaysız acente token'ı ile tüm agency CRUD endpoint'leri 403 döner (test yaz). STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Bağlam kısmen eskiydi: adım 1 (AuthContext + `/auth/user/` içinde `agency_status`), adım 3'ün iskeleti (`PartnerApplicationStatus` ile iki layout'ta erken dönüş) ve adım 5 (koşullu TÜRSAB, `AgencyOnboardingSubmitSerializer.validate`) zaten yapılmıştı. Gerçek boşluk **kapının backend'de olmamasıydı**.
+
+Asıl bulgu — **`IsVerifiedAgent` sızdırıyordu**: (a) `SAFE_METHODS` bypass'ı vardı, yani onaylanmamış partner tüm panel uçlarını GET'leyebiliyordu; (b) `status` yerine eski `is_verified` bayrağına bakıyordu; (c) uçların yarısına hiç takılmamıştı — `agency/finance/*` (hakediş **talebi** dahil), `restaurant/daily-stats`, `restaurant/reservations`, `agencies/dashboard/` ve `menus/` yalnız `IsAuthenticated`/`IsAgentOwner` ile korunuyordu. Yani onaylanmamış bir hesap panele giremese de API'den ciro dökümünü çekip para talebi açabiliyordu. Kapı artık `status == 'onaylandi' and is_active` üzerinden tüm metotlarda çalışıyor ve bu beş uca da eklendi. Onboarding uçları (`agencies/onboarding/*`, `my-profile`) bilerek açık bırakıldı — kapalı olsaydı partner başvurusunu tamamlayamaz, kilitlenirdi (bunun için ayrı regresyon testi var).
+
+`collect_missing_fields()` tek kaynak olarak `onboarding_serializers.py`'ye çıkarıldı; hem nihai gönderim doğrulaması hem de panelin "eksik bilgi" ekranı aynı listeyi kullanıyor (ayrışırlarsa kullanıcıya gösterilmeyen bir alan yüzünden gönderim reddedilir). `GET /agencies/onboarding/` artık `missing_fields` döner.
+
+Frontend'de `PartnerApplicationStatus` silinip yerine `<OnboardingGate>` geldi: iki layout'taki kopya blok tek sarmalayıcıya indi, `eksik_bilgi`/`taslak` durumunda yönetici notunun yanında **eksik alanlar listesi** de gösteriliyor.
+
+**Kapsam istisnası:** `MenuViewSet` yalnız `IsAuthenticated` ile korunuyordu ve **hiçbir RLS'i yoktu** — giriş yapmış herhangi bir müşteri başka bir restoranın menüsünü listeleyip düzenleyebiliyor/silebiliyordu (BOLA). Sadece `IsVerifiedAgent` eklemek kapıyı kurar ama sızıntıyı kapatmazdı; bu yüzden queryset sahibe daraltıldı ve `perform_create` menüyü her zaman isteği yapanın işletmesine bağlıyor. Ucun frontend'de hiç tüketicisi yok, dolayısıyla davranış regresyonu riski yok.
+
+**Ek değişiklik:** `status` artık yetkinin kaynağı olduğu için test fixture'larındaki `is_verified=True` kayıtlarına `status='onaylandi'` eklendi (reviews/bookings/tours/agencies — 12 satır). Üretim verisi `agencies/migrations/0012_backfill_agency_status` ile zaten geriye dönük doldurulmuş durumda, ek migration gerekmedi.
+
+**Doğrulama:** `manage.py test` → **81 test OK** (önce 69). Yeni `PartnerGatingTestCase` (7 test): 12 panel ucunun tamamı `beklemede` durumunda 403; `taslak/inceleniyor/reddedildi/eksik_bilgi` için salt-okunur GET de 403 (SAFE_METHODS regresyon koruması); `onaylandi` ile beş uç 200; `is_active=False` onaylıyken bile 403; tek başına `is_verified=True` kapıyı açmıyor; kapı kapalıyken onboarding uçları hâlâ 200; acentası olmayan kullanıcı 403. Yeni `MissingFieldsTestCase` (3 test): restoran TÜRSAB'sız gönderebiliyor, seyahat acentası üç TÜRSAB alanı için 400 alıyor ve `missing_fields` ile gönderim hatası birebir aynı, şirket tipinde ticaret sicil belgesi eksik listesine giriyor. `AdminApplicationActionsTestCase`'e 2 test eklendi: ret/eksik-bilgi `is_verified`'ı düşürüyor; `eksik_bilgi` → PATCH açılıyor → eksikler bildiriliyor → tamamlanmadan gönderim 400. `makemigrations --check --dry-run` → "No changes detected", `migrate --check` exit 0, `tsc --noEmit` / `npm run lint` temiz, AST duplicate taraması temiz.
 
 ---
 
@@ -626,6 +638,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P0 · para] Transfer (shuttle) akışında overbooking yarışı duruyor.** F2-02'de tur tarafındaki yarış düzeltildi (kontenjan artık rezervasyon anında koşullu UPDATE ile tutuluyor), ancak `_create_shuttle_booking` hâlâ eski desende: `select_for_update()` ile satırı okuyup `remaining` kontrolü yapıyor fakat o transaction'da `booked_count`'a **hiçbir şey yazmıyor**; sayaç yalnızca webhook `payment_intent.succeeded` içinde, kapasite kontrolü olmadan artıyor. Dolayısıyla N eşzamanlı transfer isteği aynı `remaining`'i okuyup hepsi geçebilir ve para alınmış halde `booked_count > max_capacity` oluşur. Ayrıca `payment_intent.payment_failed` transfer kontenjanını da bırakmıyor. Transfer akışı F5-01'in kapsamında; aynı düzeltme (rezervasyonu `create` anında koşullu UPDATE ile tut, webhook'ta çift sayma, başarısız ödemede bırak) orada uygulanmalı.
 * **[P2 · gözlem] SQLite eşzamanlı yazmada tablo kilidi hatası veriyor.** `OverbookingRaceTestCase` 8 paralel istekte `OperationalError: database table is locked: tours_touravailability` üretiyor; test bunu 500 yanıtı olarak alıp yeniden deniyor (kontenjan muhasebesi doğru çıkıyor, overbooking yok). Sebep: Django test veritabanı bellek içi SQLite'ı `cache=shared` ile açıyor ve bu modda busy-timeout tablo kilitlerine uygulanmıyor. Üretimde PostgreSQL kullanılacaksa sorun yok; **SQLite ile üretime çıkılırsa** eşzamanlı satışta müşteri 500 görür. Veritabanı seçimi netleştirilmeli (bkz. F3/F4 dağıtım görevleri).
 * **[P2 · eksik özellik] Acenteye canlı rezervasyon bildirimi yok (F2-03 adım 5 ertelendi).** Görev "yeni rezervasyon geldiğinde canlı bildirim" istiyordu; F2-03'te ertelendi. Mevcut Channels altyapısında yalnız `RestaurantConsumer` var (`backend/agencies/routing.py`); acente için ayrı bir consumer, JWT ile doğrulanmış grup üyeliği (`agency_<id>`), rezervasyon oluşumunda grup mesajı yayını ve frontend tarafında yeniden bağlanma mantığı gerekiyor. Tek başına M efor olduğu ve F2-03'ün asıl teslimatını (manifest + no-show) geciktireceği için F5'e bırakıldı. O zamana kadar acenta yeni rezervasyonu ancak sayfayı yenileyerek görür.
+* **[P2 · ölü kod] `agencies/views.py` içindeki `DiningReservationViewSet` router'a hiç bağlı değil.** `api_urls.py` `restaurant/reservations` için `agencies/restaurant_views.py`'deki aynı isimli sınıfı kullanıyor; `views.py`'dekine hiçbir URL çözülmüyor. F2-04'te yalnız canlı olan uçlar gate'lendi, ölü kopyaya dokunulmadı — F3-04 (ölü kod temizliği) kapsamında silinmeli.
+* **[P2 · eksik durum] `inceleniyor` durumuna hiçbir yoldan geçilemiyor.** `Agency.STATUS_CHOICES`'ta var, `OnboardingGate` ve admin panelinin filtre sekmeleri bu durumu gösteriyor, ancak `admin_views.py`'de yalnız approve/reject/request-more-info aksiyonları var — `beklemede → inceleniyor` geçişini yapacak bir uç yok. Ya "incelemeye al" aksiyonu eklenmeli ya da durum tamamen kaldırılıp `beklemede` ile birleştirilmeli (F2-04 adım tanımında bu geçiş istenmediği için dokunulmadı).
 * **[P2 · ortam] Yerel geliştirme ortamı kurulu değildi.** `node_modules` yoktu (`npm install` ile kuruldu). Backend için Python venv de yok (`backend/venv`, `.venv` bulunamadı, `django` global olarak da kurulu değil) — bu yüzden STD-CHECK'in backend yarısı (makemigrations --check / migrate --check / test) F1-01'de çalıştırılamadı. F1-01 yalnız frontend dosyası değiştirdiği için sonucu etkilemez, ancak F1-04'ten itibaren backend ortamı şart.
 
 ---
