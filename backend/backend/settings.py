@@ -140,6 +140,9 @@ REST_AUTH = {
     # NoReverseMatch ile 500 dönüyordu. Aşağıdaki serializer bağlantıyı doğrudan
     # ön yüzdeki /reset-password sayfasına kurar.
     'PASSWORD_RESET_SERIALIZER': 'users.auth_serializers.FrontendPasswordResetSerializer',
+    # JWT'ye `role` claim'i eklenir; ön yüz middleware'i rol bazlı route
+    # korumasını backend'e sormadan (imza doğrulamadan) yapar (bkz. middleware.ts, F3-02).
+    'JWT_TOKEN_CLAIMS_SERIALIZER': 'users.auth_serializers.RoleTokenObtainPairSerializer',
     'OLD_PASSWORD_FIELD_ENABLED': True,
     'LOGOUT_ON_PASSWORD_CHANGE': False,
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',

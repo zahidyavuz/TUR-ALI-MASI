@@ -1,7 +1,38 @@
 from allauth.account.utils import user_pk_to_url_str
 from dj_rest_auth.serializers import PasswordResetSerializer
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from core.emails import frontend_url
+
+
+def user_role(user):
+    """
+    Kullanıcının kaba rolünü döndürür (küçük harf).
+
+    UserSerializer.get_role ile aynı mantık ama JWT claim'i ve ön yüz
+    karşılaştırmaları için küçük harfli. 'restaurant' ayrı bir rol DEĞİL —
+    o ayrım agency_business_type ile yapılır ve panel layout'unda kalır;
+    middleware yalnızca kabuk sızıntısını engellemek için kaba rolü kullanır.
+    """
+    if user.is_superuser or user.is_staff:
+        return 'admin'
+    if hasattr(user, 'agency_profile'):
+        return 'agency'
+    return 'customer'
+
+
+class RoleTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Access token'a `role` claim'i ekler; böylece ön yüz middleware'i her
+    istekte backend'e sormadan (imza doğrulamadan) rol bazlı yönlendirme
+    yapabilir. Claim refresh token'da da tutulduğundan yenilemede korunur.
+    """
+
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+        token['role'] = user_role(user)
+        return token
 
 
 def frontend_reset_url_generator(request, user, temp_key):

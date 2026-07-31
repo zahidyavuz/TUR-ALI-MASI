@@ -367,7 +367,7 @@ Frontend'de `PartnerApplicationStatus` silinip yerine `<OnboardingGate>` geldi: 
 
 ---
 
-### [ ] F3-02 · Middleware'de rol bazlı route koruması
+### [x] F3-02 · Middleware'de rol bazlı route koruması
 
 **Öncelik:** P1 · **Efor:** M
 
@@ -377,7 +377,14 @@ Frontend'de `PartnerApplicationStatus` silinip yerine `<OnboardingGate>` geldi: 
 
 **Doğrulama:** Rol matrisi testi (customer token'ıyla /dashboard/admin → redirect). STD-CHECK.
 
-**Notlar:** _
+**Notlar:**
+- **Kritik ön koşul: JWT'de `role` claim'i yoktu.** Login dj_rest_auth LoginView → simplejwt `for_user` ile üretiliyordu; token yalnız `user_id/exp/iat/jti` taşıyordu. Middleware backend'e sormadan rol okuyabilsin diye `RoleTokenObtainPairSerializer` (users/auth_serializers.py) eklendi ve `REST_AUTH['JWT_TOKEN_CLAIMS_SERIALIZER']` ile bağlandı. Claim refresh token'da da tutulduğu için yenilemede korunur (test ile kanıtlandı).
+- **Rol modeli kaba:** `user_role()` → admin (is_staff/superuser) / agency (agency_profile var) / customer. `restaurant` AYRI BİR ROL DEĞİL — o ayrım `agency_business_type` ile yapılır ve panel layout'unda kalır (restaurant/layout.tsx zaten böyle yapıyor). Middleware `/dashboard/restaurant`'ı `agency` rolüyle korur; ince ayrım layout'a bırakıldı.
+- **Rol matrisi (middleware.ts):** admin her yere; `/dashboard/admin` yalnız admin; `/dashboard/agency|restaurant|business` → agency|admin; `/dashboard/customer` ve diğerleri → geçerli oturum yeter (customer paneli gerçek: cart/favorites/tickets/settings). Token yok/bozuk/süresi dolmuş → `/login?next=<path>`.
+- JWT payload'ı Edge runtime'da `atob` ile imza doğrulamadan çözülüyor (base64url→base64). Bozuk token null döner → login.
+- **Değişen dosyalar:** `middleware.ts` (yeniden yazıldı), `backend/users/auth_serializers.py` (+`user_role`, +`RoleTokenObtainPairSerializer`), `backend/backend/settings.py` (+`JWT_TOKEN_CLAIMS_SERIALIZER`), `backend/users/tests.py` (+5 test).
+- **Test notu:** Ön yüzde JS test framework'ü yok; middleware saf fonksiyon mantığı tsc + mantık incelemesiyle doğrulandı. Rol matrisinin temeli olan `role` claim'i backend'de 5 testle kanıtlandı (customer/agency/admin + access-token'a yansıma + login ucundan uçtan uca).
+- **Doğrulama (hepsi yeşil):** backend `manage.py test` → 192 test OK (önce 187, +5); `makemigrations --check` → No changes; `migrate --check` → OK; `npx tsc --noEmit` → temiz; `npm run lint` → temiz; AST duplicate/syntax → temiz.
 
 ---
 
@@ -663,6 +670,7 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · ölü bağımlılık] `nodemailer` artık kullanılmıyor.** F3-01'de tek kullanıcısı olan `app/api/verify-email/route.ts` silindi; `package.json`'da `nodemailer` (`^8.0.1`) ve `@types/nodemailer` (`^7.0.11`) duruyor. Bağımlılık kaldırmak lockfile'ı da değiştireceği ve F3-01 kapsamı dışı olduğu için dokunulmadı — F3-04 (ölü kod temizliği) kapsamında `npm uninstall` edilmeli. Frontend'den e-posta gönderimi artık mimari olarak da yanlış: tüm işlemsel mailler Django'dan çıkıyor.
 * **[P2 · yapılandırma] `django.contrib.sites` kaydı hiç güncellenmiyor, alan adı "example.com".** `SITE_ID = 1` tanımlı ama veritabanındaki `Site` satırı Django'nun varsayılanında kalmış. F3-01'de maillerin buna bağımlılığı `FRONTEND_URL`/`SITE_NAME` ayarlarıyla ve özel bir allauth adapter'ıyla kesildi, ancak `Site`'ı okuyan başka bir yer çıkarsa (ör. sosyal giriş callback'leri, `allauth.socialaccount`) yine "example.com" görecek. Dağıtımda `Site` kaydı gerçek alan adıyla güncellenmeli ya da bir data migration eklenmeli.
 * **[P2 · gözlem] allauth doğrulama maili adres başına hız sınırlı ve sayaç cache'te tutuluyor.** `core/test_emails.py` yazılırken aynı e-posta adresini iki testte kullanınca ikinci testte mail hiç gönderilmedi; sebep allauth'un `confirm_email` rate limit'i ve `LocMemCache`'in testler arası geri alınmaması. Testlerde `cache.clear()` ile çözüldü. Üretimde de not edilmeli: kullanıcı "doğrulama mailini tekrar gönder" derse sınır dolmuşsa **sessizce hiçbir şey olmaz**; arayüzde bu duruma dair bir geri bildirim yok.
+* **[P2 · ölü kod] `app/components/RouteGuard.tsx` hiçbir yerden import edilmiyor.** F3-02 sırasında bulundu: dosya rol bazlı yönlendirme yapan tam bir bileşen ama `grep RouteGuard` hiçbir kullanım göstermiyor. Ayrıca mantığı çelişkili — "müşteriler `/dashboard` altına hiç giremez, `/`'a atılır" diyor ama gerçek bir `/dashboard/customer` paneli var (cart/favorites/tickets/settings). Kullanılsaydı müşteri panelini kırardı. Silinmeli veya kullanılacaksa customer alanı istisna edilmeli. F3-02 kapsamı korumayı middleware'e taşıdığı için dokunulmadı.
 
 ---
 
