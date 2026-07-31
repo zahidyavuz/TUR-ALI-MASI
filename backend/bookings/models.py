@@ -62,6 +62,11 @@ class Booking(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     cancelled_at = models.DateTimeField(null=True, blank=True)
 
+    # Tur bitiminden sonra gönderilen "deneyimini değerlendir" davet
+    # e-postasının gönderim anı. Boşsa davet henüz gönderilmemiştir;
+    # `send_review_invites` komutunun tekrar tekrar mail atmasını engeller.
+    review_invite_sent_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ['-created_at']
 

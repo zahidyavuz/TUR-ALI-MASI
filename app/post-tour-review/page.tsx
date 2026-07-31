@@ -1,12 +1,15 @@
 'use client';
 import React, { useState, Suspense, useRef } from 'react';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { fetchAPI } from '@/app/lib/api';
+import { auth } from '@/app/lib/auth';
 
 function ReviewContent() {
     const searchParams = useSearchParams();
+    const router = useRouter();
+    const tourId = searchParams.get('tourId') || '';
     const tourTitle = searchParams.get('tourTitle') || 'Tur Deneyimi';
-    const bookingId = searchParams.get('bookingId') || 'TKT-PENDING';
 
     const [rating, setRating] = useState<number>(0);
     const [hoverRating, setHoverRating] = useState<number>(0);
@@ -14,12 +17,14 @@ function ReviewContent() {
     const [reviewText, setReviewText] = useState('');
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isSubmitted, setIsSubmitted] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitError, setSubmitError] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const TAGS = ['Harika rehber', 'Lezzetli yemekler', 'Muazzam manzara', 'Dakik servis', 'Güvenli sürüş', 'Eğlenceli'];
 
     const toggleTag = (tag: string) => {
-        setSelectedTags(prev => 
+        setSelectedTags(prev =>
             prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]
         );
     };
@@ -35,11 +40,40 @@ function ReviewContent() {
         }
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setIsSubmitted(true);
-        // İleride API'ye gönderilecek
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setSubmitError('');
+
+        if (rating === 0) return;
+        if (!tourId) {
+            setSubmitError('Geçersiz değerlendirme bağlantısı: tur bilgisi eksik.');
+            return;
+        }
+        if (!auth.isAuthenticated()) {
+            const next = typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/';
+            router.push(`/login?next=${encodeURIComponent(next)}`);
+            return;
+        }
+
+        // Seçilen etiketler yorum metnine eklenir; puan + yorum sunucuda
+        // "tarihi geçmiş onaylı rezervasyon" doğrulamasından geçer.
+        const tagLine = selectedTags.length ? `[${selectedTags.join(', ')}] ` : '';
+        const comment = `${tagLine}${reviewText}`.trim() || 'Değerlendirme puanı bırakıldı.';
+
+        setIsSubmitting(true);
+        try {
+            await fetchAPI('/reviews/', {
+                method: 'POST',
+                throwOnHttpError: true,
+                body: JSON.stringify({ tour: tourId, rating, comment }),
+            });
+            setIsSubmitted(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        } catch (err: any) {
+            setSubmitError(err?.data?.error || err?.message || 'Değerlendirme gönderilemedi.');
+        } finally {
+            setIsSubmitting(false);
+        }
     };
 
     if (isSubmitted) {
@@ -214,18 +248,24 @@ function ReviewContent() {
                     </div>
                 </div>
 
+                {submitError && (
+                    <div className="bg-red-50 border border-red-100 text-red-600 px-5 py-3 rounded-2xl text-sm font-bold text-center">
+                        {submitError}
+                    </div>
+                )}
+
                 {/* 5. Submit Button */}
                 <button
                     type="submit"
-                    disabled={rating === 0}
+                    disabled={rating === 0 || isSubmitting}
                     className={`w-full py-5 rounded-[2rem] font-black text-[16px] uppercase tracking-widest transition-all flex items-center justify-center gap-3 ${
-                        rating > 0
+                        rating > 0 && !isSubmitting
                         ? 'bg-gradient-to-r from-[#008cb3] to-[#005e85] text-white hover:shadow-[0_15px_40px_rgba(0,140,179,0.3)] active:scale-95'
                         : 'bg-slate-100 text-slate-400 cursor-not-allowed'
                     }`}
                 >
-                    Gönder ve Bitir
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                    {isSubmitting ? 'Gönderiliyor...' : 'Gönder ve Bitir'}
+                    {!isSubmitting && <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>}
                 </button>
 
                 <p className="text-[10px] text-center text-gray-400 font-bold uppercase tracking-widest">

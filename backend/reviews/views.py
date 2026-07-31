@@ -31,12 +31,17 @@ class ReviewViewSet(viewsets.ModelViewSet):
         tour_id = request.data.get('tour')
         user = request.user
 
-        # Check if user has a confirmed booking for this tour
-        has_booked = Booking.objects.filter(user=user, tour_id=tour_id, status='confirmed').exists()
+        # Yorum yazma izni: yalnız tarihi geçmiş (tur bitmiş) onaylı bir
+        # rezervasyon sahibi. Henüz gerçekleşmemiş bir tura yorum yazılamaz.
+        today = timezone.localdate()
+        has_completed = Booking.objects.filter(
+            user=user, tour_id=tour_id, status='confirmed',
+            start_date__lt=today,
+        ).exists()
 
-        if not has_booked:
+        if not has_completed:
             return Response(
-                {"error": "You can only review tours you have booked and confirmed."},
+                {"error": "Yalnızca katıldığınız (tarihi geçmiş onaylı) turlara yorum yapabilirsiniz."},
                 status=status.HTTP_403_FORBIDDEN
             )
 
@@ -51,7 +56,25 @@ class ReviewViewSet(viewsets.ModelViewSet):
         return super().create(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        # create() zaten tarihi geçmiş onaylı rezervasyonu doğruladı; bu
+        # yüzden buradan geçen her yorum "doğrulanmış katılımcı"dır.
+        serializer.save(user=self.request.user, verified=True)
+
+    @action(detail=False, methods=['get'], url_path='agency', permission_classes=[IsAuthenticated])
+    def agency(self, request):
+        """GET /api/v1/reviews/agency/ — İstek yapan acentanın turlarına ait
+        tüm yorumları döndürür (panelde yanıtlamak için)."""
+        if not hasattr(request.user, 'agency_profile'):
+            return Response(
+                {"error": "Sadece acenta sahipleri erişebilir."},
+                status=status.HTTP_403_FORBIDDEN
+            )
+        qs = self.get_queryset().filter(tour__agency=request.user.agency_profile)
+        page = self.paginate_queryset(qs)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        return Response(self.get_serializer(qs, many=True).data)
 
     @action(detail=True, methods=['post'], url_path='reply', permission_classes=[IsAuthenticated])
     def agency_reply(self, request, pk=None):

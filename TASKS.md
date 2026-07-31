@@ -580,7 +580,7 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F4-05 · Tur sonrası doğrulanmış yorum akışı
+### [x] F4-05 · Tur sonrası doğrulanmış yorum akışı
 
 **Öncelik:** P1 · **Efor:** M
 
@@ -588,7 +588,14 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 **Doğrulama:** Rezervasyonsuz kullanıcı yorum POST → 403. STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Tamamlandı.
+- **Yorum izni** (`reviews/views.py`): create() artık yalnız **tarihi geçmiş** (`start_date < bugün`) `confirmed` rezervasyon sahibinin yorum yazmasına izin verir (eski kural sadece confirmed idi). Gelecek/olmamış tura yorum → 403. `perform_create` yorumu `verified=True` ile kaydeder.
+- **Doğrulanmış katılımcı rozeti**: `Review.verified` BooleanField (migration `reviews/0003`); serializer'da read-only. Rozet tur detay yorum listesinde (`TourReviews.tsx`) ve acente panelinde gösterilir. (`TourReviews.tsx` içindeki mevcut `user_detail` → `user` hatası da düzeltildi; isim artık doğru görünüyor.)
+- **Davet e-postası**: `reviews/management/commands/send_review_invites.py` — tur bitiminden ≥24s geçmiş, davet gönderilmemiş onaylı rezervasyonlara tek seferlik "deneyimini değerlendir" maili yollar; `Booking.review_invite_sent_at` (migration `bookings/0008`) ile tekrar gönderim engellenir; zaten yorum yazana mail gitmez. E-posta şablonları: `review_invite_subject.txt` / `.txt` / `.html`. `--dry-run` desteği var. Cron/Celery beat ile saatlik çalıştırılmak üzere tasarlandı.
+- **Cron route silindi**: `app/api/cron/post-experience-review/route.ts` kaldırıldı; tek kullanıcısı olduğu için artık tamamen ölü kalan `app/lib/notificationService.ts` de silindi.
+- **Acente yanıtı panelde**: yeni `ReviewViewSet.agency` action (`GET /api/v1/reviews/agency/`, IsAuthenticated + acenta sahibi) acentanın turlarına ait yorumları döndürür; yeni sayfa `app/dashboard/agency/reviews/page.tsx` (nav'a "Değerlendirmeler" eklendi) yorumları listeler ve mevcut `/reviews/<id>/reply/` ucuyla yanıt/düzenleme sağlar. Serializer'a `tour_title` eklendi.
+- **post-tour-review bağlandı**: `app/post-tour-review/page.tsx` artık `tourId` + `tourTitle` query'siyle gelir, `fetchAPI('/reviews/', POST)` ile puan+yorum (seçili etiketler yoruma eklenir) gönderir; giriş yoksa `/login?next=` yönlendirir, backend 403/400 gerekçesini gösterir.
+- **Doğrulama:** Backend 234 test PASS (yeni: gelecek tarihli rezervasyon → 403, verified=True, acenta yorum listesi + yetki, davet komutu 4 senaryo). makemigrations --check temiz, migrate --check temiz. Frontend: tsc temiz, lint temiz, build başarılı (silinen route sonrası `.next` tip önbelleği build ile yenilendi).
 
 ---
 

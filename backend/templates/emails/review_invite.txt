@@ -1,0 +1,15 @@
+{% autoescape off %}Merhaba {{ user_name }},
+
+{{ tour_title }} deneyiminizi tamamladınız. Umarız harika vakit geçirmişsinizdir!
+
+Deneyiminizi puanlayıp birkaç satır yazarak diğer gezginlere yol gösterebilir,
+acentanın hizmetini daha iyi hale getirmesine katkı sağlayabilirsiniz.
+
+Değerlendirmenizi buradan bırakabilirsiniz:
+{{ review_url }}
+
+Yorumunuz "Doğrulanmış katılımcı" rozetiyle yayınlanacaktır.
+
+Teşekkürler,
+{{ site_name }}
+{% endautoescape %}

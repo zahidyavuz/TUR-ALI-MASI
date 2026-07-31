@@ -1,0 +1,8 @@
+{% extends "emails/base.html" %}
+{% block heading %}Deneyiminiz nasıldı?{% endblock %}
+{% block content %}
+<p style="margin:0 0 16px 0;">Merhaba {{ user_name }},</p>
+<p style="margin:0 0 16px 0;"><strong>{{ tour_title }}</strong> deneyiminizi tamamladınız. Umarız harika vakit geçirmişsinizdir!</p>
+<p style="margin:0 0 16px 0;">Deneyiminizi puanlayıp birkaç satır yazarak diğer gezginlere yol gösterebilirsiniz. Yorumunuz <strong>Doğrulanmış katılımcı</strong> rozetiyle yayınlanır.</p>
+{% include "emails/_button.html" with url=review_url label="Deneyimimi Değerlendir" %}
+{% endblock %}

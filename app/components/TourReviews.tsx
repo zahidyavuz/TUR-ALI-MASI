@@ -181,7 +181,15 @@ export default function TourReviews({ tourId }: TourReviewsProps) {
                                             {review.user_detail?.first_name ? review.user_detail.first_name[0] : review.user_detail?.username?.[0]?.toUpperCase() || 'U'}
                                         </div>
                                         <div>
-                                            <h5 className="font-bold text-slate-800 text-sm">{review.user_detail?.first_name || review.user_detail?.username || 'Kullanıcı'}</h5>
+                                            <div className="flex items-center gap-2">
+                                                <h5 className="font-bold text-slate-800 text-sm">{review.user?.first_name || review.user?.username || 'Kullanıcı'}</h5>
+                                                {review.verified && (
+                                                    <span className="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-wider text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded-full" title="Bu yorum, tura katılmış doğrulanmış bir misafir tarafından yazıldı.">
+                                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                        Doğrulanmış katılımcı
+                                                    </span>
+                                                )}
+                                            </div>
                                             <p className="text-[11px] text-gray-400 font-medium">
                                                 {new Date(review.created_at).toLocaleDateString()}
                                             </p>

@@ -14,6 +14,11 @@ class Review(models.Model):
     comment = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # "Doğrulanmış katılımcı" rozeti: yorum, tarihi geçmiş onaylı bir
+    # rezervasyon sahibi tarafından yazıldığında True olur. Admin panelinden
+    # eklenen ya da eski (booking'siz) kayıtlar False kalır.
+    verified = models.BooleanField(default=False)
+
     # Agency response
     agency_reply = models.TextField(blank=True, null=True)
     agency_reply_at = models.DateTimeField(blank=True, null=True)

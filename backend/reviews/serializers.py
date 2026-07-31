@@ -11,11 +11,12 @@ class ReviewUserSerializer(serializers.ModelSerializer):
 
 class ReviewSerializer(serializers.ModelSerializer):
     user = ReviewUserSerializer(read_only=True)
+    tour_title = serializers.CharField(source='tour.title', read_only=True)
 
     class Meta:
         model = Review
         fields = '__all__'
-        read_only_fields = ['user', 'agency_reply', 'agency_reply_at']
+        read_only_fields = ['user', 'verified', 'agency_reply', 'agency_reply_at']
 
 
 class AgencyReplySerializer(serializers.Serializer):
