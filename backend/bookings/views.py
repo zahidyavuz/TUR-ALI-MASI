@@ -5,9 +5,10 @@ Kritik değişiklikler:
   1. transaction.atomic() + select_for_update() → Race Condition / Overbooking koruması.
   2. Gereksiz inline importlar kaldırıldı, tepede gruplandı.
   3. Webhook'ta da atomic blok kullanıldı.
+  4. Tahsilat/iade/webhook çağrıları `bookings.payments` adapter'ı üzerinden
+     geçiyor; bu dosyada artık doğrudan PSP SDK'sı yok (F2-06).
 """
 import logging
-import stripe
 from datetime import date as date_type, datetime, time as time_type, timedelta
 
 from django.conf import settings
@@ -25,6 +26,12 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
 
 from .models import Booking
+from .payments import (
+    PaymentError,
+    ProviderNotConfigured,
+    WebhookEvent,
+    get_provider,
+)
 from .serializers import BookingSerializer
 from tours.models import Tour, TourAvailability
 from shuttles.models import ShuttleRoute, ShuttleAvailability
@@ -128,18 +135,14 @@ class BookingViewSet(viewsets.ModelViewSet):
 
                 total_price = unit_price * guests
 
-                # ── Stripe PaymentIntent ─────────────────────────────────────
-                stripe.api_key = settings.STRIPE_SECRET_KEY
-                if not stripe.api_key:
-                    raise RuntimeError('Stripe yapılandırılmamış.')
-
-                intent = stripe.PaymentIntent.create(
-                    amount=int(total_price * 100),
-                    currency='try',
-                    metadata={'tour_id': tour.id, 'user_id': request.user.id}
+                # ── Tahsilat başlatma (PSP adapter) ──────────────────────────
+                intent = get_provider().create_intent(
+                    amount=total_price,
+                    currency='TRY',
+                    metadata={'tour_id': tour.id, 'user_id': request.user.id},
                 )
 
-                booking_ref = intent.id[-8:].upper()
+                booking_ref = intent.booking_ref
                 booking = Booking.objects.create(
                     user=request.user,
                     tour=tour,
@@ -152,7 +155,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     total_price=total_price,
                     status='pending',
                     booking_ref=booking_ref,
-                    payment_intent_id=intent.id,
+                    payment_intent_id=intent.intent_id,
                     guest_full_name=(request.data.get('guest_full_name') or '')[:150],
                     guest_email=(request.data.get('guest_email') or '')[:254],
                     guest_phone=(request.data.get('guest_phone') or '')[:32],
@@ -161,11 +164,11 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except stripe.error.StripeError as e:
-            logger.error(f"Stripe PaymentIntent creation failed: {e}")
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except RuntimeError as e:
+        # ProviderNotConfigured, PaymentError'ın alt sınıfı — önce o yakalanmalı.
+        except ProviderNotConfigured as e:
             return Response({'error': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except PaymentError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # ── E-posta bildirimi (atomic dışında — hata rezervasyonu geri almaz) ─
         if request.user.email:
@@ -265,17 +268,13 @@ class BookingViewSet(viewsets.ModelViewSet):
                 # tutarlı, bkz. app/lib/orderCalculator.ts).
                 total_price = shuttle_route.price_per_person * guests
 
-                stripe.api_key = settings.STRIPE_SECRET_KEY
-                if not stripe.api_key:
-                    raise RuntimeError('Stripe yapılandırılmamış.')
-
-                intent = stripe.PaymentIntent.create(
-                    amount=int(total_price * 100),
-                    currency='try',
-                    metadata={'shuttle_route_id': shuttle_route.id, 'user_id': request.user.id}
+                intent = get_provider().create_intent(
+                    amount=total_price,
+                    currency='TRY',
+                    metadata={'shuttle_route_id': shuttle_route.id, 'user_id': request.user.id},
                 )
 
-                booking_ref = intent.id[-8:].upper()
+                booking_ref = intent.booking_ref
                 booking = Booking.objects.create(
                     user=request.user,
                     shuttle_route=shuttle_route,
@@ -287,16 +286,15 @@ class BookingViewSet(viewsets.ModelViewSet):
                     total_price=total_price,
                     status='pending',
                     booking_ref=booking_ref,
-                    payment_intent_id=intent.id
+                    payment_intent_id=intent.intent_id
                 )
 
         except ValueError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except stripe.error.StripeError as e:
-            logger.error(f"Stripe PaymentIntent creation failed (shuttle): {e}")
-            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
-        except RuntimeError as e:
+        except ProviderNotConfigured as e:
             return Response({'error': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except PaymentError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         if request.user.email:
             try:
@@ -371,14 +369,15 @@ class BookingViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
+        refunded = False
         if booking.status == 'confirmed':
-            stripe.api_key = settings.STRIPE_SECRET_KEY
-            if booking.payment_intent_id and stripe.api_key:
+            provider = get_provider()
+            if booking.payment_intent_id and provider.is_configured():
                 try:
-                    stripe.Refund.create(payment_intent=booking.payment_intent_id)
+                    provider.refund(intent_id=booking.payment_intent_id)
+                    refunded = True
                     logger.info(f"Refund created for booking {booking.booking_ref}")
-                except Exception as e:
-                    logger.error(f"Stripe refund failed for {booking.booking_ref}: {e}")
+                except PaymentError as e:
                     return Response(
                         {'error': f'İade işlemi başarısız: {str(e)}'},
                         status=status.HTTP_400_BAD_REQUEST
@@ -405,6 +404,19 @@ class BookingViewSet(viewsets.ModelViewSet):
             booking.status = 'cancelled'
             booking.cancelled_at = timezone.now()
             booking.save(update_fields=['status', 'cancelled_at'])
+
+        # İade yapıldıysa hakediş kaydı geri alınmalı: satış kaydı silinmez,
+        # karşısına negatif tutarlı bir `refund` satırı yazılır (muhasebe izi
+        # korunur, bakiye kendiliğinden düşer).
+        if refunded:
+            from agencies.finance_models import AgentFinanceLedger
+            try:
+                AgentFinanceLedger.create_refund_entry(booking)
+            except Exception as e:
+                logger.error(
+                    f"[FINANCE] Refund ledger entry failed for {booking.booking_ref}: {e}",
+                    exc_info=True,
+                )
 
         if request.user.email:
             service_label = booking.tour.title if booking.tour else (
@@ -435,24 +447,19 @@ class BookingViewSet(viewsets.ModelViewSet):
     @method_decorator(csrf_exempt)
     @action(detail=False, methods=['post'], permission_classes=[AllowAny])
     def webhook(self, request):
-        payload      = request.body
-        sig_header   = request.META.get('HTTP_STRIPE_SIGNATURE')
-        stripe.api_key = settings.STRIPE_SECRET_KEY
-
         try:
-            event = stripe.Webhook.construct_event(payload, sig_header, settings.STRIPE_WEBHOOK_SECRET)
-        except Exception as e:
-            logger.error(f"Stripe webhook verification failed: {e}")
+            event = get_provider().verify_webhook(
+                payload=request.body, headers=request.META
+            )
+        except PaymentError as e:
+            logger.error(f"Payment webhook verification failed: {e}")
             return HttpResponse(status=400)
 
-        event_type     = event['type']
-        payment_intent = event['data']['object']
-
-        if event_type == 'payment_intent.succeeded':
+        if event.type == WebhookEvent.SUCCEEDED:
             try:
                 with transaction.atomic():
                     booking = Booking.objects.select_for_update().get(
-                        payment_intent_id=payment_intent['id']
+                        payment_intent_id=event.intent_id
                     )
                     if booking.status != 'confirmed':
                         booking.status = 'confirmed'
@@ -495,13 +502,13 @@ class BookingViewSet(viewsets.ModelViewSet):
                     )
 
             except Booking.DoesNotExist:
-                logger.warning(f"Webhook: No booking found for payment_intent {payment_intent['id']}")
+                logger.warning(f"Webhook: No booking found for payment_intent {event.intent_id}")
 
-        elif event_type == 'payment_intent.payment_failed':
+        elif event.type == WebhookEvent.FAILED:
             try:
                 with transaction.atomic():
                     booking = Booking.objects.select_for_update().get(
-                        payment_intent_id=payment_intent['id']
+                        payment_intent_id=event.intent_id
                     )
                     already_failed = booking.status == 'failed'
                     booking.status = 'failed'
@@ -529,6 +536,6 @@ class BookingViewSet(viewsets.ModelViewSet):
                         fail_silently=True,
                     )
             except Booking.DoesNotExist:
-                logger.warning(f"Webhook: No booking found for failed payment_intent {payment_intent['id']}")
+                logger.warning(f"Webhook: No booking found for failed payment_intent {event.intent_id}")
 
         return HttpResponse(status=200)

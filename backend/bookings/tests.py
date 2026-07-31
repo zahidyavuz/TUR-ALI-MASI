@@ -167,7 +167,7 @@ class BookingLifecycleTestCase(TestCase):
 
 
 @override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
-@patch('bookings.views.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+@patch('bookings.payments.stripe_provider.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
 class TourCapacityReservationTestCase(TestCase):
     """F2-02 — Kontenjan rezervasyonu, gün kapatma ve gün bazlı fiyat."""
 
@@ -283,7 +283,7 @@ class OverbookingRaceTestCase(TransactionTestCase):
             tour=self.tour, date=self.day, max_capacity=10, booked_count=0
         )
 
-    @patch('bookings.views.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+    @patch('bookings.payments.stripe_provider.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
     def test_concurrent_bookings_never_overbook(self, _intent):
         threads_count = 8
         guests = 3  # 10 kişilik kontenjanda en fazla 3 istek başarılı olabilir

@@ -141,9 +141,19 @@ REST_AUTH = {
     'USER_DETAILS_SERIALIZER': 'users.serializers.UserSerializer',
 }
 
-# Stripe Settings
+# ── ÖDEME SAĞLAYICISI ────────────────────────────────────────────────────────
+# Aktif PSP: 'stripe' | 'iyzico'. Stripe TR'de yerleşik işletmeden tahsilat
+# yapamaz; iyzico Pazaryeri onayı gelene kadar varsayılan stripe kalır.
+PAYMENT_PROVIDER = os.getenv('PAYMENT_PROVIDER', 'stripe')
+
 STRIPE_SECRET_KEY = os.getenv('STRIPE_SECRET_KEY', '')
 STRIPE_WEBHOOK_SECRET = os.getenv('STRIPE_WEBHOOK_SECRET', '')
+
+IYZICO_API_KEY = os.getenv('IYZICO_API_KEY', '')
+IYZICO_SECRET_KEY = os.getenv('IYZICO_SECRET_KEY', '')
+IYZICO_WEBHOOK_SECRET = os.getenv('IYZICO_WEBHOOK_SECRET', '')
+# Sandbox: https://sandbox-api.iyzipay.com · Üretim: https://api.iyzipay.com
+IYZICO_BASE_URL = os.getenv('IYZICO_BASE_URL', 'https://sandbox-api.iyzipay.com')
 
 ROOT_URLCONF = 'backend.urls'
 

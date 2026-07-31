@@ -46,9 +46,10 @@ class AgencyFinanceSummaryView(APIView):
         except Agency.DoesNotExist:
             return Response({'error': 'Acenta profili bulunamadı.'}, status=status.HTTP_404_NOT_FOUND)
 
-        ledger_agg = AgentFinanceLedger.objects.filter(
-            agency=agency, entry_type='sale'
-        ).aggregate(
+        # Tüm kayıt tipleri işaretli tutar taşır: iade satırları negatiftir.
+        # `entry_type='sale'` ile filtrelemek iadeleri bakiyeden düşmez ve
+        # acentaya geri verilmiş parayı ödenebilir gösterirdi.
+        ledger_agg = AgentFinanceLedger.objects.filter(agency=agency).aggregate(
             total_gross=Sum('gross_amount'),
             total_commission=Sum('commission_amount'),
             total_net=Sum('net_amount'),
@@ -170,9 +171,9 @@ class AgencyPayoutRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Mevcut net bakiyeyi hesapla
+        # Mevcut net bakiyeyi hesapla (iade satırları negatif, dâhil edilir)
         total_net = AgentFinanceLedger.objects.filter(
-            agency=agency, entry_type='sale'
+            agency=agency
         ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0')
 
         paid_out = AgentPayoutRequest.objects.filter(

@@ -175,6 +175,8 @@ class AdminAgencyViewSet(viewsets.ModelViewSet):
         agency.rejection_reason = None
         agency.save(update_fields=['status', 'is_verified', 'rejection_reason'])
 
+        sub_merchant_error = self._register_sub_merchant(agency)
+
         self._notify_owner(
             agency,
             title='Başvurunuz Onaylandı! 🎉',
@@ -187,8 +189,43 @@ class AdminAgencyViewSet(viewsets.ModelViewSet):
             'id': agency.id,
             'status': agency.status,
             'is_verified': True,
+            'sub_merchant_id': agency.sub_merchant_id,
+            'sub_merchant_error': sub_merchant_error,
             'message': f'{agency.name} onaylandı.'
         })
+
+    @staticmethod
+    def _register_sub_merchant(agency):
+        """
+        Onay anında acentayı PSP'de alt-üye işyeri olarak kaydeder (F2-06).
+
+        Onayı BLOKLAMAZ: kayıt başarısız olursa acenta yine de panele girip
+        ürün ekleyebilir, yalnız hakedişi ödenemez. Aksi halde PSP'nin geçici
+        bir hatası tüm onboarding'i kilitlerdi. Hata mesajı yanıt gövdesinde
+        admin'e döner ve loglanır; sessizce kaybolmaz.
+
+        Alt-üye işyeri modeli olmayan sağlayıcılarda (Stripe) `None` döner ve
+        hiçbir şey yapılmaz.
+        """
+        if agency.sub_merchant_id:
+            return None
+
+        from bookings.payments import PaymentError, get_provider
+        try:
+            sub_merchant_id = get_provider().register_sub_merchant(agency)
+        except PaymentError as exc:
+            logger.warning(
+                f"[PSP] Sub-merchant registration failed for agency '{agency.name}': {exc}"
+            )
+            return str(exc)
+
+        if sub_merchant_id:
+            agency.sub_merchant_id = sub_merchant_id
+            agency.save(update_fields=['sub_merchant_id'])
+            logger.info(
+                f"[PSP] Sub-merchant registered for agency '{agency.name}': {sub_merchant_id}"
+            )
+        return None
 
     @action(detail=True, methods=['post'], url_path='reject')
     def reject(self, request, pk=None):
