@@ -504,13 +504,25 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F3-07 · Para/kontenjan kritik test paketi
+### [x] F3-07 · Para/kontenjan kritik test paketi
 
 **Öncelik:** P1 · **Efor:** L
 
 **Adımlar:** Testler: (a) eşzamanlı rezervasyon → overbooking yok; (b) webhook aynı event 2× → kontenjan 1× düşer; (c) iade → kontenjan geri; (d) komisyon Decimal doğruluğu; (e) `IsAgentOwner` izolasyonu; (f) fiyat manipülasyonu (client `total_price` gönderse bile sunucu hesabı kazanır).
 
-**Notlar:** _
+**Notlar:** Kapsam denetimi sonucu 6 senaryodan **4'ü zaten mevcut ve sağlamdı**, **2'si eksikti**:
+- **(a)** `bookings/tests.py::OverbookingRaceTestCase` — 8 thread eşzamanlı, `TransactionTestCase` + `Barrier`; overbooking yok, kalanlar 400. ✔ mevcut
+- **(c)** `BookingLifecycleTestCase::test_cancel_restores_capacity` + `TourCapacityReservationTestCase::test_cancelling_pending_releases_capacity` — iptal kontenjanı geri veriyor. ✔ mevcut
+- **(d)** `agencies/test_finance.py` — komisyon `Decimal` doğruluğu (ledger gross/commission/net). ✔ mevcut
+- **(e)** `agencies` testlerinde acente izolasyonu (rakip acente verisi görünmüyor / 404). ✔ mevcut
+- **(b)** **EKLENDİ** → `bookings/tests.py::WebhookIdempotencyTestCase`: aynı SUCCEEDED event'i webhook'a 2× gönderiliyor (`bookings.views.get_provider` mock'lanıp `verify_webhook` sabit `WebhookEvent` döndürüyor). İki senaryo: (i) **tur** — kontenjan `create()`'te rezerve edildiği için webhook sayaca hiç dokunmuyor (2× gelse de `booked_count` sabit); (ii) **transfer (shuttle)** — webhook `booked_count`'ı artırıyor ama `if status != 'confirmed'` guard'ı ikinci event'i yutuyor (3 → 3, çift sayım yok).
+- **(f)** **EKLENDİ** → `TourCapacityReservationTestCase::test_client_total_price_is_ignored`: istek gövdesinde `total_price='1.00'` gönderilse bile 201 dönüyor ve sunucu `tour.price × guests = 2000` hesabını yazıyor (`StrictMassAssignmentPermission` bu alanı yasaklamadığından değer sessizce yok sayılıyor).
+
+**Yol boyu bulunan + düzeltilen KRİTİK bug:** `tours/signals.py::update_fomo_count` post_save sinyali `instance.tour.fomo_count`'a koşulsuz erişiyordu; **transfer rezervasyonunda `tour=None` olduğu için her shuttle `Booking.objects.create` çağrısı `AttributeError: 'NoneType' object has no attribute 'fomo_count'` ile 500 veriyordu** (prod'da transfer satın alma tamamen kırık). Guard eklendi: `if created and instance.tour_id:`. (b)-shuttle testi bunu regresyon olarak kilitliyor. `## BULUNAN YENİ SORUNLAR`a da yazıldı.
+
+**Doğrulama:** `bookings` 58 test OK; tam suite **200 test OK**; `makemigrations --check`/`migrate --check` temiz; `tsc --noEmit` + `eslint` temiz; AST duplicate-field taraması temiz.
+
+**Değişen dosyalar:** `backend/bookings/tests.py` (import + test (f) + `WebhookIdempotencyTestCase`), `backend/tours/signals.py` (None-guard).
 
 ---
 
@@ -742,6 +754,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P1 · süreç] CI "PR'da zorunlu" için branch protection elle açılmalı.** F3-06'da `.github/workflows/ci.yml` eklendi (backend + frontend işleri PR ve main push'ta koşuyor), ancak "geçmeden merge edilemez" kuralı bir GitHub **repo ayarıdır**, koddan yapılamaz. Repo Settings → Branches → `main` için "Require status checks to pass before merging" açılıp `backend` ve `frontend` check'leri zorunlu işaretlenmeli (ideal olarak "Require branches to be up to date" + PR review de). Bu yapılmadan CI yeşil/kırmızı görünür ama merge'i engellemez.
 
 * **[P1 · performans] Nonce'lu CSP tüm sayfaları dinamik render'a çekti (ISR ile çakışıyor).** F3-05'te `layout.tsx` `headers()` ile istek-başına nonce okuduğu için build çıktısındaki tüm route'lar artık `ƒ (Dynamic)` — statik/ISR optimizasyonu devre dışı. Bu, `unsafe-inline`'sız CSP'nin Next.js'te kaçınılmaz bedeli (framework inline hidrasyon script'leri build başına değişir, hash'lenemez → nonce şart). **F5-07** (ilk yükleme/performans, hero+kategoriler ISR hedefi) doğrudan bununla çakışıyor: ISR isteniyorsa ya CSP nonce'u yalnız belirli route segment'lerinde uygulamak (layout'u bölmek) ya da statik sayfalarda `unsafe-inline`+hash'e dönmek gibi bir uzlaşı gerekecek. F5-07'de birlikte kararlaştırılmalı.
+
+* ~~**[P0 · bug] Transfer (shuttle) rezervasyonu oluşturmak her seferinde 500 veriyordu.**~~ **ÇÖZÜLDÜ (F3-07):** `tours/signals.py::update_fomo_count` post_save sinyali `instance.tour.fomo_count`'a koşulsuz erişiyordu; shuttle rezervasyonunda `tour=None` olduğundan (`bookings/views.py:295` `tour=None` ile create) her `Booking.objects.create` çağrısı `AttributeError: 'NoneType' object has no attribute 'fomo_count'` fırlatıp transfer satın almayı tamamen kırıyordu. F3-07(b) shuttle webhook idempotency testi yazılırken yüzeye çıktı. `if created and instance.tour_id:` guard'ı eklendi; `WebhookIdempotencyTestCase::test_shuttle_webhook_increments_quota_once` regresyonu kilitliyor. (NOT: transfer akışındaki overbooking yarışı ayrı bir [P0] bulgu olarak F5-01'de duruyor — bu yalnız oluşturma-anı crash'ini giderdi.)
 
 ---
 

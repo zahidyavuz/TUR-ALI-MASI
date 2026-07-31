@@ -25,8 +25,12 @@ def update_tour_rating(sender, instance, **kwargs):
 
 @receiver(post_save, sender=Booking)
 def update_fomo_count(sender, instance, created, **kwargs):
-    """Update fomo_count when a new booking is created for a tour."""
-    if created:
+    """Update fomo_count when a new booking is created for a tour.
+
+    Transfer (shuttle) rezervasyonlarında tour=None olur; bu durumda fomo
+    sayacı güncellenmez. Guard olmadan shuttle rezervasyonu oluşturma
+    NoneType.fomo_count hatasıyla 500 verirdi (F3-07'de bulundu)."""
+    if created and instance.tour_id:
         tour = instance.tour
         tour.fomo_count = Booking.objects.filter(tour=tour).count()
         tour.save(update_fields=['fomo_count'])

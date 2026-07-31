@@ -13,6 +13,8 @@ from tours.models import Tour, TourAvailability
 from bookings.models import Booking
 from agencies.models import Agency
 from datetime import date, timedelta
+from datetime import time as dtime  # stdlib `time` modülünü gölgelememek için
+from decimal import Decimal
 
 
 class _FakeIntent:
@@ -227,6 +229,16 @@ class TourCapacityReservationTestCase(TestCase):
         self.assertEqual(response.status_code, 201, response.data)
         self.assertEqual(float(response.data['booking']['total_price']), 500.0)
 
+    def test_client_total_price_is_ignored(self, _intent):
+        """(F3-07·f) Fiyat manipülasyonu: gövdede total_price gönderilse bile
+        sunucu tur.price × guests hesabını kullanır, müşteri değeri yok sayılır."""
+        response = self._book(guests=2, total_price='1.00')
+        self.assertEqual(response.status_code, 201, response.data)
+        # tur fiyatı 1000 × 2 misafir = 2000; gönderilen '1.00' dikkate alınmaz.
+        self.assertEqual(float(response.data['booking']['total_price']), 2000.0)
+        booking = Booking.objects.get(pk=response.data['booking']['id'])
+        self.assertEqual(booking.total_price, Decimal('2000.00'))
+
     def test_cancelling_pending_releases_capacity(self, _intent):
         """Ödenmemiş (pending) rezervasyon iptal edilince kontenjan geri döner"""
         booking_id = self._book(guests=4).data['booking']['id']
@@ -335,3 +347,102 @@ class OverbookingRaceTestCase(TransactionTestCase):
         self.assertEqual(
             Booking.objects.filter(tour=self.tour, status='pending').count(), created
         )
+
+
+from bookings.payments import WebhookEvent
+from shuttles.models import ShuttleRoute, ShuttleAvailability
+
+
+class _FakeProvider:
+    """verify_webhook her çağrıda sabit bir event döndürür (imza doğrulanmaz)."""
+
+    def __init__(self, intent_id, event_type=WebhookEvent.SUCCEEDED):
+        self._intent_id = intent_id
+        self._event_type = event_type
+
+    def verify_webhook(self, payload, headers):
+        return WebhookEvent(
+            provider='stripe', type=self._event_type, intent_id=self._intent_id
+        )
+
+
+class WebhookIdempotencyTestCase(TestCase):
+    """F3-07(b) — Aynı ödeme event'i webhook'a 2× gelirse kontenjan yalnızca
+    1× işlenir. `if booking.status != 'confirmed'` guard'ı ikinci çağrıyı yutar."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(
+            username='wh_user', password='pass', email='wh@test.com'
+        )
+        self.agency = Agency.objects.create(
+            name='WH Agency', status='onaylandi', is_verified=True
+        )
+        self.day = date.today() + timedelta(days=10)
+
+    def _fire_webhook_twice(self, intent_id):
+        fake = _FakeProvider(intent_id)
+        with patch('bookings.views.get_provider', return_value=fake):
+            r1 = self.client.post(
+                '/api/v1/bookings/webhook/', data='{}', content_type='application/json'
+            )
+            r2 = self.client.post(
+                '/api/v1/bookings/webhook/', data='{}', content_type='application/json'
+            )
+        return r1, r2
+
+    def test_tour_webhook_never_touches_quota(self):
+        """Tur kontenjanı create()'te rezerve edilir; webhook (kaç kez gelirse
+        gelsin) sayaca dokunmaz — yalnızca durumu 'confirmed' yapar."""
+        tour = Tour.objects.create(
+            id='wh-tour', agency=self.agency, title='WH Tour', location='İzmir',
+            price=1000, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        slot = TourAvailability.objects.create(
+            tour=tour, date=self.day, max_capacity=10, booked_count=2
+        )
+        booking = Booking.objects.create(
+            user=self.user, tour=tour, service_type='tour', start_date=self.day,
+            guests=2, total_price=Decimal('2000.00'), booking_ref='WHT00001',
+            status='pending', payment_intent_id='pi_wh_tour_1',
+        )
+
+        r1, r2 = self._fire_webhook_twice('pi_wh_tour_1')
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r2.status_code, 200)
+
+        booking.refresh_from_db()
+        slot.refresh_from_db()
+        self.assertEqual(booking.status, 'confirmed')
+        # create()'teki 2 dışında hiçbir artış olmamalı (çift sayım yok).
+        self.assertEqual(slot.booked_count, 2)
+
+    def test_shuttle_webhook_increments_quota_once(self):
+        """Transfer kontenjanı webhook'ta artırılır; aynı event 2× gelse de
+        sayaç yalnızca 1× artar."""
+        route = ShuttleRoute.objects.create(
+            id='wh-route', agency=self.agency, title='WH Route', description='d',
+            origin='A', destination='B', price_per_person=Decimal('100.00'),
+        )
+        slot_time = dtime(9, 0)
+        avail = ShuttleAvailability.objects.create(
+            shuttle_route=route, date=self.day, time=slot_time,
+            max_capacity=8, booked_count=0,
+        )
+        booking = Booking.objects.create(
+            user=self.user, shuttle_route=route, service_type='shuttle',
+            start_date=self.day, start_time=slot_time, guests=3,
+            total_price=Decimal('300.00'), booking_ref='WHS00001',
+            status='pending', payment_intent_id='pi_wh_shuttle_1',
+        )
+
+        r1, r2 = self._fire_webhook_twice('pi_wh_shuttle_1')
+        self.assertEqual(r1.status_code, 200)
+        self.assertEqual(r2.status_code, 200)
+
+        booking.refresh_from_db()
+        avail.refresh_from_db()
+        self.assertEqual(booking.status, 'confirmed')
+        # İlk event 3 ekler; ikinci event 'confirmed' guard'ıyla atlanır.
+        self.assertEqual(avail.booked_count, 3)
