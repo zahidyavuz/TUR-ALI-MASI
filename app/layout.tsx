@@ -26,6 +26,7 @@ export const metadata: Metadata = {
 };
 
 import Script from "next/script";
+import { headers } from "next/headers";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import Chatbot from "./components/Chatbot";
 import Footer from "./components/Footer";
@@ -41,15 +42,19 @@ import RouteGuard from "./components/RouteGuard";
 import BottomTabBar from "./components/BottomTabBar";
 import GlobalImageFallback from "./components/GlobalImageFallback";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // CSP nonce (F3-05): middleware her istek için üretip x-nonce başlığına yazar.
+  // Elle eklenen inline/harici script'lere buradan geçiririz; Next.js kendi
+  // framework script'lerine nonce'u CSP başlığından otomatik uygular.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
   return (
     <html lang="tr" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{
+        <script nonce={nonce} dangerouslySetInnerHTML={{
           __html: `
             try {
               if (localStorage.getItem('theme') === 'dark' || (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
@@ -100,8 +105,9 @@ export default function RootLayout({
         <Script
           src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
           strategy="afterInteractive"
+          nonce={nonce}
         />
-        <Script id="google-translate-init" strategy="afterInteractive">
+        <Script id="google-translate-init" strategy="afterInteractive" nonce={nonce}>
           {`
             function googleTranslateElementInit() {
               new google.translate.TranslateElement({
@@ -134,7 +140,7 @@ export default function RootLayout({
         {/* Global SEO & Analytics Entegrasyonları (Rusya & Çin) */}
         {/* Yandex.Metrica Analytics */}
         {process.env.NEXT_PUBLIC_YANDEX_METRICA_ID && (
-        <Script id="yandex-metrica" strategy="afterInteractive">
+        <Script id="yandex-metrica" strategy="afterInteractive" nonce={nonce}>
           {`
             (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
             m[i].l=1*new Date();
@@ -154,7 +160,7 @@ export default function RootLayout({
 
         {/* Baidu Analytics */}
         {process.env.NEXT_PUBLIC_BAIDU_ANALYTICS_ID && (
-        <Script id="baidu-analytics" strategy="afterInteractive">
+        <Script id="baidu-analytics" strategy="afterInteractive" nonce={nonce}>
           {`
             var _hmt = _hmt || [];
             (function() {
@@ -169,12 +175,12 @@ export default function RootLayout({
 
         {/* Google Analytics (GA4) */}
         {process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID && (
-          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} />
+          <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID} nonce={nonce} />
         )}
 
         {/* Facebook Pixel (Meta) */}
         {process.env.NEXT_PUBLIC_FB_PIXEL_ID && (
-          <Script id="facebook-pixel" strategy="afterInteractive">
+          <Script id="facebook-pixel" strategy="afterInteractive" nonce={nonce}>
             {`
               !function(f,b,e,v,n,t,s)
               {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
@@ -190,7 +196,7 @@ export default function RootLayout({
           </Script>
         )}
         {/* Service Worker Registration (Offline Caching) */}
-        <Script id="register-sw" strategy="afterInteractive">
+        <Script id="register-sw" strategy="afterInteractive" nonce={nonce}>
           {`
             if ('serviceWorker' in navigator) {
               window.addEventListener('load', function() {

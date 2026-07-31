@@ -451,7 +451,7 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F3-05 · CSP nonce'a geçiş (`unsafe-inline` kaldır)
+### [x] F3-05 · CSP nonce'a geçiş (`unsafe-inline` kaldır)
 
 **Öncelik:** P2 · **Efor:** M
 
@@ -459,7 +459,24 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 **Doğrulama:** Response header'da `unsafe-inline` yok; console'da CSP ihlali yok. STD-CHECK.
 
-**Notlar:** _
+**Notlar:**
+
+**CSP artık middleware'de, istek başına nonce'lu.** `next.config.ts`'teki statik CSP header'ı kaldırıldı (nonce statik header ile verilemez); yerine `middleware.ts` her istekte `btoa(crypto.randomUUID())` ile nonce üretip CSP'yi kuruyor. Nonce hem istek başlığına (`x-nonce` + `Content-Security-Policy`) yazılıyor — Next.js bunu okuyup **kendi framework/hidrasyon inline script'lerine** otomatik uyguluyor — hem de `layout.tsx` `await headers()` ile okuyup elle eklenen script'lere geçiriyor. Diğer güvenlik header'ları (HSTS, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, COOP) `next.config.ts`'te statik kaldı (doğrulandı, hâlâ dönüyor).
+
+**`script-src`'ten `unsafe-inline` tamamen kaldırıldı** → `script-src 'self' 'nonce-<x>' 'strict-dynamic' <host allowlist>`. `strict-dynamic` sayesinde nonce'lu script'lerin dinamik yüklediği alt script'ler (analytics vb.) güvenilir sayılıyor; host allowlist `strict-dynamic` desteklemeyen eski tarayıcılara yedek. `layout.tsx`'teki tüm inline/harici script'lere `nonce={nonce}` eklendi: tema-tespit `<script>`, Google Translate (2), Yandex Metrica, Baidu, Facebook Pixel, service-worker kaydı ve `@next/third-parties` `GoogleAnalytics` (`nonce` prop'unu destekliyor, v16.1.6).
+
+**`style-src`'te `unsafe-inline` bilinçli olarak KORUNDU** (`style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`). Gerekçe: kod tabanında 11 dosyada 21 React satır-içi `style={{}}` özniteliği + `next/font`/`styled-jsx` enjekte stilleri var; **nonce satır-içi `style` özniteliklerine uygulanamaz** (yalnız `<style>` elemanlarına), dolayısıyla katı `style-src` uygulamayı kırardı. CSS enjeksiyonu script yürütmediğinden güvenlik kazancı da düşük. Bu, script-src'i sıkılaştırıp style tarafını pragmatik bırakan endüstri standardı duruş. `## BULUNAN YENİ SORUNLAR`a not düşüldü.
+
+**Middleware kapsamı genişletildi.** Eski matcher yalnız `/dashboard/:path*` idi; CSP tüm HTML belgelerine gerektiğinden matcher tüm route'lara açıldı (`api`, `_next/static`, `_next/image`, statik dosyalar hariç). F3-02 rol koruması yalnız `/dashboard` prefix'i altında çalışacak şekilde koşullandı — davranış birebir korundu (admin üst küme, agency alanları, customer/serbest oturum). Redirect yanıtlarına da CSP eklendi.
+
+**Doğrulama (canlı prod sunucu, port 3999):**
+- Response header: `script-src`'te `unsafe-inline` YOK, `nonce-<x>` + `strict-dynamic` VAR; `unsafe-inline` yalnız `style-src`'te (bilinçli).
+- HTML'deki 27 `<script>` etiketinin tamamı nonce taşıyor, nonce'suz script YOK; header nonce'u = HTML script nonce'u (aynı istekte MATCH).
+- `/dashboard/admin` (çerezsiz) → 307 `/login?next=...` + CSP header; `/login` → 200 + CSP. Rol koruması korundu.
+- `tsc --noEmit` temiz, `npm run lint` temiz, `npm run build` başarılı (postbuild sitemap dahil).
+- Backend'e hiç dokunulmadı → backend STD-CHECK yarısı deterministik olarak etkilenmez (F3-04'teki 197 test geçerli).
+
+**Bilinen bedel (ertelendi, F5-07 ile değerlendirilecek):** Nonce istek başına değiştiği ve `layout.tsx` `headers()` okuduğu için tüm sayfalar **dinamik render**'a çekildi (build çıktısında hepsi `ƒ (Dynamic)`). Bu, `unsafe-inline`'sız CSP'nin Next.js'te kaçınılmaz bedeli (framework inline hidrasyon script'leri build başına değiştiğinden hash'lenemez, nonce şart). F5-07'deki ISR/statik-render hedefiyle çakışıyor; orada birlikte ele alınmalı. `## BULUNAN YENİ SORUNLAR`a yazıldı.
 
 ---
 
@@ -705,6 +722,10 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P1 · sahte özellik] 2FA tamamen sahteydi, UI'dan kaldırıldı.** F3-04'te tespit edildi: `app/lib/twoFactor.ts::requires2FA()` her zaman `false` dönüyordu ve backend'de hiçbir TOTP/OTP/`django-otp` karşılığı yok. `login/page.tsx`'teki 2FA doğrulama akışı, `TwoFactorVerify.tsx` bileşeni, `app/api/auth/2fa/route.ts` ve `twoFactor.ts` silindi. **Gerçek iki faktörlü kimlik doğrulama bir ürün kararı + backend işi** (kullanıcı sırrı üretimi/saklaması, `pyotp` veya SMS sağlayıcı, kurtarma kodları, giriş akışına entegrasyon). İstenirse ayrı bir görev olarak planlanmalı; şu an giriş yalnız parola ile.
 
 * **[P2 · ölü kod] `app/lib/apiShield.ts` ve `app/lib/ssrfShield.ts` sahipsiz güvenlik-tiyatrosu lib'leri.** F3-04 grep'inde sıfır importer ile ölü teyit edildi. Görevde açıkça sıralanmadıkları için (enum edilen route/lib listesinde yoklar) bu turda silinmedi — kapsam disiplini. İçerikleri gerçek bir koruma sağlamıyor (hiçbir yerden çağrılmıyor); bir sonraki ölü-kod/güvenlik temizliğinde kaldırılmalı.
+
+* **[P2 · güvenlik] CSP `style-src` hâlâ `unsafe-inline` içeriyor (script-src temiz).** F3-05'te `script-src`'ten `unsafe-inline` tamamen kaldırıldı (nonce + strict-dynamic), ancak `style-src 'unsafe-inline'` bilinçli olarak korundu: kod tabanında 11 dosyada 21 React satır-içi `style={{}}` özniteliği + `next/font`/`styled-jsx` enjekte stilleri var ve **nonce satır-içi `style` özniteliklerine uygulanamaz** (yalnız `<style>` elemanlarına). Katı `style-src` uygulamayı kırar, kazancı düşüktür (CSS enjeksiyonu script yürütmez). Tamamen kaldırmak için: satır-içi stilleri Tailwind sınıflarına/`data-*`+CSS'e taşımak (21 nokta + font stratejisi) ya da CSP3 `'unsafe-hashes'` + her stil değeri için hash (kırılgan). Ayrı bir sıkılaştırma turunda ele alınabilir.
+
+* **[P1 · performans] Nonce'lu CSP tüm sayfaları dinamik render'a çekti (ISR ile çakışıyor).** F3-05'te `layout.tsx` `headers()` ile istek-başına nonce okuduğu için build çıktısındaki tüm route'lar artık `ƒ (Dynamic)` — statik/ISR optimizasyonu devre dışı. Bu, `unsafe-inline`'sız CSP'nin Next.js'te kaçınılmaz bedeli (framework inline hidrasyon script'leri build başına değişir, hash'lenemez → nonce şart). **F5-07** (ilk yükleme/performans, hero+kategoriler ISR hedefi) doğrudan bununla çakışıyor: ISR isteniyorsa ya CSP nonce'u yalnız belirli route segment'lerinde uygulamak (layout'u bölmek) ya da statik sayfalarda `unsafe-inline`+hash'e dönmek gibi bir uzlaşı gerekecek. F5-07'de birlikte kararlaştırılmalı.
 
 ---
 
