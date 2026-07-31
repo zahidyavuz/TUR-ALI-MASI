@@ -599,13 +599,25 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F4-06 · WhatsApp/SMS bildirimleri
+### [x] F4-06 · WhatsApp/SMS bildirimleri
 
 **Öncelik:** P1 · **Efor:** M
 
 **Adımlar:** Sağlayıcı kararını kullanıcıya sor (Twilio / Netgsm / WhatsApp Cloud API). Olaylar: rezervasyon onayı, tur öncesi hatırlatma (pickup saat+nokta), iptal bildirimi, acenteye yeni rezervasyon. Şablonlar TR/EN. Gönderim asenkron (management command kuyruğu; Celery yoksa basit DB-kuyruk + cron).
 
-**Notlar:** _
+**Notlar:** Kullanıcı kararı: **Adapter + stub** sağlayıcı (ödeme adaptörü deseni; gerçek sağlayıcı sonra env ile) + **DB-kuyruk + cron** (Celery yok).
+
+Yeni `notifications` uygulaması eklendi:
+- `providers/` — `NotificationProvider` ABC + `StubProvider` (mesajı loglar) + `get_provider()` fabrikası (`settings.NOTIFICATION_PROVIDER`, vars. `stub`), bookings/payments deseninin birebir kopyası.
+- `NotificationLog` modeli — DB-kuyruk (channel sms/whatsapp, recipient telefon, event_type, lang, render'lı body, status pending/sent/failed, attempts, error, provider, message_id, booking FK SET_NULL, sent_at).
+- `messages.py` — 4 olay için TR+EN şablon (`booking_confirmed`, `tour_reminder` [pickup nokta+saat], `booking_cancelled`, `new_booking`); `render_message` eksik alanda SafeDict ile boş string (KeyError yok), bilinmeyen dilde TR'ye düşer.
+- `service.enqueue()` — kuyruğa yazmanın tek girişi; telefon yoksa/olay bilinmezse sessizce None döner.
+- Komutlar: `send_tour_reminders` (yaklaşan onaylı turları kuyruğa ekler, `Booking.reminder_sent_at` ile idempotent) + `send_notifications` (kuyruğu boşaltır; pending + attempts<max failed'leri sağlayıcıya gönderir; yapılandırılmamış sağlayıcıda durur).
+- Kancalar: webhook SUCCEEDED dalında yalnız gerçek geçişte (mükerrer webhook'ta değil) misafire `booking_confirmed` + acentaya `new_booking`; cancel action'da misafire `booking_cancelled`.
+- Settings: `notifications` app + `NOTIFICATION_PROVIDER`/`NOTIFICATION_CHANNEL` env + `notifications` logger.
+- Migrasyonlar: `notifications/0001_initial`, `bookings/0009_booking_reminder_sent_at`.
+
+**Doğrulama:** makemigrations --check ✓, migrate --check ✓, `python manage.py test notifications bookings` → 73 test OK; `tsc --noEmit` ✓, `npm run lint` ✓, `npm run build` ✓; AST duplicate-field taraması temiz. Testler: TR/EN render, enqueue (pending/telefon yok/bilinmeyen olay), kuyruk boşaltma (stub→sent, dry-run, yapılandırılmamış sağlayıcı, max-attempts retry limiti).
 
 ---
 

@@ -58,6 +58,7 @@ INSTALLED_APPS = [
     'users',
     'contacts',
     'chat',
+    'notifications',
 
     # Auth & Social Login
     'rest_framework_simplejwt',
@@ -214,6 +215,14 @@ IYZICO_SECRET_KEY = os.getenv('IYZICO_SECRET_KEY', '')
 IYZICO_WEBHOOK_SECRET = os.getenv('IYZICO_WEBHOOK_SECRET', '')
 # Sandbox: https://sandbox-api.iyzipay.com · Üretim: https://api.iyzipay.com
 IYZICO_BASE_URL = os.getenv('IYZICO_BASE_URL', 'https://sandbox-api.iyzipay.com')
+
+# ── SMS / WHATSAPP BİLDİRİMLERİ ──────────────────────────────────────────────
+# Aktif sağlayıcı: şimdilik yalnız 'stub' (mesajı loglar, dış çağrı yapmaz).
+# Gerçek sağlayıcı (Twilio / Netgsm / WhatsApp Cloud API) eklendiğinde bu env
+# değeri değiştirilir; kod akışı sabit kalır. Kuyruk `send_notifications` yönetim
+# komutuyla (cron) boşaltılır. Varsayılan kanal SMS; WhatsApp'a env ile geçilir.
+NOTIFICATION_PROVIDER = os.getenv('NOTIFICATION_PROVIDER', 'stub')
+NOTIFICATION_CHANNEL = os.getenv('NOTIFICATION_CHANNEL', 'sms')
 
 ROOT_URLCONF = 'backend.urls'
 
@@ -388,6 +397,11 @@ LOGGING = {
             'propagate': False,
         },
         'bookings': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'notifications': {
             'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': False,

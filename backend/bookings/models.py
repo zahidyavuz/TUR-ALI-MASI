@@ -67,6 +67,11 @@ class Booking(models.Model):
     # `send_review_invites` komutunun tekrar tekrar mail atmasını engeller.
     review_invite_sent_at = models.DateTimeField(null=True, blank=True)
 
+    # Tur öncesi hatırlatma SMS/WhatsApp bildiriminin kuyruğa eklendiği an. Boşsa
+    # hatırlatma henüz yollanmamıştır; `send_tour_reminders` komutunun aynı
+    # rezervasyon için tekrar tekrar bildirim üretmesini engeller.
+    reminder_sent_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ['-created_at']
 

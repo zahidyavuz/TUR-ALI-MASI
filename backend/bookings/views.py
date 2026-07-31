@@ -36,6 +36,7 @@ from tours.models import Tour, TourAvailability, refund_percent_for_policy
 from shuttles.models import ShuttleRoute, ShuttleAvailability
 from core.emails import display_name, frontend_url, send_templated_mail
 from core.permissions import IsOwner, StrictMassAssignmentPermission
+from notifications.service import enqueue as enqueue_notification
 
 logger = logging.getLogger('bookings')
 
@@ -53,6 +54,26 @@ def ticket_url():
     # /tickets/<id> sayfası henüz sabit veriyle çalışıyor; müşterinin gerçek
     # biletlerini gösteren tek sayfa panel altındaki liste.
     return frontend_url('/dashboard/customer/tickets')
+
+
+def guest_phone(booking):
+    """SMS/WhatsApp için misafir telefonu; rezervasyonda yoksa hesabın profiline düşer."""
+    if booking.guest_phone:
+        return booking.guest_phone
+    profile = getattr(booking.user, 'profile', None)
+    return getattr(profile, 'phone_number', '') if profile else ''
+
+
+def agency_phone(service):
+    """Acentaya bildirim için telefon; acenta kaydında yoksa sahibin profiline düşer."""
+    agency = getattr(service, 'agency', None)
+    if not agency:
+        return ''
+    if agency.phone:
+        return agency.phone
+    owner = agency.owner
+    profile = getattr(owner, 'profile', None) if owner else None
+    return getattr(profile, 'phone_number', '') if profile else ''
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -443,6 +464,21 @@ class BookingViewSet(viewsets.ModelViewSet):
             'refund_percent': refund_percent,
         })
 
+        refund_text = (
+            f'İade: %{refund_percent} (₺{refund_amount}).' if refunded else 'İade yapılmadı.'
+        )
+        enqueue_notification(
+            event_type='booking_cancelled',
+            recipient=guest_phone(booking),
+            context={
+                'name': display_name(request.user),
+                'service': service_label(booking),
+                'ref': booking.booking_ref,
+                'refund': refund_text,
+            },
+            booking=booking,
+        )
+
         serializer = self.get_serializer(booking)
         return Response({
             **serializer.data,
@@ -467,6 +503,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         if event.type == WebhookEvent.SUCCEEDED:
             try:
+                newly_confirmed = False
                 with transaction.atomic():
                     booking = Booking.objects.select_for_update().get(
                         payment_intent_id=event.intent_id
@@ -474,6 +511,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     if booking.status != 'confirmed':
                         booking.status = 'confirmed'
                         booking.save(update_fields=['status'])
+                        newly_confirmed = True
                         logger.info(f"Booking {booking.booking_ref} confirmed via webhook")
 
                         # Tur kontenjanı create() sırasında zaten rezerve
@@ -499,6 +537,36 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'booking_ref': booking.booking_ref,
                     'ticket_url': ticket_url(),
                 })
+
+                # SMS/WhatsApp bildirimleri yalnız gerçek geçişte (mükerrer
+                # webhook'ta değil) kuyruğa eklenir; asıl gönderim asenkrondur.
+                if newly_confirmed:
+                    date_label = booking.date_label or (
+                        booking.start_date.strftime('%d.%m.%Y') if booking.start_date else ''
+                    )
+                    enqueue_notification(
+                        event_type='booking_confirmed',
+                        recipient=guest_phone(booking),
+                        context={
+                            'name': booking.guest_full_name or display_name(booking.user),
+                            'service': service_label(booking),
+                            'ref': booking.booking_ref,
+                            'url': ticket_url(),
+                        },
+                        booking=booking,
+                    )
+                    service = booking.tour or booking.shuttle_route
+                    enqueue_notification(
+                        event_type='new_booking',
+                        recipient=agency_phone(service),
+                        context={
+                            'service': service_label(booking),
+                            'ref': booking.booking_ref,
+                            'guests': booking.guests,
+                            'date': date_label,
+                        },
+                        booking=booking,
+                    )
 
             except Booking.DoesNotExist:
                 logger.warning(f"Webhook: No booking found for payment_intent {event.intent_id}")
