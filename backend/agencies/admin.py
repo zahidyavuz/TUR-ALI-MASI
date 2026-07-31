@@ -1,5 +1,8 @@
 from django.contrib import admin
+from django.utils import timezone
+
 from .models import Agency, Menu, Table, DiningReservation
+from .finance_models import AgentFinanceLedger, AgentPayoutRequest
 
 
 @admin.register(Agency)
@@ -65,4 +68,53 @@ class DiningReservationAdmin(admin.ModelAdmin):
     list_editable = ['status', 'table']
     readonly_fields = ['created_at']
     date_hierarchy = 'reservation_date'
+
+
+@admin.register(AgentFinanceLedger)
+class AgentFinanceLedgerAdmin(admin.ModelAdmin):
+    """
+    Salt okunur: ledger bir muhasebe defteri, elle düzenlenmemeli.
+
+    Bir düzeltme gerekiyorsa `adjustment` tipinde yeni bir satır eklenir —
+    mevcut satırı değiştirmek satış ile iade arasındaki izi koparır.
+    """
+    list_display = ['booking_ref', 'agency', 'entry_type', 'gross_amount',
+                    'commission_amount', 'net_amount', 'created_at']
+    list_filter = ['entry_type', 'created_at', 'agency']
+    search_fields = ['booking_ref', 'tour_title', 'agency__name']
+    date_hierarchy = 'created_at'
+
+    def has_change_permission(self, request, obj=None):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AgentPayoutRequest)
+class AgentPayoutRequestAdmin(admin.ModelAdmin):
+    """Hakediş talep kuyruğu. Zengin admin paneli arayüzü F4'te gelecek."""
+    list_display = ['agency', 'amount', 'status', 'iban', 'requested_at', 'resolved_at']
+    list_filter = ['status', 'requested_at']
+    search_fields = ['agency__name', 'iban']
+    readonly_fields = ['agency', 'amount', 'iban', 'requested_at']
+    date_hierarchy = 'requested_at'
+    actions = ['mark_paid', 'mark_rejected']
+
+    def _resolve(self, queryset, new_status):
+        # `resolved_at` durumla birlikte yazılır; aksi halde ödenmiş görünen
+        # ama ne zaman ödendiği bilinmeyen kayıtlar oluşur.
+        return queryset.filter(status='pending').update(
+            status=new_status, resolved_at=timezone.now(),
+        )
+
+    @admin.action(description='Seçili talepleri ÖDENDİ olarak işaretle')
+    def mark_paid(self, request, queryset):
+        count = self._resolve(queryset, 'paid')
+        self.message_user(request, f'{count} talep ödendi olarak işaretlendi.')
+
+    @admin.action(description='Seçili talepleri REDDET')
+    def mark_rejected(self, request, queryset):
+        count = self._resolve(queryset, 'rejected')
+        self.message_user(request, f'{count} talep reddedildi.')
 

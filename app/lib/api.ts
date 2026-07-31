@@ -16,6 +16,41 @@ interface FetchAPIOptions extends RequestInit {
     throwOnHttpError?: boolean;
 }
 
+/**
+ * Dosya (CSV/PDF) indirir ve tarayıcıya kaydettirir.
+ *
+ * `fetchAPI` her yanıtı JSON olarak çözdüğü için ekstre/rapor indirmede
+ * kullanılamıyor. Ham `fetch`'i bileşene taşımak yerine buraya konuldu:
+ * kimlik doğrulama başlığı ve API kök adresi tek yerde kalsın.
+ *
+ * Hata durumunda `false` döner — çağıran kullanıcıya mesaj gösterir.
+ */
+export async function downloadFile(endpoint: string, fallbackFilename: string): Promise<boolean> {
+    const authHeaders = typeof window !== 'undefined' ? auth.getAuthHeaders() : {};
+    try {
+        const res = await fetch(`${API_URL}${endpoint}`, { headers: { ...authHeaders } });
+        if (!res.ok) return false;
+
+        const blob = await res.blob();
+        // Sunucunun önerdiği ad varsa o kullanılır; yoksa çağıranın verdiği.
+        const disposition = res.headers.get('Content-Disposition') || '';
+        const match = disposition.match(/filename="?([^";]+)"?/);
+        const filename = match ? match[1] : fallbackFilename;
+
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        return true;
+    } catch {
+        return false;
+    }
+}
+
 export async function fetchAPI(endpoint: string, options: FetchAPIOptions = {}) {
     const { throwOnHttpError, ...fetchOptions } = options;
     // ZERO-TRUST: Otomatik Sanitization

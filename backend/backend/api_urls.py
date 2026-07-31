@@ -18,6 +18,7 @@ from agencies.agency_bookings_views import AgencyBookingViewSet
 from agencies.finance_views import (
     AgencyFinanceSummaryView,
     AgencyFinanceLedgerView,
+    AgencyFinanceExportView,
     AgencyPayoutRequestView,
 )
 from agencies.onboarding_views import (
@@ -64,6 +65,7 @@ urlpatterns = [
     # ── Finans Endpoint'leri ──────────────────────────────────────────────────
     path('agency/finance/summary/', AgencyFinanceSummaryView.as_view(), name='agency-finance-summary'),
     path('agency/finance/ledger/', AgencyFinanceLedgerView.as_view(), name='agency-finance-ledger'),
+    path('agency/finance/export/', AgencyFinanceExportView.as_view(), name='agency-finance-export'),
     path('agency/finance/payout-request/', AgencyPayoutRequestView.as_view(), name='agency-payout-request'),
     # ── Restoran Endpoint'leri ─────────────────────────────────────────────
     path('restaurant/daily-stats/', RestaurantDailyStatsView.as_view(), name='restaurant-daily-stats'),
