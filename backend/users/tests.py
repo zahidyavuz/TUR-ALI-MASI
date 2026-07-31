@@ -1,8 +1,12 @@
 import json
+from unittest import mock
 
 from django.contrib.auth.models import User
 from django.core.cache import cache
 from rest_framework.test import APITestCase
+from rest_framework.throttling import ScopedRateThrottle
+
+from users.auth_views import ThrottledLoginView
 
 from agencies.models import Agency
 from users.auth_serializers import RoleTokenObtainPairSerializer, user_role
@@ -129,3 +133,38 @@ class CookieAuthFlowTestCase(APITestCase):
         # Acente kaydı sonrası middleware /dashboard/agency'yi açabilsin diye
         # token'da role=agency olmalı.
         self.assertEqual(decode_payload(response.data['access']).get('role'), 'agency')
+
+
+class LoginThrottleTestCase(APITestCase):
+    """F3-04: login endpoint'i IP başına dakikada 5 denemeyle sınırlı (brute-force).
+
+    Throttle test koşumunda global olarak kapalı (settings.py — paylaşılan cache
+    sayaçları testler arası sızıp alakasız testleri 429'a düşürüyordu). DRF
+    `throttle_classes`/`THROTTLE_RATES`'i import anında sınıf niteliği olarak
+    bağladığı için override_settings bunları geri açmaya yetmez; bu yüzden
+    ThrottledLoginView'in throttle'ını ve 'login' oranını bu test süresince
+    doğrudan patch'liyoruz. Böylece gerçek uç (ScopedRateThrottle + gerçek cache)
+    üzerinden 429 davranışı kanıtlanır, diğer testler etkilenmez.
+    """
+
+    def setUp(self):
+        # Throttle sayacı da login rate-limit sayacı da cache'te; testler
+        # arasında sızmasın diye temizle.
+        cache.clear()
+        User.objects.create_user('brute', 'brute@example.com', 'pw12345678')
+
+    def _attempt(self, password='yanlissifre'):
+        return self.client.post(
+            '/api/v1/auth/login/',
+            {'username': 'brute', 'password': password},
+            format='json',
+        )
+
+    def test_login_blocked_after_five_attempts(self):
+        with mock.patch.object(ThrottledLoginView, 'throttle_classes', [ScopedRateThrottle]), \
+                mock.patch.dict(ScopedRateThrottle.THROTTLE_RATES, {'login': '5/minute'}):
+            statuses = [self._attempt().status_code for _ in range(6)]
+        # İlk istek taze cache'te throttle'a takılmamalı.
+        self.assertNotEqual(statuses[0], 429, 'İlk deneme throttle yememeli')
+        # 5/dakika scope sınırı aşıldığında 429 dönmeli (6 deneme içinde).
+        self.assertIn(429, statuses, f'Ard arda denemede 429 beklendi, alınan: {statuses}')

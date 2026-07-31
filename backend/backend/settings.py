@@ -10,6 +10,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
 
+import sys
 from pathlib import Path
 from datetime import timedelta
 import os
@@ -105,16 +106,35 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_CLASSES': [
         'rest_framework.throttling.AnonRateThrottle',
         'rest_framework.throttling.UserRateThrottle',
+        # ScopedRateThrottle sadece `throttle_scope` tanımlı view'larda devreye
+        # girer; diğerlerinde no-op'tur. Login/register/booking gibi hassas
+        # uçlara aşağıdaki scope'lu oranlar uygulanır (brute-force / carding).
+        'rest_framework.throttling.ScopedRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
         'anon': '60/minute',
         'user': '200/minute',
+        # Brute-force koruması: kimlik denemesi IP başına dakikada 5 ile sınırlı.
+        'login': '5/minute',
+        # Kayıt spam'ini sınırla (IP başına saatte 5 yeni hesap).
+        'register': '5/hour',
+        # Rezervasyon oluşturma: carding/stok tarama saldırılarına karşı.
+        'booking': '20/minute',
     },
     'DEFAULT_FILTER_BACKENDS': ['django_filters.rest_framework.DjangoFilterBackend'],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 12,
     'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
+
+# Test koşumunda throttle'ı kapat: throttle sayaçları paylaşılan LocMemCache'te
+# tutuluyor ve testler arasında sıfırlanmadığı için (ör. çok sayıda rezervasyon
+# oluşturan testler) alakasız testleri 429'a düşürüyordu. Rate limiting davranışı
+# ihtiyacı olan testte @override_settings ile bilinçli olarak yeniden açılıyor
+# (bkz. users.tests.LoginThrottleTestCase). Prod/dev'de throttle tam aktif kalır.
+if 'test' in sys.argv:
+    REST_FRAMEWORK['DEFAULT_THROTTLE_CLASSES'] = []
+    REST_FRAMEWORK['DEFAULT_THROTTLE_RATES'] = {}
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Tourkia API',

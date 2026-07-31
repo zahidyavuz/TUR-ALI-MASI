@@ -67,6 +67,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             'tour', 'tour__agency', 'shuttle_route', 'shuttle_route__agency'
         )
 
+    def get_throttles(self):
+        # Yalnız rezervasyon OLUŞTURMA'yı 'booking' scope'uyla sınırla
+        # (carding / stok tarama). Listeleme/detay kendi bookinglerine
+        # dönük olduğundan default user oranı yeterli. throttle_scope yalnız
+        # create'te set edilir; ScopedRateThrottle diğer action'larda no-op.
+        if self.action == 'create':
+            self.throttle_scope = 'booking'
+        return super().get_throttles()
+
     # ─────────────────────────────────────────────────────────────────────────
     # CREATE — Rezervasyon + Stripe PaymentIntent oluşturma
     # ─────────────────────────────────────────────────────────────────────────

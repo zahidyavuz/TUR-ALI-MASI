@@ -36,7 +36,6 @@ import { GeofenceProvider } from "./context/GeofenceContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import GeofenceBanner from "./components/GeofenceBanner";
-import BehavioralTracker from "./components/BehavioralTracker";
 import OfflineGuard from "./components/OfflineGuard";
 import RouteGuard from "./components/RouteGuard";
 import BottomTabBar from "./components/BottomTabBar";
@@ -86,7 +85,6 @@ export default function RootLayout({
                       </RouteGuard>
                     </OfflineGuard>
                     <GeofenceBanner />
-                    <BehavioralTracker />
                     <Chatbot />
                     <BottomTabBar />
                     <GlobalImageFallback />

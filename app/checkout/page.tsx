@@ -4,7 +4,6 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams, useRouter } from "next/navigation";
 import { fetchTour } from "@/app/lib/tours";
-import { checkRateLimit } from "@/app/lib/rateLimit";
 import { fetchAPI } from "@/app/lib/api";
 import { auth } from "@/app/lib/auth";
 import StripePaymentSection from "@/app/components/StripePaymentSection";
@@ -65,15 +64,6 @@ function CheckoutLogic() {
 
     if (!auth.isAuthenticated()) {
       router.push(`/login?next=${encodeURIComponent(pathWithQuery)}`);
-      return;
-    }
-
-    // ZERO-TRUST: Ödeme ekranı hız sınırı (Spam/Carding Koruması)
-    const limit = checkRateLimit("checkout_attempts");
-    if (!limit.allowed) {
-      setBookingError(
-        `Çok fazla ödeme denemesi yaptınız. Güvenlik sebebiyle işleminiz ${limit.remainingMinutes} dakikalığına durdurulmuştur.`,
-      );
       return;
     }
 

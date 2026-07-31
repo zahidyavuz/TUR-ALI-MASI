@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { fetchAPI } from '@/app/lib/api';
-import SecurityShield from '../components/SecurityShield';
 export default function RegisterPage() {
     const [formData, setFormData] = useState({
         username: '',
@@ -14,7 +13,6 @@ export default function RegisterPage() {
     });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [humanToken, setHumanToken] = useState('');
 
     const router = useRouter();
     const { login } = useAuth();
@@ -32,29 +30,9 @@ export default function RegisterPage() {
             return;
         }
 
-        /* Security verification temporarily disabled
-        if (!humanToken) {
-            setError('Güvenlik doğrulaması tamamlanmadı. Lütfen bekleyin.');
-            return;
-        }
-        */
-
         setLoading(true);
 
         try {
-            /* CREDENTIAL STUFFING SHIELD: Sızdırılmış Şifre Kontrolü (Temporarily disabled)
-            const pwnedRes = await fetch('/api/auth/check-pwned', {
-                method: 'POST',
-                body: JSON.stringify({ password: formData.password })
-            });
-            const pwnedData = await pwnedRes.json();
-            
-            if (pwnedData.pwned) {
-                setError(`Girdiğiniz şifre daha önce ${pwnedData.count.toLocaleString()} kez internetteki veri sızıntılarında (hack olaylarında) saptanmıştır. Güvenliğiniz için lütfen daha zor ve benzersiz bir şifre seçin.`);
-                setLoading(false);
-                return;
-            }
-            */
             // Using dj-rest-auth standard registration endpoint
             const response = await fetchAPI('/auth/registration/', {
                 method: 'POST',
@@ -176,8 +154,6 @@ export default function RegisterPage() {
                             placeholder="••••••••"
                         />
                     </div>
-
-                    {/* Security verification removed for now */}
 
                     <div className="pt-2">
                         <button

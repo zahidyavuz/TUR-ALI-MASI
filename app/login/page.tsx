@@ -1,12 +1,9 @@
 'use client';
-import { useState, useEffect, Suspense } from 'react';
-import { checkRateLimit, recordFailedAttempt, resetAttempts } from '@/app/lib/rateLimit';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 import { fetchAPI } from '@/app/lib/api';
-import { requires2FA } from '@/app/lib/twoFactor';
-import TwoFactorVerify from '../components/TwoFactorVerify';
 
 function LoginContent() {
     const [username, setUsername] = useState('');
@@ -14,12 +11,6 @@ function LoginContent() {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const [twoFactor, setTwoFactor] = useState<{ show: boolean; sessionId: string; user: any; tokens: any }>({
-        show: false,
-        sessionId: '',
-        user: null,
-        tokens: null
-    });
 
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -48,13 +39,6 @@ function LoginContent() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
-
-        const limit = checkRateLimit('login_attempts');
-        if (!limit.allowed) {
-            setError(`Çok fazla hatalı deneme yaptınız. Güvenlik sebebiyle erişiminiz ${limit.remainingMinutes} dakikalığına kilitlenmiştir.`);
-            return;
-        }
-
         setLoading(true);
 
         try {
@@ -64,7 +48,6 @@ function LoginContent() {
             });
 
             if (!response) {
-                recordFailedAttempt('login_attempts');
                 setError('Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin veya daha sonra tekrar deneyin.');
                 return;
             }
@@ -74,25 +57,9 @@ function LoginContent() {
                 : { access: response.access, refresh: response.refresh };
 
             if (tokens.access) {
-                resetAttempts('login_attempts');
-
-                const userData = await fetchAPI('/auth/user/', {
-                    headers: { 'Authorization': `Bearer ${tokens.access}` }
-                });
-
-                if (requires2FA(userData)) {
-                    const res = await fetch('/api/auth/2fa', {
-                        method: 'POST',
-                        body: JSON.stringify({ action: 'initiate', userId: userData.id, username: userData.username })
-                    });
-                    const { sessionId } = await res.json();
-                    setTwoFactor({ show: true, sessionId, user: userData, tokens });
-                } else {
-                    const user = await login(tokens);
-                    handleRedirect(user);
-                }
+                const user = await login(tokens);
+                handleRedirect(user);
             } else {
-                recordFailedAttempt('login_attempts');
                 setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
             }
 
@@ -100,21 +67,6 @@ function LoginContent() {
             setError(err?.message || 'Bir hata oluştu.');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const handle2FAVerify = async (code: string) => {
-        const res = await fetch('/api/auth/2fa', {
-            method: 'POST',
-            body: JSON.stringify({ action: 'verify', sessionId: twoFactor.sessionId, code })
-        });
-
-        if (res.ok) {
-            const user = await login(twoFactor.tokens);
-            handleRedirect(user);
-        } else {
-            const data = await res.json();
-            throw new Error(data.error || 'Geçersiz kod.');
         }
     };
 
@@ -210,14 +162,6 @@ function LoginContent() {
                     </p>
                 </div>
             </div>
-            
-            {twoFactor.show && (
-                <TwoFactorVerify 
-                    username={twoFactor.user.username}
-                    onVerify={handle2FAVerify}
-                    onCancel={() => setTwoFactor({ ...twoFactor, show: false })}
-                />
-            )}
         </div>
     );
 }

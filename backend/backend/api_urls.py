@@ -10,6 +10,7 @@ from blogs.views import BlogViewSet, TagViewSet
 from agencies.dashboard import AgencyDashboardView
 from agencies.admin_views import AdminDashboardView, AdminAgencyViewSet
 from users.views import UserMeView, WishlistViewSet, NotificationViewSet, UserCouponViewSet
+from users.auth_views import ThrottledLoginView, ThrottledRegisterView
 from contacts.views import ContactMessageViewSet, LeadViewSet
 # ── Acenta B2B Modülleri ──────────────────────────────────────────────────────
 from agencies.agency_tours_views import AgencyTourViewSet
@@ -71,6 +72,11 @@ urlpatterns = [
     path('restaurant/daily-stats/', RestaurantDailyStatsView.as_view(), name='restaurant-daily-stats'),
     path('', include(router.urls)),
 
+    # Rate-limit'li override'lar include'lardan ÖNCE gelmeli ki dj_rest_auth'un
+    # throttle'sız view'ları yerine bunlar çözülsün. Diğer auth uçları
+    # (logout, password reset, e-posta doğrulama vb.) include'lardan gelir.
+    path('auth/login/', ThrottledLoginView.as_view(), name='rest_login'),
+    path('auth/registration/', ThrottledRegisterView.as_view(), name='rest_register'),
     path('auth/', include('dj_rest_auth.urls')),
     path('auth/registration/', include('dj_rest_auth.registration.urls')),
     path('chat/', include('chat.urls')),
