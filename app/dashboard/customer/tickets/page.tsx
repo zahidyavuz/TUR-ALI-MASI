@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import QRCode from 'react-qr-code';
 import { fetchAPI } from '@/app/lib/api';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
@@ -144,12 +145,26 @@ export default function TicketsPage() {
                 key={booking.id}
                 className="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-gray-100 dark:border-slate-700 flex gap-4"
               >
-                {/* Sol: ikon */}
-                <div className="w-24 h-24 rounded-2xl flex items-center justify-center shrink-0 border bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600">
-                  <div className="flex flex-col items-center gap-1">
-                    <span className="text-3xl opacity-80">📱</span>
-                    <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">QR KOD</span>
-                  </div>
+                {/* Sol: QR kod. Yalnız onaylı biletlerde gösterilir — iptal/
+                    başarısız bir rezervasyonun kodu okutulduğunda kapıda
+                    reddedileceği için misafire okutulabilir bir kod sunmuyoruz. */}
+                <div className="w-24 h-24 rounded-2xl flex items-center justify-center shrink-0 border bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 p-2">
+                  {booking.status === 'confirmed' && booking.booking_ref ? (
+                    <QRCode
+                      value={booking.booking_ref}
+                      size={80}
+                      className="w-full h-full"
+                      viewBox="0 0 80 80"
+                      title={`${booking.booking_ref} bilet kodu`}
+                    />
+                  ) : (
+                    <div className="flex flex-col items-center gap-1">
+                      <span className="text-3xl opacity-40">🎫</span>
+                      <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 text-center leading-tight">
+                        Kod Yok
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Sağ: detaylar */}

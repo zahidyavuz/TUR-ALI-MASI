@@ -11,12 +11,14 @@ Endpoint'ler:
   GET   /api/v1/agency/bookings/?date=&status=&tour=&q=  → Filtreli liste
   GET   /api/v1/agency/bookings/manifest/?date=          → Günlük manifest
   PATCH /api/v1/agency/bookings/<uuid>/                  → Yalnız `no_show`
+  POST  /api/v1/agency/bookings/<booking_ref>/checkin/   → Bilet doğrulama
 """
 import logging
 from datetime import datetime
 
 from django.db.models import Q, Sum
 from django.shortcuts import get_object_or_404
+from django.utils import timezone
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -51,11 +53,12 @@ class AgencyBookingSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'booking_ref', 'service_type', 'tour', 'service_title',
             'start_date', 'start_time', 'guests', 'total_price', 'status',
-            'no_show', 'passenger', 'phone', 'email', 'hotel', 'created_at',
+            'no_show', 'checked_in_at', 'passenger', 'phone', 'email', 'hotel',
+            'created_at',
         ]
         read_only_fields = [
             'id', 'booking_ref', 'service_type', 'tour', 'start_date', 'start_time',
-            'guests', 'total_price', 'status', 'created_at',
+            'guests', 'total_price', 'status', 'checked_in_at', 'created_at',
         ]
 
     # Misafir bilgileri rezervasyonu yapan hesaptan farklı olabilir; doluysa
@@ -93,7 +96,9 @@ class AgencyBookingViewSet(mixins.ListModelMixin,
         StrictMassAssignmentPermission,
     ]
     # PUT kapalı: tam güncelleme anlamsız, tek yazılabilir alan `no_show`.
-    http_method_names = ['get', 'patch', 'head', 'options']
+    # POST yalnız `checkin` aksiyonu için açık — rezervasyon bu uçtan yaratılmaz
+    # (create mixin'i zaten dâhil değil).
+    http_method_names = ['get', 'post', 'patch', 'head', 'options']
 
     def _get_agency(self):
         return get_object_or_404(Agency, owner=self.request.user)
@@ -161,6 +166,80 @@ class AgencyBookingViewSet(mixins.ListModelMixin,
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().partial_update(request, *args, **kwargs)
+
+    # ─── BİLET DOĞRULAMA / CHECK-IN ──────────────────────────────────────────
+    @action(detail=False, methods=['post'], url_path=r'(?P<booking_ref>[^/]+)/checkin')
+    def checkin(self, request, booking_ref=None):
+        """
+        POST /api/v1/agency/bookings/<booking_ref>/checkin/
+
+        QR'dan okunan `booking_ref` ile misafiri hizmete alır. Yanıt her zaman
+        makine tarafından ayırt edilebilir bir `reason` taşır; tarayıcı ekranı
+        buna göre renk/titreşim seçer.
+
+        Arama `get_queryset()` üzerinden yapılır — başka acentanın bileti
+        okutulursa kayıt hiç bulunmaz (`not_found`), varlığı bile sızmaz.
+        """
+        booking = (
+            Booking.objects
+            .filter(self._agency_scope())
+            .filter(booking_ref__iexact=(booking_ref or '').strip())
+            .select_related('user', 'tour', 'shuttle_route')
+            .first()
+        )
+        if booking is None:
+            return self._checkin_error('not_found', 'Bu bilet sistemde bulunamadı veya size ait bir hizmete ait değil.',
+                                       status.HTTP_404_NOT_FOUND)
+
+        if booking.status != 'confirmed':
+            labels = dict(Booking.STATUS_CHOICES)
+            return self._checkin_error(
+                'not_confirmed',
+                f'Bilet kullanılabilir durumda değil (durum: {labels.get(booking.status, booking.status)}).',
+                status.HTTP_400_BAD_REQUEST, booking,
+            )
+
+        today = timezone.localdate()
+        if booking.start_date and booking.start_date != today:
+            return self._checkin_error(
+                'wrong_date',
+                f'Bu bilet {booking.start_date.strftime("%d.%m.%Y")} tarihi içindir, bugün geçerli değildir.',
+                status.HTTP_400_BAD_REQUEST, booking,
+            )
+
+        # Koşullu UPDATE: iki cihaz aynı bileti aynı anda okutsa da yalnız biri
+        # 1 satır günceller, diğeri kesin olarak "zaten okutuldu" alır.
+        now = timezone.now()
+        claimed = Booking.objects.filter(pk=booking.pk, checked_in_at__isnull=True).update(
+            checked_in_at=now, no_show=False,
+        )
+        if not claimed:
+            booking.refresh_from_db()
+            return self._checkin_error(
+                'already_checked_in',
+                f'Bu bilet {timezone.localtime(booking.checked_in_at).strftime("%d.%m.%Y %H:%M")} '
+                f'itibarıyla zaten okutulmuş.',
+                status.HTTP_409_CONFLICT, booking,
+            )
+
+        booking.refresh_from_db()
+        logger.info(f"[CHECKIN] {booking.booking_ref} checked in by {request.user.username}")
+        return Response({
+            'reason': 'ok',
+            'message': 'Bilet doğrulandı, misafir hizmete alındı.',
+            'booking': AgencyBookingSerializer(booking).data,
+        })
+
+    def _agency_scope(self):
+        agency = self._get_agency()
+        return Q(tour__agency=agency) | Q(shuttle_route__agency=agency)
+
+    @staticmethod
+    def _checkin_error(reason, message, http_status, booking=None):
+        payload = {'reason': reason, 'error': message}
+        if booking is not None:
+            payload['booking'] = AgencyBookingSerializer(booking).data
+        return Response(payload, status=http_status)
 
     # ─── GÜNLÜK MANİFEST (tüm turlar, tek gün) ───────────────────────────────
     @action(detail=False, methods=['get'], url_path='manifest', pagination_class=None)

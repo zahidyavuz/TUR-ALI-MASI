@@ -52,6 +52,10 @@ class Booking(models.Model):
     # İptalden ayrıdır: para iade edilmez, kontenjan geri verilmez.
     no_show = models.BooleanField(default=False)
 
+    # Hizmet günü biletin okutulduğu an. Boşsa misafir henüz giriş yapmamıştır.
+    # `no_show` ile karşıt: biri işaretliyse diğeri olmamalıdır.
+    checked_in_at = models.DateTimeField(null=True, blank=True)
+
     booking_ref = models.CharField(max_length=50, unique=True)
     payment_intent_id = models.CharField(max_length=255, blank=True, null=True)
     

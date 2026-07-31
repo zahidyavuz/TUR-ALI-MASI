@@ -1,7 +1,8 @@
-from datetime import date
+from datetime import date, timedelta
 
 from django.contrib.auth.models import User
 from django.test import TestCase
+from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .models import Agency
@@ -468,6 +469,139 @@ class AgencyBookingsTestCase(TestCase):
         response = self.client.put(f'{self.URL}{self.booking.id}/',
                                    {'no_show': True}, format='json')
         self.assertEqual(response.status_code, 405)
+
+
+class CheckinTestCase(TestCase):
+    """F2-05 — Bilet doğrulama (check-in) uç noktası."""
+
+    URL = '/api/v1/agency/bookings/'
+
+    def setUp(self):
+        from tours.models import Tour
+        from bookings.models import Booking
+        self.Booking = Booking
+
+        self.today = timezone.localdate()
+        self.client = APIClient()
+
+        self.owner = User.objects.create_user(username='ci_owner', password='pass')
+        self.agency = Agency.objects.create(
+            owner=self.owner, name='CI Acenta', status='onaylandi', is_verified=True, is_active=True
+        )
+        self.tour = Tour.objects.create(
+            id='ci-tour', agency=self.agency, title='CI Tour', location='Antalya',
+            price=500, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.customer = User.objects.create_user(username='ci_customer', password='pass')
+
+        self.booking = Booking.objects.create(
+            user=self.customer, tour=self.tour, start_date=self.today, guests=2,
+            total_price=1000, booking_ref='CI000001', status='confirmed',
+            guest_full_name='Ada Yolcu',
+        )
+        self.pending = Booking.objects.create(
+            user=self.customer, tour=self.tour, start_date=self.today, guests=1,
+            total_price=500, booking_ref='CI000002', status='pending',
+        )
+        self.tomorrow = Booking.objects.create(
+            user=self.customer, tour=self.tour, start_date=self.today + timedelta(days=1),
+            guests=1, total_price=500, booking_ref='CI000003', status='confirmed',
+        )
+
+        # Rakip acenta + onun bugün geçerli bileti
+        self.rival_owner = User.objects.create_user(username='ci_rival', password='pass')
+        self.rival_agency = Agency.objects.create(
+            owner=self.rival_owner, name='CI Rakip', status='onaylandi', is_verified=True, is_active=True
+        )
+        self.rival_tour = Tour.objects.create(
+            id='ci-rival-tour', agency=self.rival_agency, title='Rakip Tur', location='Kaş',
+            price=400, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.rival_booking = Booking.objects.create(
+            user=self.customer, tour=self.rival_tour, start_date=self.today, guests=1,
+            total_price=400, booking_ref='CIRIVAL1', status='confirmed',
+        )
+
+        self.client.force_authenticate(user=self.owner)
+
+    def _checkin(self, ref, client=None):
+        return (client or self.client).post(f'{self.URL}{ref}/checkin/')
+
+    def test_first_scan_succeeds(self):
+        response = self._checkin('CI000001')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['reason'], 'ok')
+        self.assertEqual(response.data['booking']['booking_ref'], 'CI000001')
+        self.booking.refresh_from_db()
+        self.assertIsNotNone(self.booking.checked_in_at)
+
+    def test_second_scan_reports_already_checked_in(self):
+        self.assertEqual(self._checkin('CI000001').status_code, 200)
+        first_time = self.Booking.objects.get(pk=self.booking.pk).checked_in_at
+
+        response = self._checkin('CI000001')
+        self.assertEqual(response.status_code, 409)
+        self.assertEqual(response.data['reason'], 'already_checked_in')
+        self.assertIn('zaten okutulmuş', response.data['error'])
+        # İlk okutma anı korunur; ikinci okutma zaman damgasını ezmez.
+        self.booking.refresh_from_db()
+        self.assertEqual(self.booking.checked_in_at, first_time)
+
+    def test_rival_ticket_is_not_found(self):
+        """Başka acentanın bileti okutulursa varlığı bile sızmaz."""
+        response = self._checkin('CIRIVAL1')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data['reason'], 'not_found')
+        self.assertNotIn('booking', response.data)
+        self.rival_booking.refresh_from_db()
+        self.assertIsNone(self.rival_booking.checked_in_at)
+
+    def test_unknown_ref_is_not_found(self):
+        response = self._checkin('YOKBOYLE')
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.data['reason'], 'not_found')
+
+    def test_unconfirmed_booking_is_rejected(self):
+        response = self._checkin('CI000002')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['reason'], 'not_confirmed')
+        self.pending.refresh_from_db()
+        self.assertIsNone(self.pending.checked_in_at)
+
+    def test_wrong_date_is_rejected(self):
+        response = self._checkin('CI000003')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.data['reason'], 'wrong_date')
+        self.tomorrow.refresh_from_db()
+        self.assertIsNone(self.tomorrow.checked_in_at)
+
+    def test_checkin_clears_no_show(self):
+        self.booking.no_show = True
+        self.booking.save(update_fields=['no_show'])
+        self.assertEqual(self._checkin('CI000001').status_code, 200)
+        self.booking.refresh_from_db()
+        self.assertFalse(self.booking.no_show)
+
+    def test_ref_is_case_and_space_insensitive(self):
+        response = self._checkin('%20ci000001%20')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.booking.refresh_from_db()
+        self.assertIsNotNone(self.booking.checked_in_at)
+
+    def test_anonymous_cannot_checkin(self):
+        response = self._checkin('CI000001', client=APIClient())
+        self.assertEqual(response.status_code, 401)
+        self.booking.refresh_from_db()
+        self.assertIsNone(self.booking.checked_in_at)
+
+    def test_unapproved_agency_cannot_checkin(self):
+        self.agency.status = 'beklemede'
+        self.agency.save(update_fields=['status'])
+        self.assertEqual(self._checkin('CI000001').status_code, 403)
+        self.booking.refresh_from_db()
+        self.assertIsNone(self.booking.checked_in_at)
 
 
 class AdminApplicationActionsTestCase(TestCase):
