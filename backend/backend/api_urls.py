@@ -12,6 +12,7 @@ from agencies.admin_views import AdminDashboardView, AdminAgencyViewSet
 from users.views import UserMeView, WishlistViewSet, NotificationViewSet, UserCouponViewSet
 from users.auth_views import ThrottledLoginView, ThrottledRegisterView
 from contacts.views import ContactMessageViewSet, LeadViewSet
+from core.views import ExchangeRateView
 # ── Acenta B2B Modülleri ──────────────────────────────────────────────────────
 from agencies.agency_tours_views import AgencyTourViewSet
 from agencies.agency_shuttles_views import AgencyShuttleViewSet
@@ -63,6 +64,8 @@ urlpatterns = [
     path('agencies/onboarding/', OnboardingUpdateView.as_view(), name='agency-onboarding-update'),
     path('admin/dashboard/', AdminDashboardView.as_view(), name='admin-dashboard'),
     path('users/me/', UserMeView.as_view(), name='user-me'),
+    # ── Genel Döviz Kuru Servisi (F4-03) ──────────────────────────────────────
+    path('exchange-rates/', ExchangeRateView.as_view(), name='exchange-rates'),
     # ── Finans Endpoint'leri ──────────────────────────────────────────────────
     path('agency/finance/summary/', AgencyFinanceSummaryView.as_view(), name='agency-finance-summary'),
     path('agency/finance/ledger/', AgencyFinanceLedgerView.as_view(), name='agency-finance-ledger'),

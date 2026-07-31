@@ -1,5 +1,6 @@
 'use client';
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { fetchExchangeRates } from '../lib/exchange';
 
 export type Currency = 'TRY' | 'USD' | 'EUR' | 'RUB' | 'CNY';
 
@@ -32,28 +33,23 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
             setCurrencyState(savedCurrency);
         }
 
-        const fetchRates = async () => {
-            try {
-                // Sadece demo / ücretsiz kullanım içindir: ExchangeRate-API
-                const res = await fetch('https://open.er-api.com/v6/latest/TRY');
-                if (!res.ok) throw new Error("Exchange API failed");
-                const data = await res.json();
-                if (data && data.rates) {
-                    setRates({
-                        TRY: 1,
-                        USD: data.rates.USD || FALLBACK_RATES.USD,
-                        EUR: data.rates.EUR || FALLBACK_RATES.EUR,
-                        RUB: data.rates.RUB || FALLBACK_RATES.RUB,
-                        CNY: data.rates.CNY || FALLBACK_RATES.CNY
-                    });
-                }
-            } catch (err) {
-                console.warn("Döviz kurları çekilirken hata oluştu, varsayılan kurlar kullanılıyor.");
+        // Kurlar backend'in günlük cache'li servisinden (TCMB, TRY baz) gelir.
+        // Üçüncü taraf API'ye doğrudan gitmiyoruz; tüm HTTP fetchAPI üzerinden.
+        const loadRates = async () => {
+            const data = await fetchExchangeRates();
+            if (data?.rates) {
+                setRates({
+                    TRY: 1,
+                    USD: data.rates.USD || FALLBACK_RATES.USD,
+                    EUR: data.rates.EUR || FALLBACK_RATES.EUR,
+                    RUB: data.rates.RUB || FALLBACK_RATES.RUB,
+                    CNY: data.rates.CNY || FALLBACK_RATES.CNY
+                });
             }
         };
 
-        fetchRates(); // İlk açıldığında çalıştır
-        const interval = setInterval(fetchRates, 1000 * 60 * 60); // 1 saatte bir güncelle
+        loadRates(); // İlk açıldığında çalıştır
+        const interval = setInterval(loadRates, 1000 * 60 * 60); // 1 saatte bir tazele
         return () => clearInterval(interval);
     }, []);
 
@@ -89,12 +85,16 @@ export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }
             fractionDigits = 0; // Küsürata gerek yok
         }
 
-        return new Intl.NumberFormat(localeCode, {
+        const formatted = new Intl.NumberFormat(localeCode, {
             style: 'currency',
             currency: currency,
             minimumFractionDigits: fractionDigits,
             maximumFractionDigits: fractionDigits
         }).format(converted);
+
+        // Tahsilat daima TRY; yabancı para gösterimi yalnız yaklaşık bir
+        // dönüşümdür (F4-03). "≈" ile bunu açıkça belirt, TRY'de gösterme.
+        return currency === 'TRY' ? formatted : `≈ ${formatted}`;
     };
 
     return (

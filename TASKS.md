@@ -552,13 +552,13 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F4-03 · Gerçek döviz kuru servisi
+### [x] F4-03 · Gerçek döviz kuru servisi
 
 **Öncelik:** P2 · **Efor:** S
 
 **Adımlar:** Backend'de günlük cache'li kur endpoint'i (TCMB XML veya exchangerate API); `LocaleContext` currency dönüşümünü buna bağla; gösterim "≈" işaretli, tahsilat daima TRY. F1-02'de kaldırılan footer kur bloğu istenirse gerçek veriyle geri gelir.
 
-**Notlar:** _
+**Notlar:** Backend: `core/exchange.py` TCMB `today.xml`'i çekip TRY baz kura çevirir (`1 TRY = Unit/ForexSelling`), `django.core.cache` ile 24 saat cache'ler; canlı kaynak alınamazsa önce eski cache (`stale=True`), o da yoksa statik fallback sunar (gösterim asla kırılmaz). `core/views.py::ExchangeRateView` (`AllowAny`, `authentication_classes=[]`) → `GET /api/v1/exchange-rates/` `{rates, date, source, stale}` döner. TCMB alanı SSRF allowlist'e eklendi (`www.tcmb.gov.tr`), istek `safe_requests_get` ile atılır. Ön yüz: `app/lib/exchange.ts::fetchExchangeRates` (fetchAPI üzerinden) + `CurrencyContext` artık üçüncü taraf API'ye DOĞRUDAN gitmiyor (eski `open.er-api.com` fetch'i kaldırıldı — invariant ihlaliydi); `formatPrice` TRY dışı para birimlerinde "≈" öneki ekler (tahsilat daima TRY). Doğrulama: 5 yeni test (parse/cache/fallback/stale/endpoint) + canlı TCMB smoke (`source:TCMB, stale:false, gerçek kurlar`). Backend 217/217, tsc/lint/build temiz, AST temiz. **Uyarı:** ayarlarda paylaşımlı `CACHES` yok → Django `LocMemCache`'e düşüyor, cache süreç başına ayrı (çok işçili sunumda her işçi günde bir TCMB çeker); tur önbelleği (F2-01) ile aynı kök, Redis'e geçince ortak olur.
 
 ---
 
@@ -758,6 +758,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * ~~**[P0 · bug] Transfer (shuttle) rezervasyonu oluşturmak her seferinde 500 veriyordu.**~~ **ÇÖZÜLDÜ (F3-07):** `tours/signals.py::update_fomo_count` post_save sinyali `instance.tour.fomo_count`'a koşulsuz erişiyordu; shuttle rezervasyonunda `tour=None` olduğundan (`bookings/views.py:295` `tour=None` ile create) her `Booking.objects.create` çağrısı `AttributeError: 'NoneType' object has no attribute 'fomo_count'` fırlatıp transfer satın almayı tamamen kırıyordu. F3-07(b) shuttle webhook idempotency testi yazılırken yüzeye çıktı. `if created and instance.tour_id:` guard'ı eklendi; `WebhookIdempotencyTestCase::test_shuttle_webhook_increments_quota_once` regresyonu kilitliyor. (NOT: transfer akışındaki overbooking yarışı ayrı bir [P0] bulgu olarak F5-01'de duruyor — bu yalnız oluşturma-anı crash'ini giderdi.)
 
 * **[P2 · veri] `Tour.duration` serbest metin — süre filtresi kırılgan.** F4-01'de süre filtresi `duration icontains` ile yapıldı ve ön yüz iki seçenek sunuyor: "Saat" / "Gün". Ama DB'de değerler tutarsız (Türkçe "4 Saat"/"3 Gün" ile İngilizce "2 Days"/"1 Day" karışık — bkz. `tests.py` seed'i). İngilizce "Days" içeren turlar "Gün" filtresiyle eşleşmez, yani sahadaki bazı turlar süre filtresinde görünmez. Kalıcı çözüm: `Tour`'a yapısal bir süre alanı (dakika/gün cinsinden sayısal + tip enum) eklemek ve serbest metni göç ettirmek. F2-01'deki `Tour.category` taksonomi sorunuyla aynı kök (serbest metin katalog verisi); birlikte ele alınmalı.
+
+* **[P2 · mimari] `app/api/chat/route.ts` döviz kurunu doğrudan üçüncü taraftan çekiyor.** F4-03'te ön yüzün (`CurrencyContext`) doğrudan `open.er-api.com` çağrısı backend'in TCMB servisine taşındı, ancak chatbot BFF route'u (`app/api/chat/route.ts:12`) hâlâ `api.exchangerate-api.com/v4/latest/USD`'yi doğrudan çağırıyor. Bu bir Next.js sunucu route'u (tarayıcıdan değil) olduğu için F4-03 kapsamı (`LocaleContext` bağlama) dışında bırakıldı; yeni `GET /api/v1/exchange-rates/` ucuna yönlendirilip tek kaynağa indirgenebilir. (Ayrıca sahipsiz `app/components/CheckoutForm.tsx:21` de `open.er-api.com`'a gidiyor — o zaten ölü kod olarak kayıtlı.)
 
 * **[P2 · UX/veri] Kategori filtresi `Category` tablosu seyrek olduğu için pratikte boş.** F4-01 kategori filtresi artık gerçek `Category` kayıtlarını (`category_obj__slug`) kullanıyor — doğru mimari — ama `Category` tablosu neredeyse boş ve turların çoğu `category_obj` FK'siz (yalnız legacy serbest metin `category` alanı dolu). Sonuç: ön yüzde kategori kutucukları ya hiç görünmüyor (`categories.length === 0` gizliyor) ya da seçilince çoğu turu eler. F2-01 bulgusuyla (`Tour.category` taksonomi kargaşası) aynı; kategoriler netleştirilip turlar `category_obj`'e bağlanana kadar bu filtre eksik çalışır.
 

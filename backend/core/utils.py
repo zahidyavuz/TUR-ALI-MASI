@@ -17,6 +17,7 @@ ALLOWED_DOMAINS = [
     's3.amazonaws.com',
     'images.unsplash.com',
     'upload.wikimedia.org',
+    'www.tcmb.gov.tr',  # Merkez Bankası günlük döviz kuru XML'i (F4-03)
 ]
 
 # Yasaklı İç IP Blokları
