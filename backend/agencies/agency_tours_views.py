@@ -124,7 +124,7 @@ class AgencyTourViewSet(viewsets.ModelViewSet):
     ALLOWED_PATCH_FIELDS = {
         'title', 'location', 'price', 'original_price', 'discount', 'duration',
         'guide', 'accommodation', 'transportation', 'category', 'description',
-        'included', 'excluded', 'filmed_in',
+        'included', 'excluded', 'filmed_in', 'cancellation_policy',
     }
 
     def partial_update(self, request, *args, **kwargs):

@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import QRCode from 'react-qr-code';
 import { fetchAPI } from '@/app/lib/api';
+import { policyInfo } from '@/app/lib/cancellationPolicy';
 
 const STATUS_MAP: Record<string, { label: string; color: string }> = {
   pending:   { label: 'Beklemede',  color: 'bg-yellow-50 text-yellow-700 border-yellow-200' },
@@ -43,8 +44,8 @@ export default function TicketsPage() {
     setCancelSuccess('');
 
     try {
-      // throwOnHttpError: backend'in 400 gövdesindeki gerekçe (örn. 24 saat
-      // kuralı) kullanıcıya olduğu gibi gösterilmeli.
+      // throwOnHttpError: backend'in 400 gövdesindeki gerekçe kullanıcıya
+      // olduğu gibi gösterilmeli. İade tutarı politikaya göre sunucuda hesaplanır.
       const result = await fetchAPI(`/bookings/${booking.id}/cancel/`, {
         method: 'POST',
         throwOnHttpError: true,
@@ -54,10 +55,13 @@ export default function TicketsPage() {
         return;
       }
       setBookings(prev => prev.map(b => (b.id === booking.id ? result : b)));
+      const refundAmount = Number(result.refund_amount ?? 0);
       setCancelSuccess(
-        booking.status === 'confirmed'
-          ? `${booking.booking_ref} iptal edildi. İade kartınıza ödeme sağlayıcısı üzerinden gönderildi; hesabınıza yansıması bankanıza bağlı olarak birkaç iş günü sürebilir.`
-          : `${booking.booking_ref} iptal edildi. Bu rezervasyon için tahsilat yapılmadığı için iade oluşturulmadı.`
+        booking.status !== 'confirmed'
+          ? `${booking.booking_ref} iptal edildi. Bu rezervasyon için tahsilat yapılmadığı için iade oluşturulmadı.`
+          : result.refunded
+            ? `${booking.booking_ref} iptal edildi. İptal politikası gereği %${result.refund_percent} (${refundAmount.toLocaleString('tr-TR', { style: 'currency', currency: 'TRY' })}) iade kartınıza gönderildi; hesabınıza yansıması bankanıza bağlı olarak birkaç iş günü sürebilir.`
+            : `${booking.booking_ref} iptal edildi. İptal politikası gereği bu tarih aralığında iade yapılmamaktadır.`
       );
     } catch (err: any) {
       setCancelError(err?.data?.error || err?.message || 'İptal işlemi sırasında bir hata oluştu.');
@@ -105,7 +109,7 @@ export default function TicketsPage() {
             </p>
             <p className="text-xs font-bold text-slate-500 dark:text-slate-400 leading-relaxed mb-6">
               {pendingCancel.status === 'confirmed'
-                ? 'Ödemeniz alındığı için iade süreci otomatik olarak başlatılacaktır.'
+                ? `İade tutarı iptal politikasına (${policyInfo(pendingCancel.tour_detail?.cancellation_policy).label}) göre hesaplanır. ${policyInfo(pendingCancel.tour_detail?.cancellation_policy).detail}`
                 : 'Bu rezervasyon için henüz tahsilat yapılmadığından iade oluşturulmayacaktır.'}
             </p>
             <div className="flex gap-3">
@@ -184,6 +188,11 @@ export default function TicketsPage() {
                         </span>
                       )}
                     </p>
+                    {booking.tour_detail?.cancellation_policy && isCancellable && (
+                      <p className="text-[11px] font-bold text-slate-400 mt-1.5 flex items-center gap-1">
+                        ↩️ İptal: {policyInfo(booking.tour_detail.cancellation_policy).label} — {policyInfo(booking.tour_detail.cancellation_policy).summary}
+                      </p>
+                    )}
                   </div>
 
                   <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-100 dark:border-slate-700/50 gap-2 flex-wrap">

@@ -9,7 +9,8 @@ Kritik değişiklikler:
      geçiyor; bu dosyada artık doğrudan PSP SDK'sı yok (F2-06).
 """
 import logging
-from datetime import date as date_type, datetime, time as time_type, timedelta
+from datetime import date as date_type, datetime, time as time_type
+from decimal import Decimal, ROUND_HALF_UP
 
 from django.db import transaction, DatabaseError
 from django.db.models import F
@@ -31,16 +32,12 @@ from .payments import (
     get_provider,
 )
 from .serializers import BookingSerializer
-from tours.models import Tour, TourAvailability
+from tours.models import Tour, TourAvailability, refund_percent_for_policy
 from shuttles.models import ShuttleRoute, ShuttleAvailability
 from core.emails import display_name, frontend_url, send_templated_mail
 from core.permissions import IsOwner, StrictMassAssignmentPermission
 
 logger = logging.getLogger('bookings')
-
-# Hizmet başlangıcına bu süreden az kalmışsa iptal kabul edilmez.
-# Basit sabit kural; esnek politika motoru F4-04'te gelecek.
-CANCELLATION_CUTOFF_HOURS = 24
 
 
 def service_label(booking):
@@ -355,33 +352,43 @@ class BookingViewSet(viewsets.ModelViewSet):
         if booking.status == 'cancelled':
             return Response({'error': 'Bu rezervasyon zaten iptal edilmiş.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Son iptal anı: hizmet başlangıcından CANCELLATION_CUTOFF_HOURS saat önce.
-        # start_date yoksa (tarihsiz eski kayıtlar) kısıt uygulanmaz.
+        # İade oranı, turun iptal politikasına ve hizmete kalan saate göre
+        # hesaplanır (F4-04). Transferde politika alanı yoktur; en cömert olan
+        # 'flexible' varsayılır. Tarihsiz eski kayıtlarda kısıt yoktur → %100.
+        policy = booking.tour.cancellation_policy if booking.tour_id else 'flexible'
+        refund_percent = 100
         if booking.start_date:
             start_time = booking.start_time or time_type(0, 0)
             starts_at = timezone.make_aware(
                 datetime.combine(booking.start_date, start_time),
                 timezone.get_current_timezone(),
             )
-            if starts_at - timezone.now() < timedelta(hours=CANCELLATION_CUTOFF_HOURS):
-                return Response(
-                    {
-                        'error': (
-                            f'Hizmet başlangıcına {CANCELLATION_CUTOFF_HOURS} saatten az kaldığı için '
-                            f'bu rezervasyon çevrimiçi iptal edilemez. Lütfen bizimle iletişime geçin.'
-                        )
-                    },
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+            hours_before = (starts_at - timezone.now()).total_seconds() / 3600
+            refund_percent = refund_percent_for_policy(policy, hours_before)
 
+        # İptal her zaman kabul edilir (kontenjan boşalsın); geri ödenen tutar
+        # politikaya göre tam/kısmi/sıfır olabilir. %0 durumunda para iade
+        # edilmez ama rezervasyon yine iptal edilir.
         refunded = False
-        if booking.status == 'confirmed':
+        refund_amount = Decimal('0.00')
+        if booking.status == 'confirmed' and refund_percent > 0:
             provider = get_provider()
             if booking.payment_intent_id and provider.is_configured():
+                refund_amount = (
+                    booking.total_price * Decimal(refund_percent) / Decimal('100')
+                ).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 try:
-                    provider.refund(intent_id=booking.payment_intent_id)
+                    # Tam iadede tutar geçilmez (PSP intent'in tümünü iade eder);
+                    # kısmi iadede hesaplanan tutar açıkça verilir.
+                    if refund_percent >= 100:
+                        provider.refund(intent_id=booking.payment_intent_id)
+                    else:
+                        provider.refund(intent_id=booking.payment_intent_id, amount=refund_amount)
                     refunded = True
-                    logger.info(f"Refund created for booking {booking.booking_ref}")
+                    logger.info(
+                        f"Refund created for booking {booking.booking_ref} "
+                        f"(policy={policy}, %{refund_percent}, ₺{refund_amount})"
+                    )
                 except PaymentError as e:
                     return Response(
                         {'error': f'İade işlemi başarısız: {str(e)}'},
@@ -416,7 +423,11 @@ class BookingViewSet(viewsets.ModelViewSet):
         if refunded:
             from agencies.finance_models import AgentFinanceLedger
             try:
-                AgentFinanceLedger.create_refund_entry(booking)
+                # Kısmi iadede hakediş de yalnız iade edilen oran kadar geri
+                # alınır; acentanın elinde kalan tutar defterde kalır.
+                AgentFinanceLedger.create_refund_entry(
+                    booking, refund_ratio=Decimal(refund_percent) / Decimal('100')
+                )
             except Exception as e:
                 logger.error(
                     f"[FINANCE] Refund ledger entry failed for {booking.booking_ref}: {e}",
@@ -428,10 +439,17 @@ class BookingViewSet(viewsets.ModelViewSet):
             'service_label': service_label(booking),
             'booking_ref': booking.booking_ref,
             'refunded': refunded,
+            'refund_amount': refund_amount,
+            'refund_percent': refund_percent,
         })
 
         serializer = self.get_serializer(booking)
-        return Response(serializer.data)
+        return Response({
+            **serializer.data,
+            'refunded': refunded,
+            'refund_amount': str(refund_amount),
+            'refund_percent': refund_percent,
+        })
 
     # ─────────────────────────────────────────────────────────────────────────
     # STRIPE WEBHOOK — Ödeme durumu güncellemeleri

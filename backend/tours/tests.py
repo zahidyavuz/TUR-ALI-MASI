@@ -272,3 +272,47 @@ class TourAvailabilityTestCase(TestCase):
         )
         self.assertEqual(avail.remaining, 0)
         self.assertFalse(avail.is_available)
+
+
+class CancellationPolicyMatrixTestCase(TestCase):
+    """F4-04 — İptal politikası iade yüzdesi matrisi (saf fonksiyon testleri)."""
+
+    def setUp(self):
+        self.tour = Tour.objects.create(
+            id='policy-tour', title='Policy Tour', location='Antalya',
+            price=1000, duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+
+    def test_flexible_full_then_zero(self):
+        from tours.models import refund_percent_for_policy
+        # Esnek: 24 saat ve fazlası tam iade, altı sıfır.
+        self.assertEqual(refund_percent_for_policy('flexible', 48), 100)
+        self.assertEqual(refund_percent_for_policy('flexible', 24), 100)
+        self.assertEqual(refund_percent_for_policy('flexible', 23.99), 0)
+        self.assertEqual(refund_percent_for_policy('flexible', 0), 0)
+
+    def test_moderate_tiers(self):
+        from tours.models import refund_percent_for_policy
+        # Orta: 72s+ tam, 24-72s arası %50, altı sıfır.
+        self.assertEqual(refund_percent_for_policy('moderate', 100), 100)
+        self.assertEqual(refund_percent_for_policy('moderate', 72), 100)
+        self.assertEqual(refund_percent_for_policy('moderate', 48), 50)
+        self.assertEqual(refund_percent_for_policy('moderate', 24), 50)
+        self.assertEqual(refund_percent_for_policy('moderate', 23), 0)
+
+    def test_strict_tiers(self):
+        from tours.models import refund_percent_for_policy
+        # Katı: 7 gün (168s) ve fazlası %50, altı sıfır.
+        self.assertEqual(refund_percent_for_policy('strict', 200), 50)
+        self.assertEqual(refund_percent_for_policy('strict', 168), 50)
+        self.assertEqual(refund_percent_for_policy('strict', 167), 0)
+        self.assertEqual(refund_percent_for_policy('strict', 0), 0)
+
+    def test_unknown_policy_falls_back_to_flexible(self):
+        from tours.models import refund_percent_for_policy
+        self.assertEqual(refund_percent_for_policy('bilinmeyen', 48), 100)
+        self.assertEqual(refund_percent_for_policy('bilinmeyen', 10), 0)
+
+    def test_default_policy_is_flexible(self):
+        self.assertEqual(self.tour.cancellation_policy, 'flexible')

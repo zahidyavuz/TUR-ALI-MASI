@@ -9,7 +9,9 @@ AgentPayoutRequest  → Acentanın oluşturduğu ödeme talebi.
 from django.db import models
 from django.utils import timezone
 from agencies.models import Agency
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
+
+CENTS = Decimal('0.01')
 
 
 class AgentFinanceLedger(models.Model):
@@ -95,13 +97,17 @@ class AgentFinanceLedger(models.Model):
         return obj
 
     @classmethod
-    def create_refund_entry(cls, booking):
+    def create_refund_entry(cls, booking, refund_ratio=Decimal('1')):
         """
         İade sonrası ters kayıt: satış satırının negatifi.
 
         Satış kaydı silinmez — muhasebe izi bozulmasın diye karşısına eksi
         tutarlı bir satır yazılır, bakiye toplamı kendiliğinden düşer.
         Idempotent: aynı rezervasyon iki kez iade edilse de tek satır oluşur.
+
+        `refund_ratio` (0-1): kısmi iadelerde (F4-04) yalnız iade edilen oran
+        kadar ters kayıt yazılır; varsayılan 1 tam iadedir ve mevcut satış
+        satırının birebir negatifini üretir.
         """
         service, agency = cls._agency_of(booking)
         if agency is None:
@@ -113,18 +119,31 @@ class AgentFinanceLedger(models.Model):
         if sale is None:
             return None
 
+        ratio = Decimal(refund_ratio)
+
+        def _reverse(amount):
+            return -(amount * ratio).quantize(CENTS, rounding=ROUND_HALF_UP)
+
+        if ratio >= 1:
+            note = f'{booking.booking_ref} iptal edildi, tutar iade edildi.'
+        else:
+            note = (
+                f'{booking.booking_ref} iptal edildi, '
+                f'%{(ratio * 100).quantize(CENTS)} kısmi iade yapıldı.'
+            )
+
         obj, _ = cls.objects.get_or_create(
             booking_ref=f'{booking.booking_ref}{cls.REFUND_REF_SUFFIX}',
             defaults={
                 'agency':            agency,
                 'tour_title':        sale.tour_title,
                 'tour_date':         sale.tour_date,
-                'gross_amount':      -sale.gross_amount,
+                'gross_amount':      _reverse(sale.gross_amount),
                 'commission_rate':   sale.commission_rate,
-                'commission_amount': -sale.commission_amount,
-                'net_amount':        -sale.net_amount,
+                'commission_amount': _reverse(sale.commission_amount),
+                'net_amount':        _reverse(sale.net_amount),
                 'entry_type':        'refund',
-                'notes':             f'{booking.booking_ref} iptal edildi, tutar iade edildi.',
+                'notes':             note,
             }
         )
         return obj

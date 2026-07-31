@@ -2,6 +2,31 @@ from django.db import models
 from agencies.models import Agency
 
 
+# ── İptal / İade Politikası Motoru (F4-04) ───────────────────────────────────
+# Her politika, "hizmet başlangıcına kalan saat" eşiklerini iade yüzdesine
+# bağlar. Eşikler AZALAN sırada değerlendirilir: kalan saat >= eşik olan İLK
+# satırın yüzdesi uygulanır; hiçbiri tutmazsa iade %0'dır. Bu tablo, F1-06'daki
+# sabit "24 saat = iptal edilemez" kuralının yerini alır.
+CANCELLATION_POLICIES = {
+    'flexible': {'label': 'Esnek', 'tiers': ((24, 100), (0, 0))},
+    'moderate': {'label': 'Orta',  'tiers': ((72, 100), (24, 50), (0, 0))},
+    'strict':   {'label': 'Katı',  'tiers': ((168, 50), (0, 0))},
+}
+CANCELLATION_POLICY_CHOICES = [(key, val['label']) for key, val in CANCELLATION_POLICIES.items()]
+
+
+def refund_percent_for_policy(policy, hours_before):
+    """
+    Politika koduna ve hizmet başlangıcına kalan saate (hours_before) göre
+    iade yüzdesini (0-100) döndürür. Bilinmeyen politika 'flexible' sayılır.
+    """
+    tiers = CANCELLATION_POLICIES.get(policy, CANCELLATION_POLICIES['flexible'])['tiers']
+    for threshold_hours, percent in tiers:
+        if hours_before >= threshold_hours:
+            return percent
+    return 0
+
+
 class Category(models.Model):
     name = models.CharField(max_length=100)
     slug = models.SlugField(unique=True, max_length=100)
@@ -46,6 +71,12 @@ class Tour(models.Model):
 
     included = models.JSONField(default=list, blank=True)
     excluded = models.JSONField(default=list, blank=True)
+
+    # İptal koşulları: iptal anında iade yüzdesi bu politikaya göre hesaplanır
+    # (bkz. CANCELLATION_POLICIES ve bookings.views.BookingViewSet.cancel).
+    cancellation_policy = models.CharField(
+        max_length=20, choices=CANCELLATION_POLICY_CHOICES, default='flexible',
+    )
 
     def __str__(self):
         return self.title

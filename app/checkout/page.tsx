@@ -7,6 +7,7 @@ import { fetchTour } from "@/app/lib/tours";
 import { fetchAPI } from "@/app/lib/api";
 import { auth } from "@/app/lib/auth";
 import StripePaymentSection from "@/app/components/StripePaymentSection";
+import { policyInfo } from "@/app/lib/cancellationPolicy";
 
 function CheckoutLogic() {
   const searchParams = useSearchParams();
@@ -437,6 +438,22 @@ function CheckoutLogic() {
                 <p className="text-[10px] font-bold text-slate-500 mt-2 text-right">
                   * Kesin tutar rezervasyon oluşturulurken sunucuda hesaplanır.
                 </p>
+              )}
+
+              {itemType !== "meal" && (
+                <div className="mt-6 pt-4 border-t border-white/10">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                      ↩️ İptal Politikası
+                    </span>
+                    <span className="text-[10px] font-black text-white bg-white/10 px-2 py-0.5 rounded-full">
+                      {policyInfo(tour.cancellation_policy).label}
+                    </span>
+                  </div>
+                  <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
+                    {policyInfo(tour.cancellation_policy).detail}
+                  </p>
+                </div>
               )}
             </>
           ) : (

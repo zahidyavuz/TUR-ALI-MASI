@@ -59,7 +59,8 @@ class TourListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'location', 'rating', 'reviews_count',
             'original_price', 'price', 'discount', 'duration',
-            'image_main', 'category', 'category_detail', 'fomo_count'
+            'image_main', 'category', 'category_detail', 'fomo_count',
+            'cancellation_policy',
         ]
 
 

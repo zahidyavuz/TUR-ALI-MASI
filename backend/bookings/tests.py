@@ -123,14 +123,17 @@ class BookingLifecycleTestCase(TestCase):
         response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
         self.assertEqual(response.status_code, 401)
 
-    def test_cancel_rejected_within_cutoff(self):
-        """Hizmete 24 saatten az kalmışsa iptal reddedilir ve durum değişmez"""
+    def test_cancel_within_final_window_no_refund(self):
+        """F4-04: Esnek politikada son 24 saatte iptal yine yapılır ama
+        iade %0'dır (F1-06'daki sabit blok kaldırıldı)."""
         self.client.force_authenticate(user=self.user)
         booking = self._make_booking(self.tomorrow, ref='CUTOFF01')
         response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
-        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['refund_percent'], 0)
+        self.assertFalse(response.data['refunded'])
         booking.refresh_from_db()
-        self.assertEqual(booking.status, 'confirmed')
+        self.assertEqual(booking.status, 'cancelled')
 
     def test_cancel_restores_capacity(self):
         """Zamanında iptal: durum cancelled olur ve kontenjan geri döner"""
@@ -446,3 +449,88 @@ class WebhookIdempotencyTestCase(TestCase):
         self.assertEqual(booking.status, 'confirmed')
         # İlk event 3 ekler; ikinci event 'confirmed' guard'ıyla atlanır.
         self.assertEqual(avail.booked_count, 3)
+
+
+class CancellationPolicyRefundTestCase(TestCase):
+    """F4-04 — İptal politikasına göre kısmi/tam iade hesabı (cancel action)."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='refunder', password='pw', email='r@t.com')
+        self.agency = Agency.objects.create(name='Refund Agency', status='onaylandi', is_verified=True)
+        self.client.force_authenticate(user=self.user)
+
+    def _tour(self, policy):
+        return Tour.objects.create(
+            id=f'refund-tour-{policy}', agency=self.agency, title=f'{policy} tour',
+            location='Antalya', price=Decimal('1000.00'), duration='1 Gün',
+            guide='Türkçe', description='d', category='doga',
+            image_main='https://example.com/i.jpg', cancellation_policy=policy,
+        )
+
+    def _booking(self, tour, start_date, ref):
+        return Booking.objects.create(
+            user=self.user, tour=tour, start_date=start_date, guests=2,
+            total_price=Decimal('2000.00'), booking_ref=ref, status='confirmed',
+            payment_intent_id=f'pi_{ref}',
+        )
+
+    def _fake_provider(self):
+        provider = patch('bookings.views.get_provider').start()
+        self.addCleanup(patch.stopall)
+        provider.return_value.is_configured.return_value = True
+        return provider.return_value
+
+    def test_flexible_full_refund(self):
+        """Esnek + 10 gün önce iptal → tam iade (amount geçilmez)."""
+        fake = self._fake_provider()
+        booking = self._booking(self._tour('flexible'), date.today() + timedelta(days=10), 'FLEX01')
+        resp = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data['refund_percent'], 100)
+        self.assertTrue(resp.data['refunded'])
+        fake.refund.assert_called_once_with(intent_id='pi_FLEX01')
+
+    def test_moderate_partial_refund(self):
+        """Orta + 2 gün önce iptal (24-72s) → %50 kısmi iade (amount verilir)."""
+        fake = self._fake_provider()
+        booking = self._booking(self._tour('moderate'), date.today() + timedelta(days=2), 'MOD01')
+        resp = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data['refund_percent'], 50)
+        self.assertTrue(resp.data['refunded'])
+        fake.refund.assert_called_once_with(intent_id='pi_MOD01', amount=Decimal('1000.00'))
+
+    def test_strict_no_refund_within_window(self):
+        """Katı + 3 gün önce iptal (<7 gün) → %0 iade, PSP çağrılmaz, yine iptal."""
+        fake = self._fake_provider()
+        booking = self._booking(self._tour('strict'), date.today() + timedelta(days=3), 'STR01')
+        resp = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(resp.status_code, 200, resp.data)
+        self.assertEqual(resp.data['refund_percent'], 0)
+        self.assertFalse(resp.data['refunded'])
+        fake.refund.assert_not_called()
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'cancelled')
+
+    def test_partial_refund_writes_proportional_ledger(self):
+        """%50 iade → hakediş defterine satışın yarısı kadar ters kayıt yazılır."""
+        from agencies.finance_models import AgentFinanceLedger
+        self.agency.commission_rate = Decimal('10.00')
+        self.agency.save(update_fields=['commission_rate'])
+        self._fake_provider()
+        tour = self._tour('moderate')
+        booking = self._booking(tour, date.today() + timedelta(days=2), 'MODLED1')
+        AgentFinanceLedger.create_from_booking(booking)
+
+        resp = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(resp.status_code, 200, resp.data)
+
+        refund = AgentFinanceLedger.objects.get(
+            booking_ref=f'{booking.booking_ref}{AgentFinanceLedger.REFUND_REF_SUFFIX}'
+        )
+        # Satış gross 2000 → %50 iade → -1000; net (2000-%10=1800) → -900.
+        self.assertEqual(refund.gross_amount, Decimal('-1000.00'))
+        self.assertEqual(refund.net_amount, Decimal('-900.00'))
+
+

@@ -562,7 +562,7 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 ---
 
-### [ ] F4-04 · İptal/iade politikası motoru
+### [x] F4-04 · İptal/iade politikası motoru
 
 **Öncelik:** P1 · **Efor:** M
 
@@ -570,7 +570,13 @@ Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan)
 
 **Doğrulama:** Politika matrisi birim testleri. STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Tamamlandı.
+- **Politika motoru** (`tours/models.py`): `CANCELLATION_POLICIES` matrisi (flexible ≥24s→%100; moderate ≥72s→%100, ≥24s→%50; strict ≥168s/7g→%50) + `refund_percent_for_policy(policy, hours_before)` helper (tier'lar azalan eşikle değerlendirilir, eşleşen ilk tier kazanır, yoksa %0). `Tour.cancellation_policy` CharField (choices, default `flexible`). Migration `0005_tour_cancellation_policy`.
+- **cancel action** (`bookings/views.py`): F1-06'daki sabit 24s **blok kaldırıldı** — iptal artık her zaman serbest (kapasite iade edilir), iade tutarı politikaya göre değişir. `hours_before` başlangıç anından hesaplanır; `refund_percent > 0` ve provider yapılandırılmışsa kısmi (`amount=`) ya da tam iade yapılır. Yanıt `refunded`, `refund_amount`, `refund_percent` döner.
+- **Orantılı ledger** (`agencies/finance_models.py`): `create_refund_entry(booking, refund_ratio=Decimal('1'))` — kısmi iadede gross/commission/net oranla ters kaydedilir (default ratio=1 mevcut davranışı korur).
+- **Serializer**: `cancellation_policy` `TourListSerializer`'a eklendi (AgencyTourListSerializer devralır; TourDetailSerializer `__all__`). Acente PATCH beyaz listesine eklendi.
+- **Frontend**: `app/lib/cancellationPolicy.ts` (paylaşılan etiket/açıklama sabitleri); acente tur formunda politika `<select>`; checkout sipariş özetinde politika gösterimi; müşteri biletlerinde politika satırı + iptal modalı + iade sonucu mesajı (politika %/tutar) güncellendi.
+- **Doğrulama:** Backend 226 test PASS (yeni: `CancellationPolicyMatrixTestCase` 5 test + `CancellationPolicyRefundTestCase` 4 test; F1-06 `test_cancel_rejected_within_cutoff` → `test_cancel_within_final_window_no_refund` olarak yeniden yazıldı). makemigrations --check temiz, migrate uygulandı. Frontend: tsc temiz, lint temiz, build başarılı.
 
 ---
 

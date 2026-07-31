@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { fetchAPI } from '@/app/lib/api';
+import { CANCELLATION_POLICY_OPTIONS, policyInfo } from '@/app/lib/cancellationPolicy';
 
 /**
  * Acenta envanteri — gerçek CRUD.
@@ -24,6 +25,7 @@ const IMAGE_SLOTS = [
 // Düzenlemede yalnız bunlar gönderilir; fazlası backend'den 400 döner.
 const EDITABLE_FIELDS = [
     'title', 'location', 'price', 'duration', 'guide', 'category', 'description',
+    'cancellation_policy',
 ] as const;
 
 interface AgencyTour {
@@ -35,6 +37,7 @@ interface AgencyTour {
     guide?: string;
     category?: string;
     description?: string;
+    cancellation_policy?: string;
     image_main: string | null;
     capacity_total: number;
     booked_total: number;
@@ -44,6 +47,7 @@ interface AgencyTour {
 const EMPTY_FORM = {
     title: '', location: '', price: '', duration: '', guide: '',
     category: '', description: '', default_capacity: '20',
+    cancellation_policy: 'flexible',
 };
 
 export default function AgencyToursPage() {
@@ -87,7 +91,7 @@ export default function AgencyToursPage() {
     }, []);
 
     const handleInputChange = (
-        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+        e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
     ) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
@@ -198,6 +202,7 @@ export default function AgencyToursPage() {
             category: tour.category ?? '',
             description: tour.description ?? '',
             default_capacity: '20', // yalnız oluştururken kullanılır
+            cancellation_policy: tour.cancellation_policy ?? 'flexible',
         });
         setPendingFiles({});
         setPreviews(prev => {
@@ -387,6 +392,19 @@ export default function AgencyToursPage() {
                                 placeholder="Tur detaylarını ve programa dahil olan hizmetleri yazın..."
                                 className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 text-sm text-slate-800 dark:text-white resize-none"
                             ></textarea>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1.5">İptal / İade Politikası</label>
+                            <select
+                                name="cancellation_policy" value={formData.cancellation_policy} onChange={handleInputChange}
+                                className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-md px-3 py-2 outline-none focus:border-slate-500 focus:ring-1 focus:ring-slate-500 text-sm text-slate-800 dark:text-white"
+                            >
+                                {CANCELLATION_POLICY_OPTIONS.map(opt => (
+                                    <option key={opt.value} value={opt.value}>{opt.label} — {opt.summary}</option>
+                                ))}
+                            </select>
+                            <p className="text-[10px] text-slate-400 mt-1.5">{policyInfo(formData.cancellation_policy).detail}</p>
                         </div>
 
                         <div className="flex gap-3">
