@@ -388,7 +388,7 @@ Frontend'de `PartnerApplicationStatus` silinip yerine `<OnboardingGate>` geldi: 
 
 ---
 
-### [ ] F3-03 · Refresh token'ı HttpOnly cookie'ye taşı
+### [x] F3-03 · Refresh token'ı HttpOnly cookie'ye taşı
 
 **Öncelik:** P1 · **Efor:** L
 
@@ -403,7 +403,17 @@ Frontend'de `PartnerApplicationStatus` silinip yerine `<OnboardingGate>` geldi: 
 
 **Doğrulama:** XSS senaryosu: `document.cookie`'de refresh görünmez; yenilemede oturum sürer; logout sonrası refresh 401. STD-CHECK.
 
-**Notlar:** _
+**Notlar:** Refresh token artık yalnız `HttpOnly` çerezde (`refresh-token`), JS erişemiyor → XSS'te çalınamaz. Access token yalnız bellekte (`app/lib/auth.ts` modül değişkeni), sayfa yenilenince silent refresh ile geri alınıyor.
+
+Uygulanan `dj_rest_auth`'un test edilmiş çerez makinesi (custom view yazmadan): `set_jwt_refresh_cookie`, `LoginView.get_response` (`JWT_AUTH_HTTPONLY=True` ile body'de refresh'i boşaltır, yalnız access döner), `LogoutView` (çerezdeki refresh'i blacklist'ler), `RefreshViewWithCookieSupport` (refresh'i çerezden okur, rotate eder). **Backend değişiklikleri:** `settings.py` REST_AUTH bloğu (`JWT_AUTH_COOKIE: None` → access çerezi yok; `JWT_AUTH_REFRESH_COOKIE: 'refresh-token'`, `HTTPONLY`, env-tabanlı `AUTH_COOKIE_SECURE/SAMESITE/DOMAIN`), `token_blacklist` app eklendi + migrate; `agencies/onboarding_views.py` `OnboardingStartView` artık `RoleTokenObtainPairSerializer.get_token(user)` + `set_jwt_refresh_cookie` kullanıyor (body'de yalnız access + agency, refresh çerezde, role=agency taşınıyor). **Frontend:** `auth.ts` sadeleşti (bellek-içi access + `refresh()`; `js-cookie` ve `secureVault` bağımlılığı kalktı, dış API sabit); `api.ts` her istekte `credentials:'include'` + 401'de tek seferlik silent refresh + tekrar; `AuthContext` mount'ta silent refresh ile bootstrap + logout backend'e `POST /auth/logout/` atıyor; `middleware.ts` rol kapısını artık `HttpOnly refresh-token` çerezinden okuyor (Edge middleware sunucu tarafı, HttpOnly çerezi okuyabilir). WS query-string token akışı access token'la korundu.
+
+**F3-02 uyumu (kritik):** F3-03'ün bellek-içi access token'ı, F3-02 middleware'inin çerez okumasını bozacaktı. Çözüm: middleware artık role claim'i taşıyan `HttpOnly refresh-token` çerezini okuyor. **Cross-domain uyarısı:** çerez yalnız API domain'ine scope'lanırsa ön yüz domain'indeki middleware onu okuyamaz; `AUTH_COOKIE_DOMAIN` ortak üst domain'e (`.tourkia.com`) ayarlanmalı, aksi halde koruma panel layout client guard'larına düşer (middleware'deki NOT bloğunda belgelendi).
+
+**Bilinçli kararlar:** `BLACKLIST_AFTER_ROTATION=False` bırakıldı (çok-sekme logout churn'ünü önlemek için); yalnız explicit logout blacklist'liyor — bu "logout sonrası refresh 401" kriterini karşılıyor. `JWT_AUTH_COOKIE: None` seçildi çünkü API auth Bearer header ile; access hiç çerezde tutulmuyor.
+
+**Doğrulama:** `users.tests` 9/9 (yeni `CookieAuthFlowTestCase` 4 test: login refresh'i HttpOnly çereze koyar/body'de tutmaz, refresh yalnız çerezle yeni access verir, logout eski refresh'i blacklist'ler → 401, onboarding-start refresh çerezi + role=agency); tam suite `manage.py test` 196/196 OK; `makemigrations --check` "No changes detected"; `migrate --check` exit 0; `tsc --noEmit` temiz (`.next/types` temizlendikten sonra); `npm run lint` temiz; AST duplicate taraması temiz. Tarayıcı XSS/session/logout senaryosu manuel doğrulama için ertelendi (dev sunucu ayağa kaldırma gerekiyor; birim testler kritik davranışı zaten kanıtlıyor).
+
+**Kapsam dışı bulgu:** `js-cookie` (+`@types/js-cookie`) artık `app/` içinde hiç kullanılmıyor (ölü bağımlılık) — `## BULUNAN YENİ SORUNLAR`a yazıldı, F3-04'te `npm uninstall` edilmeli.
 
 ---
 
@@ -671,6 +681,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · yapılandırma] `django.contrib.sites` kaydı hiç güncellenmiyor, alan adı "example.com".** `SITE_ID = 1` tanımlı ama veritabanındaki `Site` satırı Django'nun varsayılanında kalmış. F3-01'de maillerin buna bağımlılığı `FRONTEND_URL`/`SITE_NAME` ayarlarıyla ve özel bir allauth adapter'ıyla kesildi, ancak `Site`'ı okuyan başka bir yer çıkarsa (ör. sosyal giriş callback'leri, `allauth.socialaccount`) yine "example.com" görecek. Dağıtımda `Site` kaydı gerçek alan adıyla güncellenmeli ya da bir data migration eklenmeli.
 * **[P2 · gözlem] allauth doğrulama maili adres başına hız sınırlı ve sayaç cache'te tutuluyor.** `core/test_emails.py` yazılırken aynı e-posta adresini iki testte kullanınca ikinci testte mail hiç gönderilmedi; sebep allauth'un `confirm_email` rate limit'i ve `LocMemCache`'in testler arası geri alınmaması. Testlerde `cache.clear()` ile çözüldü. Üretimde de not edilmeli: kullanıcı "doğrulama mailini tekrar gönder" derse sınır dolmuşsa **sessizce hiçbir şey olmaz**; arayüzde bu duruma dair bir geri bildirim yok.
 * **[P2 · ölü kod] `app/components/RouteGuard.tsx` hiçbir yerden import edilmiyor.** F3-02 sırasında bulundu: dosya rol bazlı yönlendirme yapan tam bir bileşen ama `grep RouteGuard` hiçbir kullanım göstermiyor. Ayrıca mantığı çelişkili — "müşteriler `/dashboard` altına hiç giremez, `/`'a atılır" diyor ama gerçek bir `/dashboard/customer` paneli var (cart/favorites/tickets/settings). Kullanılsaydı müşteri panelini kırardı. Silinmeli veya kullanılacaksa customer alanı istisna edilmeli. F3-02 kapsamı korumayı middleware'e taşıdığı için dokunulmadı.
+
+* **[P2 · ölü bağımlılık] `js-cookie` artık `app/` içinde hiç kullanılmıyor.** F3-03'te `app/lib/auth.ts` bellek-içi access token + HttpOnly refresh çerezine geçince `js-cookie` son kullanıcısını kaybetti; `grep -rn "js-cookie" app/` boş dönüyor ama `package.json`'da `js-cookie` (`^3.0.5`) ve `@types/js-cookie` (`^3.0.6`) duruyor. Bağımlılık kaldırma lockfile'ı da değiştireceği ve F3-03 kapsamı dışı olduğu için dokunulmadı — F3-04 (ölü kod temizliği) kapsamında `npm uninstall js-cookie @types/js-cookie` edilmeli.
 
 ---
 

@@ -7,6 +7,14 @@ import { NextResponse, type NextRequest } from 'next/server';
  * backend permission'larıyla korunur. Burada JWT'nin İMZASI DOĞRULANMAZ
  * (o backend'in işi); sadece `exp` ve `role` claim'i okunur.
  *
+ * Okunan çerez: HttpOnly `refresh-token` (F3-03). Access token artık bellekte,
+ * middleware onu göremez; refresh token da `role` claim'ini taşıdığından
+ * (RoleTokenObtainPairSerializer) rol kapısı bununla kurulur. HttpOnly çerez JS'e
+ * kapalıdır ama middleware sunucu tarafında çalıştığı için okuyabilir. NOT:
+ * cross-domain dağıtımda çerezin ön yüz alan adına ulaşması için ortak üst alan
+ * adı gerekir (AUTH_COOKIE_DOMAIN); aksi halde bu katman devre dışı kalır ve
+ * koruma panel layout'larındaki client guard'lara düşer.
+ *
  * Rol matrisi:
  *   /dashboard/admin                      → admin
  *   /dashboard/agency|restaurant|business → agency (admin da geçer, üst küme)
@@ -15,7 +23,7 @@ import { NextResponse, type NextRequest } from 'next/server';
  * Rol yetersizse                          → /login?next=<path>
  */
 
-const ACCESS_TOKEN_COOKIE = 'tourkia_access_token';
+const REFRESH_TOKEN_COOKIE = 'refresh-token';
 
 interface JwtPayload {
     exp?: number;
@@ -47,7 +55,7 @@ function redirectToLogin(request: NextRequest): NextResponse {
 export function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
 
-    const token = request.cookies.get(ACCESS_TOKEN_COOKIE)?.value;
+    const token = request.cookies.get(REFRESH_TOKEN_COOKIE)?.value;
     if (!token) {
         return redirectToLogin(request);
     }

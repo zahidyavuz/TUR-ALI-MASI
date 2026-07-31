@@ -1,96 +1,93 @@
-import Cookies from 'js-cookie';
-import { isSessionValid, secureClear } from './secureVault';
-
 /**
- * SECURE-SESSION-AND-COOKIE-ARMOR
+ * Oturum token yönetimi (F3-03).
  *
- * Çerez Güvenlik Politikası:
- * - SameSite: 'strict' → CSRF saldırılarını engeller
- * - Secure: true (production) → Yalnızca HTTPS üzerinden iletilir
- * - path: '/' → Tüm site genelinde geçerli
- * - expires: kısa süreli (access: 1 gün, refresh: 7 gün)
+ * Refresh token artık JS'in okuyamadığı bir HttpOnly çerezde (backend set eder);
+ * bu dosya onu GÖRMEZ. Access token yalnız bellekte tutulur — sayfa yenilenince
+ * kaybolur ve `refresh()` ile HttpOnly çerezden sessizce yeniden alınır.
  *
- * NOT: Gerçek HttpOnly flag'i yalnızca sunucu taraflı Set-Cookie header'ı
- * ile ayarlanabilir. Django backend'de SESSION_COOKIE_HTTPONLY=True ve
- * CSRF_COOKIE_HTTPONLY=True ayarları yapılmalıdır.
- * Frontend, js-cookie ile bu politikayı mümkün olduğunca yakın taklit eder.
+ * Böylece XSS ile ne uzun ömürlü refresh (çalınamaz, HttpOnly) ne de kalıcı bir
+ * access token ele geçirilebilir; bellekteki access en fazla 60 dk yaşar.
  */
 
-const ACCESS_TOKEN_KEY = 'tourkia_access_token';
-const REFRESH_TOKEN_KEY = 'tourkia_refresh_token';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
-// Üretim ortamında her zaman Secure flag'ini zorla
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+// Bellekteki access token — modül düzeyinde, sekme ömrüyle sınırlı.
+let accessToken: string | null = null;
+
+/** JWT `exp`'ini (ms) döndürür; çözülemezse null. */
+function tokenExpiry(token: string): number | null {
+    try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+    } catch {
+        return null;
+    }
+}
+
+/** Token var ve süresi dolmamış mı? exp okunamıyorsa geçerli sayılır. */
+function isValid(token: string | null): token is string {
+    if (!token) return false;
+    const exp = tokenExpiry(token);
+    return exp === null ? true : Date.now() < exp;
+}
 
 interface TokenData {
-    access: string;
+    access?: string;
+    // Geriye dönük çağrı uyumu için kabul edilir ama YOK SAYILIR — refresh artık
+    // gövdede gelmez, HttpOnly çerezdedir.
     refresh?: string;
 }
 
 export const auth = {
     setTokens: (data: TokenData) => {
-        const isSecure = IS_PRODUCTION || (
-            typeof window !== 'undefined' &&
-            window.location.protocol === 'https:'
-        );
-
-        if (data.access) {
-            Cookies.set(ACCESS_TOKEN_KEY, data.access, {
-                path: '/',
-                secure: isSecure,
-                sameSite: 'strict',  // CSRF Koruması
-                expires: 1,          // 1 gün — kısa ömürlü access token
-            });
-        }
-        if (data.refresh) {
-            Cookies.set(REFRESH_TOKEN_KEY, data.refresh, {
-                path: '/',
-                secure: isSecure,
-                sameSite: 'strict',  // CSRF Koruması
-                expires: 7,          // 7 gün — refresh token
-            });
-        }
+        if (data?.access) accessToken = data.access;
     },
 
-    getAccessToken: () => {
-        const token = Cookies.get(ACCESS_TOKEN_KEY);
-        if (!token) return undefined;
-
-        // Oturum geçerliliği — süresi dolmuş token'ı otomatik temizle
-        if (!isSessionValid(token)) {
-            auth.clearTokens();
-            return undefined;
-        }
-
-        return token;
+    setAccessToken: (token: string | null) => {
+        accessToken = token;
     },
 
-    getRefreshToken: () => {
-        return Cookies.get(REFRESH_TOKEN_KEY);
+    getAccessToken: (): string | undefined => {
+        return isValid(accessToken) ? accessToken : undefined;
     },
 
     clearTokens: () => {
-        Cookies.remove(ACCESS_TOKEN_KEY, { path: '/' });
-        Cookies.remove(REFRESH_TOKEN_KEY, { path: '/' });
-        // Hassas tarayıcı verilerini de temizle
-        secureClear();
+        accessToken = null;
     },
 
     getAuthHeaders: (): Record<string, string> => {
-        const token = auth.getAccessToken();
-        if (token) {
-            return { 'Authorization': `Bearer ${token}` };
-        }
-        return {};
+        return isValid(accessToken) ? { Authorization: `Bearer ${accessToken}` } : {};
+    },
+
+    isAuthenticated: (): boolean => {
+        return isValid(accessToken);
     },
 
     /**
-     * Aktif bir oturum var mı kontrolü.
-     * Token yoksa veya süresi dolmuşsa false döner.
+     * Sessiz yenileme: HttpOnly refresh çereziyle yeni bir access token alır.
+     * Çerez tarayıcı tarafından otomatik gönderilir (`credentials:'include'`).
+     * Başarılıysa belleğe yazar ve true döner; aksi halde belleği temizler.
      */
-    isAuthenticated: (): boolean => {
-        const token = Cookies.get(ACCESS_TOKEN_KEY);
-        if (!token) return false;
-        return isSessionValid(token);
+    refresh: async (): Promise<boolean> => {
+        try {
+            const res = await fetch(`${API_URL}/auth/token/refresh/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: '{}',
+            });
+            if (!res.ok) {
+                accessToken = null;
+                return false;
+            }
+            const data = await res.json().catch(() => null);
+            if (data?.access) {
+                accessToken = data.access;
+                return true;
+            }
+            return false;
+        } catch {
+            return false;
+        }
     },
 };

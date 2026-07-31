@@ -28,7 +28,8 @@ interface FetchAPIOptions extends RequestInit {
 export async function downloadFile(endpoint: string, fallbackFilename: string): Promise<boolean> {
     const authHeaders = typeof window !== 'undefined' ? auth.getAuthHeaders() : {};
     try {
-        const res = await fetch(`${API_URL}${endpoint}`, { headers: { ...authHeaders } });
+        // credentials:'include' → HttpOnly refresh çerezi taşınsın (F3-03).
+        const res = await fetch(`${API_URL}${endpoint}`, { headers: { ...authHeaders }, credentials: 'include' });
         if (!res.ok) return false;
 
         const blob = await res.blob();
@@ -74,24 +75,37 @@ export async function fetchAPI(endpoint: string, options: FetchAPIOptions = {}) 
         'Content-Type': 'application/json',
     };
 
-    // KOMUT 143: Interceptor (Token Enjeksiyonu)
-    // Eğer token varsa (auth.getAuthHeaders) otomatik olarak header'a Bearer token ekler
-    let authHeaders = {};
-    if (typeof window !== 'undefined') {
-        authHeaders = auth.getAuthHeaders();
-    }
-
-    const config = {
+    // Interceptor (Token Enjeksiyonu): bellekteki access token'ı Bearer olarak
+    // ekler. Yenileme sonrası header'ı tazelemek için her denemede yeniden kurulur.
+    // credentials:'include' → HttpOnly refresh çerezi taşınsın (F3-03).
+    const buildConfig = (): RequestInit => ({
         ...fetchOptions,
         body: bodyObj,
+        credentials: 'include',
         headers: {
             ...defaultHeaders,
-            ...authHeaders,
+            ...(typeof window !== 'undefined' ? auth.getAuthHeaders() : {}),
             ...fetchOptions.headers,
         },
-    };
+    });
+
+    // Bu uçlarda 401 gerçek kimlik hatasıdır; sessiz yenileme denenmez
+    // (sonsuz döngü ve hatayı maskeleme olmasın).
+    const isAuthEndpoint =
+        endpoint.includes('/auth/token/refresh') || endpoint.includes('/auth/login');
+
     try {
-        const res = await fetch(`${API_URL}${endpoint}`, config);
+        let res = await fetch(`${API_URL}${endpoint}`, buildConfig());
+
+        // Bellekteki access token süresi dolmuş olabilir (özellikle sayfa
+        // yenilemesinden hemen sonra). 401'de bir kez sessiz yenile ve tekrarla.
+        if (res.status === 401 && typeof window !== 'undefined' && !isAuthEndpoint) {
+            const refreshed = await auth.refresh();
+            if (refreshed) {
+                res = await fetch(`${API_URL}${endpoint}`, buildConfig());
+            }
+        }
+
         if (!res.ok) {
             // Trying to parse standard Django REST error response
             const err = await res.json().catch(() => ({}));

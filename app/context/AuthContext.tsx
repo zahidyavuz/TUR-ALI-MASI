@@ -42,13 +42,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const [isLoading, setIsLoading] = useState(true);
 
     const logout = useCallback(() => {
+        // Backend refresh token'ı blacklist'ler ve HttpOnly çerezi siler; bellekteki
+        // access da temizlenir. Ağ hatası olsa bile yerel oturumu düşür.
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+        fetch(`${apiUrl}/auth/logout/`, {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json', ...auth.getAuthHeaders() },
+            body: '{}',
+        }).catch(() => { });
         auth.clearTokens();
         setUser(null);
     }, []);
 
     const checkAuth = useCallback(async (): Promise<User | null> => {
         setIsLoading(true);
-        const token = auth.getAccessToken();
+        let token = auth.getAccessToken();
+
+        // Sayfa yenilenince bellek boştur; HttpOnly refresh çereziyle sessizce
+        // yeni bir access token almayı dene (F3-03).
+        if (!token) {
+            const refreshed = await auth.refresh();
+            token = refreshed ? auth.getAccessToken() : undefined;
+        }
 
         if (token) {
             try {

@@ -20,8 +20,9 @@ from rest_framework import status, parsers
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework_simplejwt.tokens import RefreshToken
+from dj_rest_auth.jwt_auth import set_jwt_refresh_cookie
 
+from users.auth_serializers import RoleTokenObtainPairSerializer
 from .models import Agency
 from .onboarding_serializers import (
     OnboardingStartSerializer,
@@ -75,14 +76,20 @@ class OnboardingStartView(APIView):
                 is_verified=False,
             )
 
-        refresh = RefreshToken.for_user(user)
+        # `role` claim'i taşıyan token (middleware acente panelini bu claim'le
+        # açar; düz RefreshToken.for_user role içermez ve /dashboard/agency
+        # kapısı acenta kaydı sonrası login'e geri atardı).
+        refresh = RoleTokenObtainPairSerializer.get_token(user)
         logger.info(f"[ONBOARDING] Started for agency '{agency.name}' (user={user.username})")
 
-        return Response({
+        # Refresh token'ı login/refresh ile tutarlı biçimde HttpOnly çerezde
+        # döndür; gövdede yalnız access kalır (bellekte tutulur — F3-03).
+        response = Response({
             'access': str(refresh.access_token),
-            'refresh': str(refresh),
             'agency': AgencySerializer(agency).data,
         }, status=status.HTTP_201_CREATED)
+        set_jwt_refresh_cookie(response, str(refresh))
+        return response
 
 
 class OnboardingUpdateView(APIView):

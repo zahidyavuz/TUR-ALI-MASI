@@ -60,6 +60,7 @@ INSTALLED_APPS = [
 
     # Auth & Social Login
     'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'rest_framework.authtoken',
     'dj_rest_auth',
     'django.contrib.sites',
@@ -131,10 +132,31 @@ SIMPLE_JWT = {
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+# ── ÇEREZ / TOKEN GÜVENLİĞİ (F3-03) ──────────────────────────────────────────
+# Refresh token XSS'te çalınabilecek en değerli varlık (7 gün ömürlü). Bu yüzden
+# artık JS'in okuyamadığı HttpOnly çerezde tutulur; access token yalnız yanıt
+# gövdesiyle döner ve ön yüzde bellekte (AuthContext) yaşar.
+#
+# Cross-domain dağıtımda (frontend Vercel ↔ backend ayrı host) çerezin ön yüz
+# alan adına da ulaşması için ortak üst alan adı gerekir (örn. tourkia.com +
+# api.tourkia.com → AUTH_COOKIE_DOMAIN=.tourkia.com). SameSite=None + Secure de
+# cross-site gönderim için şart. Hepsi env ile ayarlanır; yerelde varsayılanlar
+# (Lax, Secure kapalı, Domain yok) localhost:3000 ↔ localhost:8000 için çalışır.
+AUTH_COOKIE_SECURE = os.getenv('AUTH_COOKIE_SECURE', 'False').lower() == 'true'
+AUTH_COOKIE_SAMESITE = os.getenv('AUTH_COOKIE_SAMESITE', 'Lax')
+AUTH_COOKIE_DOMAIN = os.getenv('AUTH_COOKIE_DOMAIN') or None
+
 REST_AUTH = {
     'USE_JWT': True,
-    'JWT_AUTH_COOKIE': 'auth-token',
+    # Access token çereze YAZILMAZ (None) — bellekte tutulur; yalnız refresh
+    # HttpOnly çerezde. Middleware rol kapısı bu refresh çerezini okur (F3-02).
+    'JWT_AUTH_COOKIE': None,
     'JWT_AUTH_REFRESH_COOKIE': 'refresh-token',
+    'JWT_AUTH_REFRESH_COOKIE_PATH': '/',
+    'JWT_AUTH_HTTPONLY': True,
+    'JWT_AUTH_SECURE': AUTH_COOKIE_SECURE,
+    'JWT_AUTH_SAMESITE': AUTH_COOKIE_SAMESITE,
+    'JWT_AUTH_COOKIE_DOMAIN': AUTH_COOKIE_DOMAIN,
     # dj_rest_auth'un varsayılan url üreteci `reverse('password_reset_confirm')`
     # çağırır; o url adı bu projede kayıtlı olmadığı için şifre sıfırlama ucu
     # NoReverseMatch ile 500 dönüyordu. Aşağıdaki serializer bağlantıyı doğrudan

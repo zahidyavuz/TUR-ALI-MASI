@@ -58,3 +58,74 @@ class UserRoleTestCase(APITestCase):
         self.assertEqual(response.status_code, 200, response.data)
         access = response.data['access']
         self.assertEqual(decode_payload(access).get('role'), 'customer')
+
+
+class CookieAuthFlowTestCase(APITestCase):
+    """F3-03: refresh HttpOnly çerezde, access gövdede; logout blacklist'ler."""
+
+    def setUp(self):
+        cache.clear()
+        User.objects.create_user('kadir', 'kadir@example.com', 'pw12345678')
+
+    def _login(self):
+        return self.client.post(
+            '/api/v1/auth/login/',
+            {'username': 'kadir', 'password': 'pw12345678'},
+            format='json',
+        )
+
+    def test_login_puts_refresh_in_httponly_cookie_not_body(self):
+        response = self._login()
+        self.assertEqual(response.status_code, 200, response.data)
+        # Access gövdede döner (bellekte tutulacak).
+        self.assertTrue(response.data.get('access'))
+        # Refresh gövdede TAŞINMAZ (boş) — sadece çerezde.
+        self.assertFalse(response.data.get('refresh'))
+        cookie = response.cookies.get('refresh-token')
+        self.assertIsNotNone(cookie, 'refresh-token çerezi set edilmedi')
+        self.assertTrue(cookie['httponly'], 'refresh çerezi HttpOnly değil (XSS riski)')
+        # Access token için ayrı çerez yazılmamalı (bellekte tutulur).
+        self.assertIsNone(response.cookies.get('auth-token'))
+
+    def test_refresh_reads_cookie_and_returns_new_access(self):
+        self._login()
+        # Gövdede refresh göndermeden, yalnız çerezle yenileme çalışmalı.
+        response = self.client.post('/api/v1/auth/token/refresh/', {}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertTrue(response.data.get('access'))
+        self.assertEqual(decode_payload(response.data['access']).get('role'), 'customer')
+
+    def test_logout_blacklists_refresh_token(self):
+        self._login()
+        old_refresh = self.client.cookies['refresh-token'].value
+
+        logout = self.client.post('/api/v1/auth/logout/', {}, format='json')
+        self.assertEqual(logout.status_code, 200, logout.data)
+
+        # Blacklist'lenen eski refresh token açıkça sunulsa bile reddedilmeli.
+        self.client.cookies['refresh-token'] = old_refresh
+        response = self.client.post('/api/v1/auth/token/refresh/', {}, format='json')
+        self.assertEqual(response.status_code, 401, response.data)
+
+    def test_onboarding_start_sets_refresh_cookie_with_role(self):
+        response = self.client.post(
+            '/api/v1/agencies/onboarding/start/',
+            {
+                'email': 'yeni@acenta.com',
+                'password': 'pw12345678',
+                'contact_name': 'Yeni Acenta',
+                'phone': '5551234567',
+                'business_type': 'acenta',
+                'legal_entity_type': 'company',
+            },
+            format='json',
+        )
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertTrue(response.data.get('access'))
+        self.assertFalse(response.data.get('refresh'))
+        cookie = response.cookies.get('refresh-token')
+        self.assertIsNotNone(cookie)
+        self.assertTrue(cookie['httponly'])
+        # Acente kaydı sonrası middleware /dashboard/agency'yi açabilsin diye
+        # token'da role=agency olmalı.
+        self.assertEqual(decode_payload(response.data['access']).get('role'), 'agency')
