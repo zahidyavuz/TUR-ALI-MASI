@@ -621,13 +621,22 @@ Yeni `notifications` uygulaması eklendi:
 
 ---
 
-### [ ] F4-07 · Guest checkout (üyeliksiz satın alma)
+### [x] F4-07 · Guest checkout (üyeliksiz satın alma)
 
 **Öncelik:** P2 · **Efor:** M
 
 **Adımlar:** E-posta+telefonla misafir rezervasyon; backend'de guest user stratejisi (e-postayla shadow user + claim akışı); ödeme sonrası "hesap oluştur, biletin hazır" daveti; bilet erişimi `booking_ref` + e-posta doğrulamalı link ile.
 
-**Notlar:** _
+**Notlar:**
+- **Gölge kullanıcı stratejisi:** `users/guest.py` — misafir checkout'ta e-posta+ad ile parolasız (`set_unusable_password`) "gölge" User yaratılır, `profile.is_guest=True`. `is_guest` bayrağı `UserProfile`'a eklendi (migration `users/0005`). Neden `has_usable_password()` değil: Google/sosyal giriş kullanıcıları da parolasız — onlara yanlışlıkla claim daveti gitmesin diye açık bayrak kullanıldı.
+- **Kullanıcı çözümü:** `BookingViewSet._resolve_booking_user()` — giriş yapılmışsa o kullanıcı; anonimse `guest_email`/`guest_full_name` (zorunlu, e-posta format doğrulamalı) ile gölge kullanıcı çözülür. **Aynı e-postayla kayıtlı hesap varsa rezervasyon ona bağlanır** (bilet linki zaten o adrese gider → e-posta sahipliği örtük doğrulanır), yeni kullanıcı açılmaz.
+- **İzinler:** `create` action'ı artık `[AllowAny, StrictMassAssignmentPermission]` (mass-assignment koruması anonimde de korunur); `guest_ticket` `[AllowAny]`; diğer tüm action'lar `IsAuthenticated` kalır. `get_queryset()` anonimde `Booking.objects.none()` döner (AnonymousUser guard).
+- **Bilet erişimi:** `bookings/tokens.py` — `django.core.signing` ile imzalı+süreli (90 gün) token, Booking'in UUID id'sini taşır (booking_ref değil; tahmin edilemez). `GET /bookings/guest-ticket/?token=` action'ı bileti döner. Bilet linki: `ticket_link_for(booking)` misafir için `/guest/ticket?token=`, üye için panel.
+- **Claim akışı:** Ödeme onayı webhook'unda (yalnız `newly_confirmed` + `is_guest_user`) `guest_claim_invite` e-postası (imzalı 14 günlük claim token, `/claim-account?token=`) gönderilir. `POST /auth/claim-account/` (`ClaimAccountView`, `AllowAny`, `register` throttle scope) token+parola alır, `validate_password` uygular, `set_password` + `is_guest=False`. **Non-guest/zaten sahiplenilmiş hesaplar reddedilir** (hesap ele geçirme koruması).
+- **Frontend:** `app/checkout/page.tsx` login-gate kaldırıldı (misafir akışı formdaki ad/e-posta/telefonu zaten gönderiyor); yeni sayfalar `app/guest/ticket/page.tsx` (imzalı bilet görüntüleme) ve `app/claim-account/page.tsx` (parola belirleme). HTTP yalnız `fetchAPI` üzerinden.
+- **E-posta şablonları:** `templates/emails/guest_claim_invite.{txt,html,_subject.txt}` (booking_confirmed desenini yansıtır).
+- **Doğrulama:** `makemigrations --check` temiz; `migrate` uygulandı; **83 backend testi OK** (yeni: `GuestCheckoutTestCase` 7 test, `ClaimAccountTestCase` 4 test; güncellenen: `test_unauthenticated_guest_booking_requires_contact` — artık 400/guest-info-zorunlu semantiği). `tsc --noEmit` temiz, `npm run lint` temiz, `npm run build` OK (`/guest/ticket`, `/claim-account` route'ları üretildi). AST duplicate-field/method taraması temiz.
+- **Bilinçli kapsam sınırı:** Ödeme sonrası `returnUrl` hâlâ mevcut olmayan `/checkout-success` sayfasına gidiyor (bu görevden önce de kırıktı) — `## BULUNAN YENİ SORUNLAR`a yazıldı. Misafir bilet erişimi e-postadaki imzalı linkle çalıştığından bu görevin kapsamı dışında.
 
 ---
 
@@ -787,6 +796,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · mimari] `app/api/chat/route.ts` döviz kurunu doğrudan üçüncü taraftan çekiyor.** F4-03'te ön yüzün (`CurrencyContext`) doğrudan `open.er-api.com` çağrısı backend'in TCMB servisine taşındı, ancak chatbot BFF route'u (`app/api/chat/route.ts:12`) hâlâ `api.exchangerate-api.com/v4/latest/USD`'yi doğrudan çağırıyor. Bu bir Next.js sunucu route'u (tarayıcıdan değil) olduğu için F4-03 kapsamı (`LocaleContext` bağlama) dışında bırakıldı; yeni `GET /api/v1/exchange-rates/` ucuna yönlendirilip tek kaynağa indirgenebilir. (Ayrıca sahipsiz `app/components/CheckoutForm.tsx:21` de `open.er-api.com`'a gidiyor — o zaten ölü kod olarak kayıtlı.)
 
 * **[P2 · UX/veri] Kategori filtresi `Category` tablosu seyrek olduğu için pratikte boş.** F4-01 kategori filtresi artık gerçek `Category` kayıtlarını (`category_obj__slug`) kullanıyor — doğru mimari — ama `Category` tablosu neredeyse boş ve turların çoğu `category_obj` FK'siz (yalnız legacy serbest metin `category` alanı dolu). Sonuç: ön yüzde kategori kutucukları ya hiç görünmüyor (`categories.length === 0` gizliyor) ya da seçilince çoğu turu eler. F2-01 bulgusuyla (`Tour.category` taksonomi kargaşası) aynı; kategoriler netleştirilip turlar `category_obj`'e bağlanana kadar bu filtre eksik çalışır.
+
+* **[P1 · kırık link] Ödeme sonrası `returnUrl` var olmayan `/checkout-success` sayfasına gidiyor.** `app/checkout/page.tsx` Stripe onayından sonra `returnUrl`'i `/checkout-success?ref=<booking-uuid>`'e kuruyor ama `app/checkout-success/` sayfası **yok** (F4-07 öncesinde de yoktu; kök `app/success/page.tsx` ayrı ve o da sahipsiz — bkz. yukarıdaki F1-05 bulgusu). Sonuç: kart bilgisi doğrulandıktan sonra kullanıcı 404 görür. F4-07 kapsamı misafir bilet erişimini **e-postadaki imzalı sihirli linkle** çözdüğü için (bilet 404'e bağımlı değil) bu sayfa bu görevde eklenmedi. Gereken: hem üye hem misafir için ödeme-sonrası onay sayfası (`ref`/`token` ile Booking'i çekip durum + bilet linki gösteren) — F5-01 ya da özel bir "ödeme sonrası akış" görevinde ele alınmalı.
 
 ---
 

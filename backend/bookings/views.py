@@ -38,6 +38,13 @@ from core.emails import display_name, frontend_url, send_templated_mail
 from core.permissions import IsOwner, StrictMassAssignmentPermission
 from notifications.service import enqueue as enqueue_notification
 
+from django.contrib.auth.models import User
+from django.core import signing
+from django.core.validators import validate_email
+from django.core.exceptions import ValidationError as DjangoValidationError
+from users.guest import create_guest_user, is_guest_user, make_claim_token
+from .tokens import make_ticket_token, read_ticket_token
+
 logger = logging.getLogger('bookings')
 
 
@@ -76,14 +83,65 @@ def agency_phone(service):
     return getattr(profile, 'phone_number', '') if profile else ''
 
 
+def ticket_link_for(booking):
+    """Bilet bağlantısı: giriş yapan hesap için panel, misafir için imzalı sihirli link.
+
+    Misafir hesabı parolasızdır ve panele giremez; bu yüzden ona rezervasyonuna
+    doğrudan ulaştıran imzalı bağlantı verilir.
+    """
+    if booking.user and is_guest_user(booking.user):
+        return frontend_url('/guest/ticket', token=make_ticket_token(booking))
+    return ticket_url()
+
+
 class BookingViewSet(viewsets.ModelViewSet):
     serializer_class = BookingSerializer
     permission_classes = [IsAuthenticated, IsOwner, StrictMassAssignmentPermission]
 
+    def get_permissions(self):
+        # Üyeliksiz (misafir) satın alma: rezervasyon oluşturma ve imzalı sihirli
+        # bağlantıyla bilet görüntüleme kimlik doğrulaması gerektirmez. Mass
+        # assignment koruması create'te de korunur. Diğer tüm action'lar (listeleme,
+        # iptal vb.) kendi rezervasyonuna dönük olduğu için IsAuthenticated kalır.
+        if self.action == 'create':
+            return [AllowAny(), StrictMassAssignmentPermission()]
+        if self.action == 'guest_ticket':
+            return [AllowAny()]
+        return super().get_permissions()
+
     def get_queryset(self):
+        # Anonim (misafir) isteklerde request.user bir AnonymousUser'dır; bu
+        # queryset yalnız kimlik doğrulanmış action'larda (list/retrieve/cancel)
+        # çağrılır, o yüzden filtre güvenlidir.
+        if not self.request.user.is_authenticated:
+            return Booking.objects.none()
         return Booking.objects.filter(user=self.request.user).select_related(
             'tour', 'tour__agency', 'shuttle_route', 'shuttle_route__agency'
         )
+
+    def _resolve_booking_user(self, request):
+        """Rezervasyonun bağlanacağı kullanıcıyı belirler.
+
+        Giriş yapılmışsa o kullanıcı; değilse misafir alanlarından (ad + e-posta)
+        gölge kullanıcı çözülür/yaratılır. Aynı e-postayla kayıtlı bir hesap varsa
+        rezervasyon ona bağlanır (bilet e-postasındaki sihirli bağlantı zaten o
+        adrese gider — yani e-posta sahipliği örtük doğrulanır).
+        """
+        if request.user and request.user.is_authenticated:
+            return request.user
+        email = (request.data.get('guest_email') or '').strip().lower()
+        name = (request.data.get('guest_full_name') or '').strip()
+        phone = (request.data.get('guest_phone') or '').strip()
+        if not email or not name:
+            raise ValueError('Misafir rezervasyonu için ad soyad ve e-posta zorunludur.')
+        try:
+            validate_email(email)
+        except DjangoValidationError:
+            raise ValueError('Geçerli bir e-posta adresi giriniz.')
+        existing = User.objects.filter(email__iexact=email).first()
+        if existing:
+            return existing
+        return create_guest_user(email, name, phone)
 
     def get_throttles(self):
         # Yalnız rezervasyon OLUŞTURMA'yı 'booking' scope'uyla sınırla
@@ -98,8 +156,15 @@ class BookingViewSet(viewsets.ModelViewSet):
     # CREATE — Rezervasyon + Stripe PaymentIntent oluşturma
     # ─────────────────────────────────────────────────────────────────────────
     def create(self, request, *args, **kwargs):
+        # Misafir (üyeliksiz) ya da giriş yapmış kullanıcıyı çöz. Anonimse gölge
+        # kullanıcı yaratılır; hatalı/eksik misafir bilgisi 400 döner.
+        try:
+            booking_user = self._resolve_booking_user(request)
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
         if request.data.get('service_type') == 'shuttle':
-            return self._create_shuttle_booking(request)
+            return self._create_shuttle_booking(request, booking_user)
 
         tour_slug  = request.data.get('tour_slug')
         date_label = request.data.get('date_label', '')
@@ -180,12 +245,12 @@ class BookingViewSet(viewsets.ModelViewSet):
                 intent = get_provider().create_intent(
                     amount=total_price,
                     currency='TRY',
-                    metadata={'tour_id': tour.id, 'user_id': request.user.id},
+                    metadata={'tour_id': tour.id, 'user_id': booking_user.id},
                 )
 
                 booking_ref = intent.booking_ref
                 booking = Booking.objects.create(
-                    user=request.user,
+                    user=booking_user,
                     tour=tour,
                     service_type=service_type,
                     date_label=date_label,
@@ -212,15 +277,15 @@ class BookingViewSet(viewsets.ModelViewSet):
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         # ── E-posta bildirimi (atomic dışında — hata rezervasyonu geri almaz) ─
-        send_templated_mail('booking_created', request.user.email, {
-            'user_name': display_name(request.user),
+        send_templated_mail('booking_created', booking_user.email, {
+            'user_name': display_name(booking_user),
             'service_label': f'{tour.title} turu',
             'date_label': date_label or start_date,
             'guest_label': 'Kişi sayısı',
             'guests': guests,
             'total_price': total_price,
             'booking_ref': booking_ref,
-            'ticket_url': ticket_url(),
+            'ticket_url': ticket_link_for(booking),
         })
 
         serializer = self.get_serializer(booking)
@@ -237,7 +302,7 @@ class BookingViewSet(viewsets.ModelViewSet):
     # branching inline throughout create() so the existing tour/meal path
     # above is untouched.
     # ─────────────────────────────────────────────────────────────────────────
-    def _create_shuttle_booking(self, request):
+    def _create_shuttle_booking(self, request, booking_user):
         shuttle_route_id = request.data.get('shuttle_route_id')
         guests           = int(request.data.get('guests', 1))
         start_date       = request.data.get('start_date')
@@ -303,12 +368,12 @@ class BookingViewSet(viewsets.ModelViewSet):
                 intent = get_provider().create_intent(
                     amount=total_price,
                     currency='TRY',
-                    metadata={'shuttle_route_id': shuttle_route.id, 'user_id': request.user.id},
+                    metadata={'shuttle_route_id': shuttle_route.id, 'user_id': booking_user.id},
                 )
 
                 booking_ref = intent.booking_ref
                 booking = Booking.objects.create(
-                    user=request.user,
+                    user=booking_user,
                     shuttle_route=shuttle_route,
                     tour=None,
                     service_type='shuttle',
@@ -328,15 +393,15 @@ class BookingViewSet(viewsets.ModelViewSet):
         except PaymentError as e:
             return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
-        send_templated_mail('booking_created', request.user.email, {
-            'user_name': display_name(request.user),
+        send_templated_mail('booking_created', booking_user.email, {
+            'user_name': display_name(booking_user),
             'service_label': f'{shuttle_route.title} transferi',
             'date_label': f'{start_date} {start_time}',
             'guest_label': 'Yolcu sayısı',
             'guests': guests,
             'total_price': total_price,
             'booking_ref': booking_ref,
-            'ticket_url': ticket_url(),
+            'ticket_url': ticket_link_for(booking),
         })
 
         serializer = self.get_serializer(booking)
@@ -358,6 +423,36 @@ class BookingViewSet(viewsets.ModelViewSet):
             date=booking.start_date,
             booked_count__gte=booking.guests,
         ).update(booked_count=F('booked_count') - booking.guests)
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # GUEST TICKET — İmzalı sihirli bağlantıyla misafir bileti görüntüleme
+    # ─────────────────────────────────────────────────────────────────────────
+    @action(detail=False, methods=['get'], url_path='guest-ticket')
+    def guest_ticket(self, request):
+        """GET /api/v1/bookings/guest-ticket/?token=<imzalı token>
+
+        Misafir hesabı parolasız olduğundan panele giremez; biletine yalnız
+        e-postasına gönderilen imzalı bağlantıyla ulaşır. Token, Booking'in
+        tahmin edilemez UUID id'sini taşır ve süreli/imzalıdır (bkz. tokens.py).
+        """
+        token = request.query_params.get('token', '')
+        if not token:
+            return Response({'error': 'Token gereklidir.'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            booking_id = read_ticket_token(token)
+        except signing.BadSignature:
+            return Response(
+                {'error': 'Bağlantı geçersiz veya süresi dolmuş.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        try:
+            booking = Booking.objects.select_related(
+                'tour', 'tour__agency', 'shuttle_route', 'shuttle_route__agency'
+            ).get(id=booking_id)
+        except Booking.DoesNotExist:
+            return Response({'error': 'Rezervasyon bulunamadı.'}, status=status.HTTP_404_NOT_FOUND)
+        serializer = self.get_serializer(booking)
+        return Response(serializer.data)
 
     # ─────────────────────────────────────────────────────────────────────────
     # CANCEL — Rezervasyon iptali + Stripe iadesi
@@ -535,8 +630,22 @@ class BookingViewSet(viewsets.ModelViewSet):
                     'service_label': service_label(booking),
                     'date_label': booking.date_label or booking.start_date,
                     'booking_ref': booking.booking_ref,
-                    'ticket_url': ticket_url(),
+                    'ticket_url': ticket_link_for(booking),
                 })
+
+                # Misafir (üyeliksiz) satın alma → "hesap oluştur, biletin hazır"
+                # daveti. İmzalı claim token'ıyla misafir parola atayıp hesabını
+                # sahiplenebilir. Yalnız gerçek onay geçişinde bir kez gönderilir.
+                if newly_confirmed and is_guest_user(booking.user):
+                    send_templated_mail('guest_claim_invite', booking.user.email, {
+                        'user_name': display_name(booking.user),
+                        'service_label': service_label(booking),
+                        'booking_ref': booking.booking_ref,
+                        'ticket_url': ticket_link_for(booking),
+                        'claim_url': frontend_url(
+                            '/claim-account', token=make_claim_token(booking.user)
+                        ),
+                    })
 
                 # SMS/WhatsApp bildirimleri yalnız gerçek geçişte (mükerrer
                 # webhook'ta değil) kuyruğa eklenir; asıl gönderim asenkrondur.

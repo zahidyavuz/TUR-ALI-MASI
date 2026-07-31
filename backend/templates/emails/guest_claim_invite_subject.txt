@@ -1,0 +1,1 @@
+Biletiniz hazır — hesabınızı oluşturun ({{ booking_ref }})

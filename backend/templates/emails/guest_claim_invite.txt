@@ -1,0 +1,16 @@
+{% autoescape off %}Merhaba {{ user_name }},
+
+{{ service_label }} rezervasyonunuz onaylandı ve biletiniz hazır. Referans no: {{ booking_ref }}
+
+Biletinizi görüntülemek için:
+{{ ticket_url }}
+
+Bir sonraki seferde daha hızlı işlem yapmak ve rezervasyonlarınızı tek panelden
+takip etmek için bir parola belirleyip hesabınızı oluşturabilirsiniz:
+{{ claim_url }}
+
+Bu adım isteğe bağlıdır; biletinize her zaman yukarıdaki bağlantıdan ulaşabilirsiniz.
+
+İyi tatiller dileriz.
+{{ site_name }}
+{% endautoescape %}

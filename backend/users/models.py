@@ -8,6 +8,14 @@ class UserProfile(models.Model):
     phone_number = models.CharField(max_length=20, blank=True, null=True)
     avatar = models.ImageField(upload_to='users/avatars/', blank=True, null=True)
 
+    # Misafir (üyeliksiz) checkout ile oluşturulmuş, henüz sahiplenilmemiş hesap.
+    # True iken kullanıcı parolasızdır; rezervasyonuna yalnız imzalı sihirli
+    # bağlantıyla erişir. "Hesap oluştur" (claim) akışı parola atadığında False'a
+    # döner. Google/normal kayıt kullanıcıları da parolasız olabildiği için
+    # (sosyal giriş) "misafir mi" ayrımı has_usable_password ile değil bu bayrakla
+    # yapılır — aksi halde sosyal hesaplara yanlışlıkla claim daveti giderdi.
+    is_guest = models.BooleanField(default=False)
+
     def __str__(self):
         return self.user.username
 

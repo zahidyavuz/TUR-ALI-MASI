@@ -62,13 +62,14 @@ class BookingLifecycleTestCase(TestCase):
             booked_count=0
         )
 
-    def test_unauthenticated_cannot_book(self):
-        """Unauthenticated users cannot create bookings"""
+    def test_unauthenticated_guest_booking_requires_contact(self):
+        """F4-07: Misafir satın alma artık kimlik doğrulaması gerektirmez, ancak
+        ad soyad + e-posta olmadan rezervasyon açılamaz (400)."""
         response = self.client.post('/api/v1/bookings/', {
             'tour_slug': 'booking-test-tour',
             'guests': 2,
         })
-        self.assertEqual(response.status_code, 401)
+        self.assertEqual(response.status_code, 400)
 
     def test_booking_list_requires_auth(self):
         """Booking list requires authentication"""
@@ -449,6 +450,143 @@ class WebhookIdempotencyTestCase(TestCase):
         self.assertEqual(booking.status, 'confirmed')
         # İlk event 3 ekler; ikinci event 'confirmed' guard'ıyla atlanır.
         self.assertEqual(avail.booked_count, 3)
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
+@patch('bookings.payments.stripe_provider.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+class GuestCheckoutTestCase(TestCase):
+    """F4-07 — Üyeliksiz (misafir) satın alma: gölge kullanıcı, imzalı bilet
+    bağlantısı ve hesap sahiplenme (claim) akışı."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.agency = Agency.objects.create(name='Guest Agency', status='onaylandi', is_verified=True)
+        self.tour = Tour.objects.create(
+            id='guest-tour', agency=self.agency, title='Guest Tour', location='Fethiye',
+            price=Decimal('500.00'), duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.day = date.today() + timedelta(days=10)
+        self.slot = TourAvailability.objects.create(
+            tour=self.tour, date=self.day, max_capacity=10, booked_count=0
+        )
+
+    def _guest_book(self, **extra):
+        payload = {
+            'tour_slug': self.tour.pk,
+            'start_date': self.day.strftime('%Y-%m-%d'),
+            'guests': 2,
+            'guest_full_name': 'Ayşe Yılmaz',
+            'guest_email': 'ayse@example.com',
+            'guest_phone': '+905551112233',
+        }
+        payload.update(extra)
+        return self.client.post('/api/v1/bookings/', payload)
+
+    def test_guest_booking_creates_shadow_user(self, _intent):
+        """Anonim istek → parolasız gölge kullanıcı yaratılır ve rezervasyon ona bağlanır."""
+        response = self._guest_book()
+        self.assertEqual(response.status_code, 201, response.data)
+        user = User.objects.get(email__iexact='ayse@example.com')
+        self.assertFalse(user.has_usable_password())
+        self.assertTrue(user.profile.is_guest)
+        booking = Booking.objects.get(pk=response.data['booking']['id'])
+        self.assertEqual(booking.user_id, user.id)
+
+    def test_guest_booking_requires_name_and_email(self, _intent):
+        """Ad veya e-posta eksikse 400."""
+        response = self._guest_book(guest_email='')
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(User.objects.filter(email__iexact='ayse@example.com').count(), 0)
+
+    def test_guest_booking_invalid_email(self, _intent):
+        """Geçersiz e-posta biçimi 400 döner."""
+        response = self._guest_book(guest_email='not-an-email')
+        self.assertEqual(response.status_code, 400)
+
+    def test_existing_email_reused_not_duplicated(self, _intent):
+        """Aynı e-postayla kayıtlı hesap varsa rezervasyon ona bağlanır, yeni kullanıcı açılmaz."""
+        existing = User.objects.create_user(
+            username='ayse', email='ayse@example.com', password='realpass123'
+        )
+        response = self._guest_book()
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(User.objects.filter(email__iexact='ayse@example.com').count(), 1)
+        booking = Booking.objects.get(pk=response.data['booking']['id'])
+        self.assertEqual(booking.user_id, existing.id)
+
+    def test_guest_ticket_token_roundtrip(self, _intent):
+        """Geçerli imzalı token ile misafir bileti görüntülenebilir."""
+        from bookings.tokens import make_ticket_token
+        booking_id = self._guest_book().data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+        token = make_ticket_token(booking)
+        response = self.client.get('/api/v1/bookings/guest-ticket/', {'token': token})
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['booking_ref'], booking.booking_ref)
+
+    def test_guest_ticket_invalid_token(self, _intent):
+        """Bozuk token 400 döner."""
+        response = self.client.get('/api/v1/bookings/guest-ticket/', {'token': 'garbage'})
+        self.assertEqual(response.status_code, 400)
+
+    def test_guest_ticket_missing_token(self, _intent):
+        """Token yoksa 400 döner."""
+        response = self.client.get('/api/v1/bookings/guest-ticket/')
+        self.assertEqual(response.status_code, 400)
+
+
+class ClaimAccountTestCase(TestCase):
+    """F4-07 — Misafir hesabı sahiplenme (claim) uç noktası."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def _guest(self):
+        from users.guest import create_guest_user
+        return create_guest_user('claim@example.com', 'Claim User', '+905550000000')
+
+    def test_claim_sets_password_and_clears_guest_flag(self):
+        from users.guest import make_claim_token
+        user = self._guest()
+        token = make_claim_token(user)
+        response = self.client.post('/api/v1/auth/claim-account/', {
+            'token': token, 'password': 'BrandNewPass123',
+        })
+        self.assertEqual(response.status_code, 200, response.data)
+        user.refresh_from_db()
+        self.assertTrue(user.has_usable_password())
+        self.assertTrue(user.check_password('BrandNewPass123'))
+        self.assertFalse(user.profile.is_guest)
+
+    def test_claim_rejects_invalid_token(self):
+        response = self.client.post('/api/v1/auth/claim-account/', {
+            'token': 'garbage', 'password': 'BrandNewPass123',
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_claim_rejects_non_guest_account(self):
+        """Zaten sahiplenilmiş/normal hesap claim edilemez (hesap ele geçirme koruması)."""
+        from users.guest import make_claim_token
+        user = self._guest()
+        token = make_claim_token(user)
+        # Hesap araya girip sahiplenilirse ikinci claim reddedilmeli.
+        profile = user.profile
+        profile.is_guest = False
+        profile.save(update_fields=['is_guest'])
+        response = self.client.post('/api/v1/auth/claim-account/', {
+            'token': token, 'password': 'BrandNewPass123',
+        })
+        self.assertEqual(response.status_code, 400)
+
+    def test_claim_rejects_weak_password(self):
+        from users.guest import make_claim_token
+        user = self._guest()
+        token = make_claim_token(user)
+        response = self.client.post('/api/v1/auth/claim-account/', {
+            'token': token, 'password': '123',
+        })
+        self.assertEqual(response.status_code, 400)
 
 
 class CancellationPolicyRefundTestCase(TestCase):

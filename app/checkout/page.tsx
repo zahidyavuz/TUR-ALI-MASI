@@ -2,22 +2,19 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { fetchTour } from "@/app/lib/tours";
 import { fetchAPI } from "@/app/lib/api";
-import { auth } from "@/app/lib/auth";
 import StripePaymentSection from "@/app/components/StripePaymentSection";
 import { policyInfo } from "@/app/lib/cancellationPolicy";
 
 function CheckoutLogic() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const tourId = searchParams.get("tourId");
   const guests = parseInt(searchParams.get("guests") || "1");
   const date = searchParams.get("date");
   const menuId = searchParams.get("menuId");
   const itemType = searchParams.get("type"); // 'meal' or 'tour'
-  const pathWithQuery = `/checkout?${searchParams.toString()}`;
 
   const [tour, setTour] = useState<any>(null);
   const [step, setStep] = useState<1 | 2>(1); // 1: Bilgiler, 2: Ödeme
@@ -63,11 +60,11 @@ function CheckoutLogic() {
       return;
     }
 
-    if (!auth.isAuthenticated()) {
-      router.push(`/login?next=${encodeURIComponent(pathWithQuery)}`);
-      return;
-    }
-
+    // Üyeliksiz (misafir) satın alma desteklenir: giriş zorunlu değildir.
+    // Girişsiz kullanıcıda backend, formdaki ad+e-posta ile gölge kullanıcı
+    // yaratır ve bilete e-postadaki imzalı sihirli bağlantıyla erişilir
+    // (bkz. bookings/views.py _resolve_booking_user). Giriş yapılmışsa
+    // rezervasyon doğrudan o hesaba bağlanır.
     setIsCreatingBooking(true);
     try {
       const result = await fetchAPI("/bookings/", {
