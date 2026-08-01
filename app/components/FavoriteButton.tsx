@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { auth as authHelper } from '@/app/lib/auth';
 import { fetchAPI } from '@/app/lib/api';
 
@@ -11,6 +12,7 @@ interface FavoriteButtonProps {
 
 export default function FavoriteButton({ tourId, className = '' }: FavoriteButtonProps) {
     const { user } = useAuth();
+    const toast = useToast();
     const [isWishlisted, setIsWishlisted] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -46,7 +48,7 @@ export default function FavoriteButton({ tourId, className = '' }: FavoriteButto
 
         if (!user) {
             // Need to login, maybe emit an event or route to login
-            alert('Lütfen favorilere eklemek için giriş yapınız.');
+            toast.warning('Lütfen favorilere eklemek için giriş yapınız.');
             window.location.href = '/login';
             return;
         }

@@ -25,6 +25,30 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ============================================================
+   Tasarım Sistemi Token'ları (F5-06)
+   Marka renkleri artık her yerde `bg-[#008cb3]` gibi keyfi
+   değerlerle değil, token utility'leriyle kullanılabilir:
+   `bg-brand-primary`, `text-brand-primary`, `ring-brand-primary`,
+   `hover:bg-brand-primary-dark` vb. Mevcut keyfi değerler
+   çalışmaya devam eder; sayfalar kademeli olarak migrate edilir.
+   ============================================================ */
+@theme {
+  /* Marka renkleri (bkz. eski keyfi kullanımlar: #008cb3 = ana CTA) */
+  --color-brand-primary: #008cb3;      /* Ana marka / CTA (cyan) */
+  --color-brand-primary-dark: #005e85; /* Hover/aktif koyu ton */
+  --color-brand-dark: #0b132b;         /* Lüks lacivert (dark tema zemini) */
+  --color-brand-accent: #8b1a2b;       /* Restoran/menü vurgu (bordo) */
+
+  /* Yarıçap kademeleri (ortak bileşenlerde kullanılır) */
+  --radius-card: 1rem;      /* 16px — Card */
+  --radius-control: 0.75rem; /* 12px — Button/Input */
+
+  /* Gölge kademeleri */
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.08);
+  --shadow-card-hover: 0 10px 25px -5px rgb(0 0 0 / 0.12), 0 8px 10px -6px rgb(0 0 0 / 0.10);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -156,6 +180,12 @@ body {
   @keyframes shimmer {
     0% { transform: translateX(-100%) rotate(45deg); }
     100% { transform: translateX(200%) rotate(45deg); }
+  }
+
+  /* Toast bildirimlerinin giriş animasyonu (bkz. context/ToastContext.tsx) */
+  @keyframes fadeInDown {
+    0% { opacity: 0; transform: translateY(-8px); }
+    100% { opacity: 1; transform: translateY(0); }
   }
 
   .perspective-2000 {

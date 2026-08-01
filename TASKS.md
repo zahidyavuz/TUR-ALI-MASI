@@ -727,13 +727,19 @@ Yeni `notifications` uygulaması eklendi:
 
 ---
 
-### [ ] F5-06 · Design system konsolidasyonu
+### [x] F5-06 · Design system konsolidasyonu
 
 **Öncelik:** P2 · **Efor:** L
 
 **Adımlar:** Tailwind theme token'ları (brand renkleri `#008cb3/#0B132B/...` → `brand.primary` vb., radius/gölge kademeleri); ortak `Button/Input/Card/Modal/Badge/Toast` bileşenleri (`app/components/ui/`); tüm `alert()` çağrıları Toast'a (checkout form doğrulama dahil); dashboard'larda ortak `DashboardShell` (sidebar+topbar+bildirim); dark-mode tutarlılık taraması. Sayfaları kademeli migrate et — tek PR'da her şeyi değiştirme.
 
-**Notlar:** _
+**Notlar:** Görev "tek PR'da her şeyi değiştirme" dediği için **temel (foundation)** teslim edildi; sayfa-sayfa migrasyon kademeli devam edecek.
+- **Tasarım token'ları** (`app/globals.css`): yeni `@theme` bloğu — `--color-brand-primary (#008cb3)`, `--color-brand-primary-dark (#005e85)`, `--color-brand-dark (#0b132b)`, `--color-brand-accent (#8b1a2b)`; `--radius-card/--radius-control`; `--shadow-card/--shadow-card-hover`. Mevcut keyfi `#008cb3` kullanımları çalışmaya devam ediyor. `--card-bg` dark modda bilerek beyaz (kod yorumu) — dokunulmadı. `fadeInDown` keyframe (Toast girişi) eklendi.
+- **UI primitive'leri** (`app/components/ui/`): `cn.ts` (bağımlılıksız className birleştirici), `Button.tsx` (primary/secondary/outline/ghost/danger × sm/md/lg), `Input.tsx` (label+error, forwardRef), `Card.tsx` (hoverable/padding), `Badge.tsx` (5 varyant), `Modal.tsx` (Esc+overlay kapama, body scroll-lock).
+- **Toast sistemi** (`app/context/ToastContext.tsx`): `ToastProvider` + `useToast()` (success/error/info/warning, 4sn otomatik kapanma); `app/layout.tsx` provider yığınına `ThemeProvider` içine sarıldı.
+- **alert() migrasyonu:** tüm **7 canlı** `alert()` → `useToast()` (FavoriteButton, page.tsx ×3, post-tour-review, profile, cart). Kalan 2 `alert()` yalnızca page.tsx içindeki yorum-satırına alınmış (arşivlenmiş e-posta doğrulama) ölü kodda — dokunulmadı.
+- **Doğrulama:** `npx tsc --noEmit` temiz; `npm run lint` temiz; `npm run build` başarılı (sitemap fetch-fail beklenen — backend kapalı). Backend dosyası değişmedi → migration kontrolü gerekmez.
+- **Ertelendi:** `DashboardShell` çıkarımı (agency/restaurant dashboard'ları %95 duplike ama riskli, ayrı PR) ve 258× keyfi `#008cb3` değerinin sayfa-sayfa token'a migrasyonu — bkz. BULUNAN YENİ SORUNLAR.
 
 ---
 
@@ -839,6 +845,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · duplike kod] İki ayrı `DiningReservationViewSet` var; yalnız biri kayıtlı.** F5-02'de doğrulandı: `agencies/restaurant_views.py::DiningReservationViewSet` (perms `[IsAuthenticated, IsAgentOwner, IsVerifiedAgent]`, bugüne filtreli manuel serileştirme) `restaurant/reservations`'a kayıtlı; `agencies/views.py::DiningReservationViewSet` (perms yalnız `[IsAuthenticated]`, `update-status` action'ı, docstring'i var olmayan `/api/v1/table-reservations/`'a atıf yapıyor) hiçbir router'a **kayıtlı değil** — ölü kod. Aynı isim iki modülde kafa karıştırıcı. Görev kapsamı dışı olduğu için silinmedi; bir temizlik turunda `views.py`'deki kayıtsız kopya kaldırılmalı.
 
 * **[P1 · eksik akış] Spa modülünde frontend ve B2B (acenta) yönetim ucu yok.** F5-05'te `spas` app'i backend olarak eksiksiz yazıldı (public salt-okunur listeleme/detay + booking akışı + finans + testler), ancak iki parça bilinçli ertelendi: **(1) Frontend** — spa mekân/hizmet listeleme, detay ve checkout sayfaları yok; `app/checkout/page.tsx` `service_type='spa'` dalını taşımıyor (transfer/combo deseninin aynısı gerekir). Yani şu an spa hizmeti yalnız API'den satın alınabilir, UI'dan değil. **(2) B2B yönetim** — acentanın spa mekânı/hizmeti/müsaitlik yönetebileceği bir `AgencySpaViewSet` (shuttles'taki `agency_shuttles_views.py::AgencyShuttleViewSet` deseni: RLS + `StrictMassAssignmentPermission` + toplu slot üretimi + görsel yükleme) yok; şu an mekân/hizmet/slot yalnız Django admin'den girilebiliyor. Public ViewSet'ler `ReadOnlyModelViewSet` seçildi (shuttle'ın açık `ModelViewSet` create açığını tekrarlamamak için), dolayısıyla B2B ucu ayrı yazılmalı. İkisi de M-L efor; brief'in "spa modülü" kapsamı tamamlanacaksa ayrı görev(ler) olarak planlanmalı.
+
+* **[P2 · teknik borç] Design system yalnız temel (foundation) olarak teslim edildi — sayfa-sayfa migrasyon bekliyor.** F5-06 tasarım token'ları (`app/globals.css` `@theme`: `brand-primary/-dark`, `brand-dark`, `brand-accent`, `radius-card/-control`, `shadow-card/-hover`), `app/components/ui/` primitive'leri (Button/Input/Card/Badge/Modal + `cn`) ve Toast sistemini (`ToastContext` + `useToast`) ekledi; tüm canlı `alert()` çağrıları Toast'a taşındı. Görev "tek PR'da her şeyi değiştirme" dediği için iki parça bilinçli ertelendi: **(1)** Kod tabanındaki ~258× keyfi `#008cb3`/`#0B132B` renk değeri hâlâ token'a geçmedi (mevcut değerler çalışıyor, kademeli migrate edilecek) ve yeni primitive'ler henüz mevcut sayfalardaki elle yazılmış buton/input/kart işaretlemesinin yerini almadı. **(2) `DashboardShell`** — agency ve restaurant dashboard layout'ları %95 duplike (sidebar+topbar+bildirim) ama ortak bir shell'e çıkarmak riskli bir refactor; ayrı bir PR'da yapılmalı. Dark-mode taramasında `--card-bg` her iki modda bilerek beyaz (kod yorumu) — sorun değil, dokunulmadı.
 
 ---
 

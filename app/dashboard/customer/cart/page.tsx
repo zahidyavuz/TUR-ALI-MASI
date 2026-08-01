@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useToast } from '@/app/context/ToastContext';
 
 type CartItem = {
   id: string;
@@ -49,6 +50,7 @@ export default function CartPage() {
   const [appliedDiscount, setAppliedDiscount] = useState(0);
   const [couponError, setCouponError] = useState('');
   const router = useRouter();
+  const toast = useToast();
 
   useEffect(() => {
     // API'den anlık stok/kontenjan kontrolü simülasyonu
@@ -99,7 +101,7 @@ export default function CartPage() {
   const handleCheckout = () => {
     const hasFullItems = cartItems.some(item => item.isFull);
     if (hasFullItems) {
-      alert("Sepetinizde kontenjanı dolmuş ürünler var. Lütfen ödemeye geçmeden önce bu ürünleri sepetten çıkarın.");
+      toast.warning("Sepetinizde kontenjanı dolmuş ürünler var. Lütfen ödemeye geçmeden önce bu ürünleri sepetten çıkarın.");
       return;
     }
 

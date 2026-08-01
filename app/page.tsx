@@ -15,6 +15,7 @@ import FavoriteButton from './components/FavoriteButton';
 import Navbar from './components/Navbar';
 import PartnerOnboardingStepper from './components/PartnerOnboardingStepper';
 import { useAuth } from './context/AuthContext';
+import { useToast } from './context/ToastContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 // --- ComboCard (Geniş / Wide Format) — gerçek /combos/ verisiyle beslenir. ---
@@ -112,6 +113,7 @@ const BACKGROUND_IMAGES = [
 
 export default function Home() {
   const { t, locale, setLocale, formatPrice } = useLocale();
+  const toast = useToast();
   const [tours, setTours] = useState<any[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
   const [currentImage, setCurrentImage] = useState(0);
@@ -940,7 +942,7 @@ export default function Home() {
                       e.preventDefault();
                       if (loginTab === 'register') {
                         if (!registerEmail) {
-                          alert('Lütfen e-posta adresinizi girin.');
+                          toast.warning('Lütfen e-posta adresinizi girin.');
                           return;
                         }
 
@@ -972,7 +974,7 @@ export default function Home() {
                         // Direct Success Simulation
                         setTimeout(() => {
                           setIsLoading(false);
-                          alert('Üyeliğiniz başarıyla tamamlandı! Hoş geldiniz.');
+                          toast.success('Üyeliğiniz başarıyla tamamlandı! Hoş geldiniz.');
                           setShowLoginModal(false);
                           router.push('/'); // Kayıt sonrası ana sayfada bırak
                         }, 1000);
@@ -1049,7 +1051,7 @@ export default function Home() {
                     )}
 
                     <button
-                      onClick={() => { alert('E-posta başarıyla doğrulandı! Üyeliğiniz tamamlandı.'); setShowLoginModal(false); setIsVerifyingEmail(false); }}
+                      onClick={() => { toast.success('E-posta başarıyla doğrulandı! Üyeliğiniz tamamlandı.'); setShowLoginModal(false); setIsVerifyingEmail(false); }}
                       className="w-full bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-2xl hover:bg-[#005e85] transition-colors shadow-lg hover:shadow-xl active:scale-[0.98] duration-200 flex items-center justify-center gap-2"
                     >
                       Kodu Doğrula ve Tamamla <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>

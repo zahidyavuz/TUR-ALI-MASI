@@ -4,10 +4,12 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { fetchAPI } from '@/app/lib/api';
 import { auth } from '@/app/lib/auth';
+import { useToast } from '@/app/context/ToastContext';
 
 function ReviewContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
+    const toast = useToast();
     const tourId = searchParams.get('tourId') || '';
     const tourTitle = searchParams.get('tourTitle') || 'Tur Deneyimi';
 
@@ -99,7 +101,7 @@ function ReviewContent() {
                         <button 
                             onClick={() => {
                                 navigator.clipboard.writeText('THANKYOU10');
-                                alert('İndirim kodu kopyalandı! 🎟️');
+                                toast.success('İndirim kodu kopyalandı! 🎟️');
                             }}
                             className="bg-[#008cb3] hover:bg-[#005e85] text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all active:scale-90"
                         >

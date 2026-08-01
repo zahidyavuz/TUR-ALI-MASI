@@ -36,6 +36,7 @@ import { NotificationProvider } from "./context/NotificationContext";
 import { GeofenceProvider } from "./context/GeofenceContext";
 import { AuthProvider } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { ToastProvider } from "./context/ToastContext";
 import GeofenceBanner from "./components/GeofenceBanner";
 import OfflineGuard from "./components/OfflineGuard";
 import RouteGuard from "./components/RouteGuard";
@@ -82,20 +83,22 @@ export default async function RootLayout({
           <LocaleProvider>
             <AuthProvider>
               <ThemeProvider>
-                <NotificationProvider>
-                    <GeofenceProvider>
-                    <OfflineGuard>
-                      <RouteGuard>
-                        {children}
-                      </RouteGuard>
-                    </OfflineGuard>
-                    <GeofenceBanner />
-                    <Chatbot />
-                    <BottomTabBar />
-                    <GlobalImageFallback />
-                    <Footer />
-                  </GeofenceProvider>
-                </NotificationProvider>
+                <ToastProvider>
+                  <NotificationProvider>
+                      <GeofenceProvider>
+                      <OfflineGuard>
+                        <RouteGuard>
+                          {children}
+                        </RouteGuard>
+                      </OfflineGuard>
+                      <GeofenceBanner />
+                      <Chatbot />
+                      <BottomTabBar />
+                      <GlobalImageFallback />
+                      <Footer />
+                    </GeofenceProvider>
+                  </NotificationProvider>
+                </ToastProvider>
               </ThemeProvider>
             </AuthProvider>
           </LocaleProvider>

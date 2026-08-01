@@ -3,8 +3,10 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { fetchAPI } from '@/app/lib/api';
 import { auth } from '@/app/lib/auth';
+import { useToast } from '@/app/context/ToastContext';
 
 export default function ProfilePage() {
+  const toast = useToast();
   const [savedCards, setSavedCards] = useState([
     { id: 1, type: 'Visa', last4: '4242', expiry: '12/26' },
     { id: 2, type: 'Mastercard', last4: '8812', expiry: '05/28' }
@@ -174,7 +176,7 @@ export default function ProfilePage() {
                                     {!coupon.is_used && (
                                         <button className="text-xs font-black text-white bg-slate-800 dark:bg-white dark:text-slate-900 px-4 py-2.5 rounded-xl hover:scale-105 active:scale-95 transition-all shadow-md" onClick={() => {
                                             navigator.clipboard.writeText(coupon.code);
-                                            alert('Kupon kodu kopyalandı!');
+                                            toast.success('Kupon kodu kopyalandı!');
                                         }}>Kopyala</button>
                                     )}
                                 </div>
