@@ -56,9 +56,10 @@ class AgentFinanceLedger(models.Model):
 
     @staticmethod
     def _agency_of(booking):
-        # Booking.tour is nullable — shuttle bookings use shuttle_route instead
-        # (see bookings/models.py). Either one carries an `agency` FK.
-        service = booking.tour or booking.shuttle_route
+        # Booking.tour is nullable — shuttle bookings use shuttle_route, spa
+        # bookings use spa_service instead (see bookings/models.py). Each one
+        # carries an `agency` FK (spa_service.agency is a property → venue.agency).
+        service = booking.tour or booking.shuttle_route or booking.spa_service
         if not service or not hasattr(service, 'agency') or not service.agency:
             return None, None
         return service, service.agency

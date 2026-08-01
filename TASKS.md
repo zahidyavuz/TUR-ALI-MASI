@@ -708,7 +708,7 @@ Yeni `notifications` uygulaması eklendi:
 
 ---
 
-### [ ] F5-05 · Chat/Spa kapsam kararı — spa modülü
+### [x] F5-05 · Chat/Spa kapsam kararı — spa modülü
 
 **Öncelik:** karar-P1 · **Efor:** L (yapılırsa)
 
@@ -716,7 +716,14 @@ Yeni `notifications` uygulaması eklendi:
 
 **Adımlar:** Kullanıcıya sor: Faz sonrasına mı ertelensin, yoksa `shuttles` şablonu kopyalanarak yazılsın mı? Yazılacaksa: `spa` app (SpaVenue/SpaService/SpaAvailability), aynı atomic desen, `Booking.service_type='spa'`, INSTALLED_APPS + router kaydı.
 
-**Notlar:** _
+**Notlar:** Karar: **şimdi yazıldı** (shuttles şablonu). Kapsam backend + testlerle sınırlı; frontend spa sayfaları ve B2B `AgencySpaViewSet` bilerek ertelendi (bkz. BULUNAN YENİ SORUNLAR).
+
+- **Yeni app `spas`** (`backend/spas/`): `SpaVenue` (SlugField PK, `agency` FK nullable), `SpaService` (SlugField PK, `venue` FK related_name='services', `price_per_person`, `min_guests`/`max_guests`, `duration_minutes`; `agency` **property** → `self.venue.agency` — finans/bildirim çözümlemesi aynı arayüzü kullansın diye), `SpaAvailability` (`spa_service` FK related_name='availability_slots', `unique_together(spa_service,date,time)`, `remaining`/`is_available`). Shuttle deseninin birebir aynası.
+- **Serializers/Views/Admin:** `SpaVenue`+`SpaService` için list/detail serializer'lar (SmartImageField/AgencySerializer yeniden kullanıldı). ViewSet'ler **`ReadOnlyModelViewSet`** (shuttle'ın `ModelViewSet`'inden daha güvenli — public create açığı yok); `SpaServiceViewSet` date/guests müsaitlik filtresi taşır. `spas/admin.py` inline'larla.
+- **Router (`api_urls.py`):** `spas/venues` + `spas/services` kayıtlı. `settings.py` INSTALLED_APPS'e `'spas'` eklendi.
+- **Booking entegrasyonu:** `Booking.spa_service` FK (nullable) + `SERVICE_TYPE_CHOICES`'a `'spa'` + `__str__`; migration `bookings/0011`. `bookings/views.py`: `_create_spa_booking` (transfer akışının aynısı — atomik koşullu-UPDATE kontenjan, sunucu tarafı fiyat, aynı webhook sözleşmesi), `_release_spa_capacity` + `_release_capacity` dağıtımı, `service_label`/`get_queryset`/`guest_ticket` select_related/webhook `service = tour or shuttle_route or spa_service`. `signals.py` (bildirim + finans) ve `finance_models._agency_of` spa çözümlemesi eklendi. `serializers.py` `spa_detail`.
+- **Testler (`bookings/tests.py` → `SpaCapacityReservationTestCase`, 8 test):** create-time kontenjan, overbooking reddi, misafir sınırı, client fiyat yok sayma, pending iptal & failed webhook kontenjan iadesi, onaylı rezervasyon finans defterine düşer (venue.agency), pasif hizmet 404.
+- **Doğrulama:** `makemigrations --check` → No changes; `migrate --check` OK; `python manage.py test` → **277 OK** (269→+8 spa); `spas/` AST duplicate taraması temiz; `npx tsc --noEmit` temiz. Frontend `npm run build` çalıştırılmadı — bu görevde hiçbir frontend dosyası değişmedi.
 
 ---
 
@@ -830,6 +837,8 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · sahte özellik] Restoran menüsünde "Cross-Sell (Ekstra İstekler)" backend'de yoktu — kaldırıldı.** F5-02'de `products/page.tsx` menü CRUD'una bağlanırken, sepette gösterileceği iddia edilen "Ekstra İstekler / Cross-Sell" bölümü sahte state'ti (`Menu` modelinde ne cross-sell ilişkisi ne de böyle bir alan var; checkout akışında da tüketilmiyor). Yanıltıcı olmaması için UI'dan çıkarıldı. Gerçek çapraz satış istenirse ürün kararı + backend işi (yeni model, menüye bağlama, checkout'ta fiyata ekleme, server-side doğrulama).
 
 * **[P2 · duplike kod] İki ayrı `DiningReservationViewSet` var; yalnız biri kayıtlı.** F5-02'de doğrulandı: `agencies/restaurant_views.py::DiningReservationViewSet` (perms `[IsAuthenticated, IsAgentOwner, IsVerifiedAgent]`, bugüne filtreli manuel serileştirme) `restaurant/reservations`'a kayıtlı; `agencies/views.py::DiningReservationViewSet` (perms yalnız `[IsAuthenticated]`, `update-status` action'ı, docstring'i var olmayan `/api/v1/table-reservations/`'a atıf yapıyor) hiçbir router'a **kayıtlı değil** — ölü kod. Aynı isim iki modülde kafa karıştırıcı. Görev kapsamı dışı olduğu için silinmedi; bir temizlik turunda `views.py`'deki kayıtsız kopya kaldırılmalı.
+
+* **[P1 · eksik akış] Spa modülünde frontend ve B2B (acenta) yönetim ucu yok.** F5-05'te `spas` app'i backend olarak eksiksiz yazıldı (public salt-okunur listeleme/detay + booking akışı + finans + testler), ancak iki parça bilinçli ertelendi: **(1) Frontend** — spa mekân/hizmet listeleme, detay ve checkout sayfaları yok; `app/checkout/page.tsx` `service_type='spa'` dalını taşımıyor (transfer/combo deseninin aynısı gerekir). Yani şu an spa hizmeti yalnız API'den satın alınabilir, UI'dan değil. **(2) B2B yönetim** — acentanın spa mekânı/hizmeti/müsaitlik yönetebileceği bir `AgencySpaViewSet` (shuttles'taki `agency_shuttles_views.py::AgencyShuttleViewSet` deseni: RLS + `StrictMassAssignmentPermission` + toplu slot üretimi + görsel yükleme) yok; şu an mekân/hizmet/slot yalnız Django admin'den girilebiliyor. Public ViewSet'ler `ReadOnlyModelViewSet` seçildi (shuttle'ın açık `ModelViewSet` create açığını tekrarlamamak için), dolayısıyla B2B ucu ayrı yazılmalı. İkisi de M-L efor; brief'in "spa modülü" kapsamı tamamlanacaksa ayrı görev(ler) olarak planlanmalı.
 
 ---
 

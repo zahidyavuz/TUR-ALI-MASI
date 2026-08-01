@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from tours.views import TourViewSet, CategoryViewSet, ComboViewSet
 from shuttles.views import ShuttleRouteViewSet
+from spas.views import SpaVenueViewSet, SpaServiceViewSet
 from agencies.views import AgencyViewSet, MenuViewSet
 from agencies.restaurant_views import RestaurantDailyStatsView, DiningReservationViewSet
 from reviews.views import ReviewViewSet
@@ -36,6 +37,8 @@ router = DefaultRouter()
 router.register(r'agencies', AgencyViewSet, basename='agency')
 router.register(r'tours', TourViewSet)
 router.register(r'shuttles', ShuttleRouteViewSet, basename='shuttle')
+router.register(r'spas/venues', SpaVenueViewSet, basename='spa-venue')
+router.register(r'spas/services', SpaServiceViewSet, basename='spa-service')
 router.register(r'categories', CategoryViewSet)
 router.register(r'combos', ComboViewSet, basename='combo')
 router.register(r'reviews', ReviewViewSet)

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth.models import User
 from tours.models import Tour, Combo
 from shuttles.models import ShuttleRoute
+from spas.models import SpaService
 import uuid
 
 
@@ -15,6 +16,9 @@ class Booking(models.Model):
     # (payment_intent_id lookup + atomic capacity restore) is reused as-is.
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)
     shuttle_route = models.ForeignKey(ShuttleRoute, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)
+    # Spa hizmeti (masaj/hamam vb.) satın alımında bağlı SpaService; tour/
+    # shuttle_route ile aynı "tam olarak biri set" desenini izler.
+    spa_service = models.ForeignKey(SpaService, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)
     # Combo (tur + restoran menüsü) satın alımında tur tarafını temsil eden
     # Booking'in bağlı olduğu paket. Restoran tarafı ayrı bir DiningReservation
     # olarak oluşturulur ve ikisi `combo_group` ile eşlenir (F5-03).
@@ -24,6 +28,7 @@ class Booking(models.Model):
         ('tour', 'Tour'),
         ('meal', 'Meal'),
         ('shuttle', 'Shuttle'),
+        ('spa', 'Spa'),
         ('combo', 'Combo'),
     ]
     service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='tour')
@@ -88,6 +93,8 @@ class Booking(models.Model):
 
     def __str__(self):
         service_label = self.tour.title if self.tour else (
-            self.shuttle_route.title if self.shuttle_route else 'Unknown service'
+            self.shuttle_route.title if self.shuttle_route else (
+                self.spa_service.title if self.spa_service else 'Unknown service'
+            )
         )
         return f"{self.booking_ref} - {self.user.username} - {service_label}"

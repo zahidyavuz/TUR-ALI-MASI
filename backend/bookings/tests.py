@@ -912,3 +912,136 @@ class ComboBookingTestCase(TestCase):
         self.assertEqual(self.slot.booked_count, 0)
 
 
+from spas.models import SpaVenue, SpaService, SpaAvailability
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
+@patch('bookings.payments.stripe_provider.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+class SpaCapacityReservationTestCase(TestCase):
+    """F5-05 — Spa kontenjanı da (tur/transfer akışıyla aynı desende) rezervasyon
+    anında koşullu UPDATE ile tutulur; webhook'ta değil. Overbooking engellenir,
+    başarısız/iptal edilen rezervasyonlarda kontenjan geri bırakılır ve onaylı
+    rezervasyon finans defterine (venue.agency üzerinden) düşer."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='spa_user', password='pass', email='spa@test.com')
+        self.agency = Agency.objects.create(name='Spa Agency', status='onaylandi', is_verified=True)
+        self.venue = SpaVenue.objects.create(
+            id='res-venue', agency=self.agency, name='Res Venue', description='d',
+            location='Bodrum', image_main='https://example.com/i.jpg',
+        )
+        self.service = SpaService.objects.create(
+            id='res-service', venue=self.venue, title='Masaj', description='d',
+            price_per_person=Decimal('100.00'), duration_minutes=60,
+            min_guests=1, max_guests=8,
+        )
+        self.day = date.today() + timedelta(days=10)
+        self.slot_time = dtime(9, 0)
+        self.slot = SpaAvailability.objects.create(
+            spa_service=self.service, date=self.day, time=self.slot_time,
+            max_capacity=8, booked_count=0,
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def _book(self, guests=2, **extra):
+        return self.client.post('/api/v1/bookings/', {
+            'service_type': 'spa',
+            'spa_service_id': self.service.pk,
+            'start_date': self.day.strftime('%Y-%m-%d'),
+            'start_time': '09:00',
+            'guests': guests,
+            **extra,
+        })
+
+    def test_capacity_reserved_at_creation(self, _intent):
+        """Kontenjan webhook'u beklemeden rezervasyon anında düşer"""
+        response = self._book(guests=3)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['booking']['service_type'], 'spa')
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 3)
+
+    def test_overbooking_rejected(self, _intent):
+        """Kalan kontenjandan fazlası istenirse 400 ve sayaç değişmez"""
+        self.assertEqual(self._book(guests=6).status_code, 201)
+        response = self._book(guests=5)
+        self.assertEqual(response.status_code, 400)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 6)
+
+    def test_guest_bounds_enforced(self, _intent):
+        """min_guests/max_guests dışındaki misafir sayısı 400 döner"""
+        response = self._book(guests=9)
+        self.assertEqual(response.status_code, 400)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
+
+    def test_client_total_price_is_ignored(self, _intent):
+        """Fiyat sunucuda price_per_person × guests ile hesaplanır"""
+        response = self._book(guests=2, total_price='1.00')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(float(response.data['booking']['total_price']), 200.0)
+
+    def test_cancelling_pending_releases_capacity(self, _intent):
+        """Ödenmemiş (pending) spa iptalinde kontenjan geri döner"""
+        booking_id = self._book(guests=4).data['booking']['id']
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 4)
+
+        response = self.client.post(f'/api/v1/bookings/{booking_id}/cancel/')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
+
+    def test_failed_payment_releases_capacity(self, _intent):
+        """Ödeme başarısız olursa webhook create()'te tutulan kontenjanı bırakır"""
+        booking_id = self._book(guests=3).data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 3)
+
+        fake = _FakeProvider(booking.payment_intent_id, event_type=WebhookEvent.FAILED)
+        with patch('bookings.views.get_provider', return_value=fake):
+            r = self.client.post(
+                '/api/v1/bookings/webhook/', data='{}', content_type='application/json'
+            )
+        self.assertEqual(r.status_code, 200)
+        booking.refresh_from_db()
+        self.slot.refresh_from_db()
+        self.assertEqual(booking.status, 'failed')
+        self.assertEqual(self.slot.booked_count, 0)
+
+    def test_confirmed_booking_writes_finance_ledger(self, _intent):
+        """Onaylı spa rezervasyonu venue.agency üzerinden hakediş defterine düşer"""
+        from agencies.finance_models import AgentFinanceLedger
+        self.agency.commission_rate = Decimal('10.00')
+        self.agency.save(update_fields=['commission_rate'])
+
+        booking_id = self._book(guests=2).data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+
+        fake = _FakeProvider(booking.payment_intent_id)
+        with patch('bookings.views.get_provider', return_value=fake):
+            r = self.client.post(
+                '/api/v1/bookings/webhook/', data='{}', content_type='application/json'
+            )
+        self.assertEqual(r.status_code, 200)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, 'confirmed')
+
+        ledger = AgentFinanceLedger.objects.get(booking_ref=booking.booking_ref)
+        self.assertEqual(ledger.agency_id, self.agency.id)
+        self.assertEqual(ledger.gross_amount, Decimal('200.00'))
+        self.assertEqual(ledger.tour_title, self.service.title)
+
+    def test_inactive_service_rejected(self, _intent):
+        """Pasif (is_active=False) spa hizmeti satın alınamaz (404)."""
+        self.service.is_active = False
+        self.service.save(update_fields=['is_active'])
+        response = self._book(guests=1)
+        self.assertEqual(response.status_code, 404)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
+
+

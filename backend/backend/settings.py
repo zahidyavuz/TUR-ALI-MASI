@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'agencies',
     'tours',
     'shuttles',
+    'spas',
     'bookings',
     'reviews',
     'blogs',

@@ -35,6 +35,7 @@ from .payments import (
 from .serializers import BookingSerializer
 from tours.models import Tour, TourAvailability, Combo, refund_percent_for_policy
 from shuttles.models import ShuttleRoute, ShuttleAvailability
+from spas.models import SpaService, SpaAvailability
 from agencies.models import DiningReservation
 from core.emails import display_name, frontend_url, send_templated_mail
 from core.permissions import IsOwner, StrictMassAssignmentPermission
@@ -58,6 +59,8 @@ def service_label(booking):
         return f'{booking.tour.title} turu'
     if booking.shuttle_route:
         return f'{booking.shuttle_route.title} transferi'
+    if booking.spa_service:
+        return f'{booking.spa_service.title} spa hizmeti'
     return 'hizmetiniz'
 
 
@@ -120,7 +123,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_authenticated:
             return Booking.objects.none()
         return Booking.objects.filter(user=self.request.user).select_related(
-            'tour', 'tour__agency', 'shuttle_route', 'shuttle_route__agency'
+            'tour', 'tour__agency', 'shuttle_route', 'shuttle_route__agency',
+            'spa_service', 'spa_service__venue', 'spa_service__venue__agency',
         )
 
     def _resolve_booking_user(self, request):
@@ -169,6 +173,9 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         if request.data.get('service_type') == 'shuttle':
             return self._create_shuttle_booking(request, booking_user)
+
+        if request.data.get('service_type') == 'spa':
+            return self._create_spa_booking(request, booking_user)
 
         if request.data.get('service_type') == 'combo':
             return self._create_combo_booking(request, booking_user)
@@ -431,6 +438,133 @@ class BookingViewSet(viewsets.ModelViewSet):
         )
 
     # ─────────────────────────────────────────────────────────────────────────
+    # CREATE (SPA) — Spa/wellness hizmeti rezervasyonu + PaymentIntent
+    # Transfer akışının birebir aynısı: aynı atomik koşullu-UPDATE kontenjan
+    # koruması (SpaAvailability), sunucu tarafı fiyat (price_per_person * guests)
+    # ve aynı webhook sözleşmesi (payment_intent_id). Ayrı metot tutuldu ki tur/
+    # transfer akışları dokunulmadan kalsın.
+    # ─────────────────────────────────────────────────────────────────────────
+    def _create_spa_booking(self, request, booking_user):
+        spa_service_id = request.data.get('spa_service_id')
+        guests         = int(request.data.get('guests', 1))
+        start_date     = request.data.get('start_date')
+        start_time     = request.data.get('start_time')
+
+        if not start_date or not start_time:
+            return Response(
+                {'error': 'start_date ve start_time zorunludur.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            spa_service = SpaService.objects.select_related('venue').get(
+                id=spa_service_id, is_active=True
+            )
+        except SpaService.DoesNotExist:
+            return Response({'error': 'Spa hizmeti bulunamadı.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # ── Tarih validasyonu (tur/transfer akışıyla aynı) ───────────────────
+        try:
+            parsed_start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            if parsed_start < timezone.now().date():
+                return Response(
+                    {'error': 'Geçmiş bir tarih için rezervasyon yapılamaz.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response(
+                {'error': 'Geçersiz tarih formatı. YYYY-MM-DD kullanın.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ── Misafir sayısı sınırları (hizmet bazlı, SpaAvailability'den ayrı) ─
+        if guests < spa_service.min_guests or guests > spa_service.max_guests:
+            return Response(
+                {
+                    'error': (
+                        f'Bu hizmet için misafir sayısı {spa_service.min_guests} '
+                        f'ile {spa_service.max_guests} arasında olmalıdır.'
+                    )
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # ── ATOMIC: Kontenjan rezervasyonu + rezervasyon kaydı ───────────────
+        # Kontenjan BURADA düşülür, webhook'ta değil (tur/transfer akışıyla aynı
+        # desen). Tek koşullu UPDATE ile satır kilidi gerekmeden atomik; kaybeden
+        # istek 0 satır güncelleyip hata alır.
+        try:
+            with transaction.atomic():
+                slot = SpaAvailability.objects.filter(
+                    spa_service=spa_service, date=start_date, time=start_time
+                ).first()
+                if slot is None:
+                    raise ValueError('Seçilen tarih/saat için müsaitlik bulunmamaktadır.')
+
+                reserved = SpaAvailability.objects.filter(
+                    pk=slot.pk,
+                    booked_count__lte=F('max_capacity') - guests,
+                ).update(booked_count=F('booked_count') + guests)
+                if not reserved:
+                    slot.refresh_from_db()
+                    raise ValueError(
+                        f'Seçilen saatte en fazla {max(slot.remaining, 0)} kişilik yer kalmıştır.'
+                    )
+
+                # Fiyat her zaman backend'de hesaplanır — client'tan gelen tutara
+                # asla güvenilmez (tur/transfer akışıyla tutarlı).
+                total_price = spa_service.price_per_person * guests
+
+                intent = get_provider().create_intent(
+                    amount=total_price,
+                    currency='TRY',
+                    metadata={'spa_service_id': spa_service.id, 'user_id': booking_user.id},
+                )
+
+                booking_ref = intent.booking_ref
+                booking = Booking.objects.create(
+                    user=booking_user,
+                    spa_service=spa_service,
+                    tour=None,
+                    service_type='spa',
+                    start_date=start_date,
+                    start_time=start_time,
+                    guests=guests,
+                    total_price=total_price,
+                    status='pending',
+                    booking_ref=booking_ref,
+                    payment_intent_id=intent.intent_id,
+                    guest_full_name=(request.data.get('guest_full_name') or '')[:150],
+                    guest_email=(request.data.get('guest_email') or '')[:254],
+                    guest_phone=(request.data.get('guest_phone') or '')[:32],
+                    guest_hotel=(request.data.get('guest_hotel') or '')[:255],
+                )
+
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except ProviderNotConfigured as e:
+            return Response({'error': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except PaymentError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        send_templated_mail('booking_created', booking_user.email, {
+            'user_name': display_name(booking_user),
+            'service_label': f'{spa_service.title} spa hizmeti',
+            'date_label': f'{start_date} {start_time}',
+            'guest_label': 'Misafir sayısı',
+            'guests': guests,
+            'total_price': total_price,
+            'booking_ref': booking_ref,
+            'ticket_url': ticket_link_for(booking),
+        })
+
+        serializer = self.get_serializer(booking)
+        return Response(
+            {'booking': serializer.data, 'clientSecret': intent.client_secret},
+            status=status.HTTP_201_CREATED
+        )
+
+    # ─────────────────────────────────────────────────────────────────────────
     # CREATE (COMBO) — Tur + restoran menüsü paketi, tek ödeme (F5-03)
     # Tur akışıyla aynı atomik kontenjan deseni kullanılır; FARK: yalnızca TUR
     # kontenjanı kilitlenir (restoran/menü tarafında kapasite kavramı yok —
@@ -626,11 +760,31 @@ class BookingViewSet(viewsets.ModelViewSet):
             booked_count__gte=booking.guests,
         ).update(booked_count=F('booked_count') - booking.guests)
 
+    @staticmethod
+    def _release_spa_capacity(booking):
+        """
+        `_create_spa_booking()` sırasında tutulan spa kontenjanını geri bırakır.
+        Transfer akışıyla aynı koşullu UPDATE deseni: eksiye düşmez, kilit
+        gerektirmez.
+        """
+        if booking.service_type != 'spa' or not (
+            booking.spa_service_id and booking.start_date and booking.start_time
+        ):
+            return
+        SpaAvailability.objects.filter(
+            spa_service_id=booking.spa_service_id,
+            date=booking.start_date,
+            time=booking.start_time,
+            booked_count__gte=booking.guests,
+        ).update(booked_count=F('booked_count') - booking.guests)
+
     @classmethod
     def _release_capacity(cls, booking):
         """Rezervasyon türüne göre doğru kontenjanı serbest bırakır."""
         if booking.service_type == 'shuttle':
             cls._release_shuttle_capacity(booking)
+        elif booking.service_type == 'spa':
+            cls._release_spa_capacity(booking)
         else:
             # Combo da tur kontenjanı kullanır; _release_tour_capacity combo'yu
             # da işler (service_type != 'shuttle' ve tour_id/start_date dolu).
@@ -671,7 +825,8 @@ class BookingViewSet(viewsets.ModelViewSet):
             )
         try:
             booking = Booking.objects.select_related(
-                'tour', 'tour__agency', 'shuttle_route', 'shuttle_route__agency'
+                'tour', 'tour__agency', 'shuttle_route', 'shuttle_route__agency',
+                'spa_service', 'spa_service__venue', 'spa_service__venue__agency',
             ).get(id=booking_id)
         except Booking.DoesNotExist:
             return Response({'error': 'Rezervasyon bulunamadı.'}, status=status.HTTP_404_NOT_FOUND)
@@ -871,7 +1026,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                         },
                         booking=booking,
                     )
-                    service = booking.tour or booking.shuttle_route
+                    service = booking.tour or booking.shuttle_route or booking.spa_service
                     enqueue_notification(
                         event_type='new_booking',
                         recipient=agency_phone(service),

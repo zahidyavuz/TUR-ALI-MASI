@@ -30,6 +30,8 @@ def booking_status_notification(sender, instance, **kwargs):
         service_label = f'{instance.tour.title} turu'
     elif instance.shuttle_route:
         service_label = f'{instance.shuttle_route.title} transferi'
+    elif instance.spa_service:
+        service_label = f'{instance.spa_service.title} spa hizmeti'
     else:
         service_label = 'hizmetiniz'
 
@@ -70,8 +72,8 @@ def booking_status_notification(sender, instance, **kwargs):
                 action_url='/bookings'
             )
 
-    # Acenta sahibine de bildirim (tour ya da shuttle_route'un agency'si)
-    service = instance.tour or instance.shuttle_route
+    # Acenta sahibine de bildirim (tour / shuttle_route / spa_service'in agency'si)
+    service = instance.tour or instance.shuttle_route or instance.spa_service
     if instance.status == 'confirmed' and service and hasattr(service, 'agency') and service.agency:
         agency_owner = service.agency.owner
         if agency_owner:
@@ -103,8 +105,8 @@ def create_finance_ledger_entry(sender, instance, created, **kwargs):
     if instance.status != 'confirmed':
         return
 
-    # Tour'un (ya da shuttle_route'un) bir acentası yoksa finansal kayıt tutulmaz
-    service = instance.tour or instance.shuttle_route
+    # Tour/shuttle_route/spa_service'in bir acentası yoksa finansal kayıt tutulmaz
+    service = instance.tour or instance.shuttle_route or instance.spa_service
     if not service or not hasattr(service, 'agency') or not service.agency:
         return
 

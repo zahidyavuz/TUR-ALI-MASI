@@ -2,6 +2,7 @@ from rest_framework import serializers
 from .models import Booking
 from tours.serializers import TourListSerializer, ComboSerializer
 from shuttles.serializers import ShuttleRouteListSerializer
+from spas.serializers import SpaServiceListSerializer
 
 
 class BookingSerializer(serializers.ModelSerializer):
@@ -11,6 +12,7 @@ class BookingSerializer(serializers.ModelSerializer):
     # both `tour` (for capacity/manifest) and `combo` (the bundle).
     tour_detail = TourListSerializer(source='tour', read_only=True)
     shuttle_detail = ShuttleRouteListSerializer(source='shuttle_route', read_only=True)
+    spa_detail = SpaServiceListSerializer(source='spa_service', read_only=True)
     combo_detail = ComboSerializer(source='combo', read_only=True)
     user_email = serializers.EmailField(source='user.email', read_only=True)
     user_full_name = serializers.CharField(source='user.get_full_name', read_only=True)
@@ -19,7 +21,7 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             'id', 'service_type', 'tour', 'tour_detail', 'shuttle_route', 'shuttle_detail',
-            'combo', 'combo_detail', 'combo_group',
+            'spa_service', 'spa_detail', 'combo', 'combo_detail', 'combo_group',
             'user_email', 'user_full_name', 'date_label', 'start_date', 'start_time', 'end_date',
             'guests', 'total_price', 'status', 'booking_ref', 'checked_in_at',
             'guest_full_name', 'guest_email', 'guest_phone', 'guest_hotel',
