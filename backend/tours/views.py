@@ -6,8 +6,11 @@ from rest_framework.response import Response
 from django_filters.rest_framework import DjangoFilterBackend
 from django.db.models import F, Q
 
-from .models import Tour, Category, TourAvailability
-from .serializers import TourListSerializer, TourDetailSerializer, CategorySerializer, TourAvailabilitySerializer
+from .models import Tour, Category, TourAvailability, Combo
+from .serializers import (
+    TourListSerializer, TourDetailSerializer, CategorySerializer,
+    TourAvailabilitySerializer, ComboSerializer,
+)
 from rest_framework.permissions import AllowAny
 import django_filters
 
@@ -145,3 +148,16 @@ class CategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
     pagination_class = None  # Return all categories without pagination
+
+
+class ComboViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Genel (müşteriye açık) küratörlü paket kataloğu — salt okunur (F5-03).
+
+    Yalnız aktif combolar listelenir. Satın alma ayrı bir uçtan yapılır
+    (`POST /api/v1/bookings/` + `service_type='combo'`); combo yazma işlemi
+    şimdilik admin panelinden yönetilir.
+    """
+    queryset = Combo.objects.select_related('tour', 'menu', 'menu__restaurant').filter(is_active=True)
+    serializer_class = ComboSerializer
+    permission_classes = [AllowAny]

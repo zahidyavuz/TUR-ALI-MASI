@@ -9,9 +9,9 @@ from django.db import connection
 from django.test import TestCase, TransactionTestCase, override_settings
 from rest_framework.test import APIClient
 from django.contrib.auth.models import User
-from tours.models import Tour, TourAvailability
+from tours.models import Tour, TourAvailability, Combo
 from bookings.models import Booking
-from agencies.models import Agency
+from agencies.models import Agency, Menu, DiningReservation
 from datetime import date, timedelta
 from datetime import time as dtime  # stdlib `time` modülünü gölgelememek için
 from decimal import Decimal
@@ -756,5 +756,159 @@ class CancellationPolicyRefundTestCase(TestCase):
         # Satış gross 2000 → %50 iade → -1000; net (2000-%10=1800) → -900.
         self.assertEqual(refund.gross_amount, Decimal('-1000.00'))
         self.assertEqual(refund.net_amount, Decimal('-900.00'))
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
+@patch('bookings.payments.stripe_provider.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+class ComboBookingTestCase(TestCase):
+    """F5-03 — Combo (tur + menü) satın alma: tek Booking + tek DiningReservation
+    `combo_group` ile bağlanır. Yalnız tur kontenjanı kilitlenir (restoran tarafı
+    kapasitesizdir); fiyat sunucuda hesaplanır; onay/iptal/başarısızlıkta her iki
+    kayıt birlikte yönetilir."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='combo_user', password='pass', email='combo@test.com')
+        self.tour_agency = Agency.objects.create(name='Combo Tour Agency', status='onaylandi', is_verified=True)
+        self.restaurant = Agency.objects.create(
+            name='Combo Restoran', business_type='restoran', status='onaylandi', is_verified=True
+        )
+        self.tour = Tour.objects.create(
+            id='combo-tour', agency=self.tour_agency, title='Combo Tour', location='Nevşehir',
+            price=Decimal('1000.00'), duration='1 Gün', guide='Türkçe', description='d',
+            category='doga', image_main='https://example.com/i.jpg',
+        )
+        self.menu = Menu.objects.create(
+            restaurant=self.restaurant, name='Gurme Menü', category='special',
+            price=Decimal('400.00'),
+        )
+        self.day = date.today() + timedelta(days=10)
+        self.slot = TourAvailability.objects.create(
+            tour=self.tour, date=self.day, max_capacity=10, booked_count=0
+        )
+        # %20 indirim: original 1400 → bundle 1120, savings 280 (kişi başı).
+        self.combo = Combo.objects.create(
+            id='combo-1', title='Combo Paketi', tour=self.tour, menu=self.menu,
+            discount_rate=Decimal('20.00'), is_active=True,
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def _book(self, guests=2, **extra):
+        payload = {
+            'service_type': 'combo',
+            'combo_id': self.combo.pk,
+            'start_date': self.day.strftime('%Y-%m-%d'),
+            'start_time': '19:00',
+            'guests': guests,
+        }
+        payload.update(extra)
+        return self.client.post('/api/v1/bookings/', payload)
+
+    def test_combo_reserves_tour_capacity_and_links_dining(self, _intent):
+        """Combo alımı tur kontenjanını düşer ve aynı combo_group ile kapasitesiz
+        bir DiningReservation yaratır."""
+        response = self._book(guests=2)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 2)
+
+        booking = Booking.objects.get(pk=response.data['booking']['id'])
+        self.assertEqual(booking.service_type, 'combo')
+        self.assertEqual(booking.combo_id, self.combo.pk)
+        self.assertIsNotNone(booking.combo_group)
+
+        dining = DiningReservation.objects.get(combo_group=booking.combo_group)
+        self.assertEqual(dining.restaurant_id, self.restaurant.id)
+        self.assertEqual(dining.guest_count, 2)
+        self.assertEqual(dining.status, 'pending')
+        # Restoran analitiği: menü brüt tutarı (indirimsiz) 400 × 2 = 800.
+        self.assertEqual(dining.total_amount, Decimal('800.00'))
+
+    def test_combo_price_computed_server_side(self, _intent):
+        """Paket tutarı sunucuda (indirimli) hesaplanır: (1000+400)×0.8×2 = 2240."""
+        response = self._book(guests=2)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(float(response.data['booking']['total_price']), 2240.0)
+
+    def test_client_total_price_is_ignored(self, _intent):
+        """Gövdede total_price gönderilse bile sunucu hesabı kullanılır."""
+        response = self._book(guests=2, total_price='1.00')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(float(response.data['booking']['total_price']), 2240.0)
+
+    def test_overbooking_rejected_no_dining_created(self, _intent):
+        """Kalan tur kontenjanından fazlası istenirse 400; kontenjan değişmez ve
+        yan etki olarak DiningReservation yaratılmaz (atomik blok)."""
+        self.assertEqual(self._book(guests=8).status_code, 201)
+        response = self._book(guests=5)
+        self.assertEqual(response.status_code, 400)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 8)
+        # Yalnız ilk (başarılı) alım için bir DiningReservation olmalı.
+        self.assertEqual(DiningReservation.objects.count(), 1)
+
+    def test_webhook_confirms_both(self, _intent):
+        """Ödeme başarılı webhook'u hem Booking'i hem bağlı DiningReservation'ı
+        'confirmed' yapar."""
+        booking_id = self._book(guests=2).data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+
+        fake = _FakeProvider(booking.payment_intent_id, event_type=WebhookEvent.SUCCEEDED)
+        with patch('bookings.views.get_provider', return_value=fake):
+            r = self.client.post(
+                '/api/v1/bookings/webhook/', data='{}', content_type='application/json'
+            )
+        self.assertEqual(r.status_code, 200)
+        booking.refresh_from_db()
+        dining = DiningReservation.objects.get(combo_group=booking.combo_group)
+        self.assertEqual(booking.status, 'confirmed')
+        self.assertEqual(dining.status, 'confirmed')
+
+    def test_failed_payment_releases_tour_and_cancels_dining(self, _intent):
+        """Ödeme başarısız webhook'u tur kontenjanını geri bırakır ve bağlı
+        DiningReservation'ı 'cancelled' yapar."""
+        booking_id = self._book(guests=3).data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 3)
+
+        fake = _FakeProvider(booking.payment_intent_id, event_type=WebhookEvent.FAILED)
+        with patch('bookings.views.get_provider', return_value=fake):
+            r = self.client.post(
+                '/api/v1/bookings/webhook/', data='{}', content_type='application/json'
+            )
+        self.assertEqual(r.status_code, 200)
+        booking.refresh_from_db()
+        self.slot.refresh_from_db()
+        dining = DiningReservation.objects.get(combo_group=booking.combo_group)
+        self.assertEqual(booking.status, 'failed')
+        self.assertEqual(self.slot.booked_count, 0)
+        self.assertEqual(dining.status, 'cancelled')
+
+    def test_cancel_cancels_both_and_releases_capacity(self, _intent):
+        """Kullanıcı iptali hem Booking'i hem DiningReservation'ı iptal eder ve
+        tur kontenjanını geri bırakır."""
+        booking_id = self._book(guests=4).data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 4)
+
+        response = self.client.post(f'/api/v1/bookings/{booking.id}/cancel/')
+        self.assertEqual(response.status_code, 200, response.data)
+        booking.refresh_from_db()
+        self.slot.refresh_from_db()
+        dining = DiningReservation.objects.get(combo_group=booking.combo_group)
+        self.assertEqual(booking.status, 'cancelled')
+        self.assertEqual(self.slot.booked_count, 0)
+        self.assertEqual(dining.status, 'cancelled')
+
+    def test_inactive_combo_rejected(self, _intent):
+        """Pasif (is_active=False) paket satın alınamaz (404)."""
+        self.combo.is_active = False
+        self.combo.save(update_fields=['is_active'])
+        response = self._book(guests=1)
+        self.assertEqual(response.status_code, 404)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
 
 

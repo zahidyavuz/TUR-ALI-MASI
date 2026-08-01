@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { fetchTour } from "@/app/lib/tours";
 import { fetchShuttle, ShuttleRoute } from "@/app/lib/shuttles";
+import { fetchCombo, Combo } from "@/app/lib/combos";
 import { fetchAPI } from "@/app/lib/api";
 import StripePaymentSection from "@/app/components/StripePaymentSection";
 import { policyInfo } from "@/app/lib/cancellationPolicy";
@@ -15,7 +16,7 @@ function CheckoutLogic() {
   const guests = parseInt(searchParams.get("guests") || "1");
   const date = searchParams.get("date");
   const menuId = searchParams.get("menuId");
-  const itemType = searchParams.get("type"); // 'meal' | 'tour' | 'shuttle'
+  const itemType = searchParams.get("type"); // 'meal' | 'tour' | 'shuttle' | 'combo'
 
   // Transfer (shuttle) rezervasyonu — tur/yemekle aynı ödeme akışını paylaşır;
   // yalnız kaynak (shuttleId + time) ve sipariş özeti farklıdır.
@@ -23,8 +24,15 @@ function CheckoutLogic() {
   const shuttleId = searchParams.get("shuttleId");
   const shuttleTime = searchParams.get("time");
 
+  // Combo (tur + menü) satın alımı — tek Booking + tek DiningReservation
+  // sunucuda combo_group ile bağlanır. Otel değil akşam yemeği saati kullanılır.
+  const isCombo = itemType === "combo";
+  const comboId = searchParams.get("comboId");
+  const comboTime = searchParams.get("time");
+
   const [tour, setTour] = useState<any>(null);
   const [shuttle, setShuttle] = useState<ShuttleRoute | null>(null);
+  const [combo, setCombo] = useState<Combo | null>(null);
   const [step, setStep] = useState<1 | 2>(1); // 1: Bilgiler, 2: Ödeme
 
   // Django'nun oluşturduğu rezervasyon + PaymentIntent
@@ -45,6 +53,13 @@ function CheckoutLogic() {
   });
 
   useEffect(() => {
+    if (isCombo) {
+      if (!comboId) return;
+      fetchCombo(comboId)
+        .then((c) => setCombo(c))
+        .catch(() => {});
+      return;
+    }
     if (isShuttle) {
       if (!shuttleId) return;
       fetchShuttle(shuttleId)
@@ -56,7 +71,7 @@ function CheckoutLogic() {
     fetchTour(tourId)
       .then((t) => setTour(t))
       .catch(() => {});
-  }, [isShuttle, shuttleId, tourId]);
+  }, [isCombo, comboId, isShuttle, shuttleId, tourId]);
 
   /**
    * Step 1 → Step 2: Django'da rezervasyonu ve Stripe PaymentIntent'i oluşturur.
@@ -70,7 +85,7 @@ function CheckoutLogic() {
       setBookingError("Lütfen tüm alanları doldurun.");
       return;
     }
-    if (itemType !== "meal" && !formData.hotelName) {
+    if (itemType !== "meal" && !isCombo && !formData.hotelName) {
       setBookingError("Lütfen konakladığınız oteli girin.");
       return;
     }
@@ -88,7 +103,16 @@ function CheckoutLogic() {
         guest_phone: formData.phone,
         guest_hotel: formData.hotelName,
       };
-      const payload = isShuttle
+      const payload = isCombo
+        ? {
+            service_type: "combo",
+            combo_id: comboId,
+            guests,
+            start_date: date || undefined,
+            start_time: comboTime || undefined,
+            ...commonGuest,
+          }
+        : isShuttle
         ? {
             service_type: "shuttle",
             shuttle_route_id: shuttleId,
@@ -128,7 +152,8 @@ function CheckoutLogic() {
     }
   };
 
-  if (isShuttle ? !shuttleId : !tourId)
+  const missingParams = isCombo ? !comboId : isShuttle ? !shuttleId : !tourId;
+  if (missingParams)
     return (
       <div className="p-10 text-center text-white font-bold">
         Eksik rezervasyon parametreleri.
@@ -139,12 +164,15 @@ function CheckoutLogic() {
         )}
       </div>
     );
-  if (isShuttle ? !shuttle : !tour)
+  const detailsLoading = isCombo ? !combo : isShuttle ? !shuttle : !tour;
+  if (detailsLoading)
     return <div className="p-10 text-center text-white">Detaylar yükleniyor...</div>;
 
   // Fiyat yalnızca gösterim amaçlıdır; tahsil edilen tutar Django'nun
   // hesapladığı `booking.total_price`'tır.
-  const estimatedPrice = isShuttle
+  const estimatedPrice = isCombo
+    ? Number(combo!.bundle_price) * guests
+    : isShuttle
     ? Number(shuttle!.price_per_person) * guests
     : tour.price * guests;
   const totalPrice = booking ? Number(booking.total_price) : estimatedPrice;
@@ -246,7 +274,7 @@ function CheckoutLogic() {
                 </div>
               </div>
 
-              {itemType !== 'meal' ? (
+              {isCombo ? null : itemType !== 'meal' ? (
                 <div>
                   <label className="block text-xs font-black text-slate-500 uppercase tracking-widest mb-2">
                     Konakladığınız Otel (Transfer Bilgisi İçin)
@@ -396,7 +424,81 @@ function CheckoutLogic() {
             <span className="text-2xl">📋</span> Sipariş Özeti
           </h3>
 
-          {isShuttle && shuttle ? (
+          {isCombo && combo ? (
+            <>
+              <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10 flex">
+                  <img
+                    src={combo.tour.image_main}
+                    alt={combo.tour.title}
+                    className="object-cover w-1/2 h-full"
+                  />
+                  {combo.menu.image ? (
+                    <img
+                      src={combo.menu.image}
+                      alt={combo.menu.name}
+                      className="object-cover w-1/2 h-full"
+                    />
+                  ) : (
+                    <div className="w-1/2 h-full bg-slate-700 flex items-center justify-center text-xl">🍽️</div>
+                  )}
+                </div>
+                <div className="flex flex-col justify-center">
+                  <h4 className="font-bold text-white text-base leading-tight">
+                    {combo.title}
+                  </h4>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-[#38bdf8] rounded-full"></span>{" "}
+                    {combo.tour.title} + {combo.menu.name}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4 text-sm font-bold text-slate-300 mb-8 bg-white/5 p-6 rounded-[24px] border border-white/5">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    📅 Tarih
+                  </span>
+                  <span className="text-white">
+                    {new Date(String(date)).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    🍽️ Akşam Yemeği
+                  </span>
+                  <span className="text-white">{comboTime}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    👥 Misafir
+                  </span>
+                  <span className="text-white">{guests} Kişi</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                <span className="text-slate-400 font-black text-[10px] uppercase tracking-widest">
+                  Toplam
+                </span>
+                <span className="text-2xl font-black text-white" suppressHydrationWarning>
+                  {totalPrice.toLocaleString("tr-TR", {
+                    style: "currency",
+                    currency: "TRY",
+                  })}
+                </span>
+              </div>
+              {!booking && (
+                <p className="text-[10px] font-bold text-slate-500 mt-2 text-right">
+                  * Kesin tutar rezervasyon oluşturulurken sunucuda hesaplanır.
+                </p>
+              )}
+            </>
+          ) : isShuttle && shuttle ? (
             <>
               <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
                 <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10">

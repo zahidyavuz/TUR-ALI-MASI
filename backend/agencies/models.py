@@ -255,7 +255,14 @@ class DiningReservation(models.Model):
     
     # Analytics
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00, verbose_name='Toplam Tutar (₺)')
-    
+
+    # Combo (tur + menü) satın alımında bu rezervasyonu, tur tarafındaki
+    # Booking ile eşleyen ortak grup kimliği (F5-03). Combo dışı
+    # rezervasyonlarda boştur. Ödeme onayı/iptali bu grup üzerinden her iki
+    # kaydı birlikte yönetir. `bookings` app'ine FK vermek yerine gevşek bağ
+    # (UUID) tercih edildi ki modüller arası döngüsel bağımlılık oluşmasın.
+    combo_group = models.UUIDField(null=True, blank=True, db_index=True, verbose_name='Combo Grubu')
+
     created_at = models.DateTimeField(default=timezone.now)
 
     def __str__(self):

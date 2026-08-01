@@ -9,6 +9,7 @@ Kritik değişiklikler:
      geçiyor; bu dosyada artık doğrudan PSP SDK'sı yok (F2-06).
 """
 import logging
+import uuid
 from datetime import date as date_type, datetime, time as time_type
 from decimal import Decimal, ROUND_HALF_UP
 
@@ -32,8 +33,9 @@ from .payments import (
     get_provider,
 )
 from .serializers import BookingSerializer
-from tours.models import Tour, TourAvailability, refund_percent_for_policy
+from tours.models import Tour, TourAvailability, Combo, refund_percent_for_policy
 from shuttles.models import ShuttleRoute, ShuttleAvailability
+from agencies.models import DiningReservation
 from core.emails import display_name, frontend_url, send_templated_mail
 from core.permissions import IsOwner, StrictMassAssignmentPermission
 from notifications.service import enqueue as enqueue_notification
@@ -50,6 +52,8 @@ logger = logging.getLogger('bookings')
 
 def service_label(booking):
     """E-postalarda kullanılan okunabilir hizmet adı."""
+    if booking.combo_id and booking.combo:
+        return f'{booking.combo.title} paketi'
     if booking.tour:
         return f'{booking.tour.title} turu'
     if booking.shuttle_route:
@@ -165,6 +169,9 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         if request.data.get('service_type') == 'shuttle':
             return self._create_shuttle_booking(request, booking_user)
+
+        if request.data.get('service_type') == 'combo':
+            return self._create_combo_booking(request, booking_user)
 
         tour_slug  = request.data.get('tour_slug')
         date_label = request.data.get('date_label', '')
@@ -423,6 +430,170 @@ class BookingViewSet(viewsets.ModelViewSet):
             status=status.HTTP_201_CREATED
         )
 
+    # ─────────────────────────────────────────────────────────────────────────
+    # CREATE (COMBO) — Tur + restoran menüsü paketi, tek ödeme (F5-03)
+    # Tur akışıyla aynı atomik kontenjan deseni kullanılır; FARK: yalnızca TUR
+    # kontenjanı kilitlenir (restoran/menü tarafında kapasite kavramı yok —
+    # F5-02'de ertelendi), bu yüzden "ikinci kilit / sabit kilit sırası" gerekmez
+    # ve deadlock riski yoktur. Restoran tarafı kapasitesiz bir DiningReservation
+    # olarak aynı transaction içinde oluşturulur; ikisi `combo_group` ile eşlenir.
+    # Fiyat her zaman sunucuda hesaplanır (istemci tutarı yok sayılır).
+    # ─────────────────────────────────────────────────────────────────────────
+    def _create_combo_booking(self, request, booking_user):
+        combo_id   = request.data.get('combo_id')
+        start_date = request.data.get('start_date')
+        # Restoran rezervasyonunun saati (turun tarihi ile aynı gün).
+        start_time = request.data.get('start_time')
+
+        try:
+            guests = int(request.data.get('guests', 1))
+        except (TypeError, ValueError):
+            return Response({'error': 'Geçersiz kişi sayısı.'}, status=status.HTTP_400_BAD_REQUEST)
+        if guests < 1:
+            return Response({'error': 'Kişi sayısı en az 1 olmalıdır.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not start_date or not start_time:
+            return Response(
+                {'error': 'start_date ve start_time zorunludur.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            combo = Combo.objects.select_related('tour', 'menu', 'menu__restaurant').get(
+                id=combo_id, is_active=True
+            )
+        except Combo.DoesNotExist:
+            return Response({'error': 'Paket bulunamadı.'}, status=status.HTTP_404_NOT_FOUND)
+
+        # ── Tarih validasyonu (tur akışıyla aynı) ────────────────────────────
+        try:
+            parsed_start = datetime.strptime(start_date, '%Y-%m-%d').date()
+            if parsed_start < timezone.now().date():
+                return Response(
+                    {'error': 'Geçmiş bir tarih için rezervasyon yapılamaz.'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except ValueError:
+            return Response(
+                {'error': 'Geçersiz tarih formatı. YYYY-MM-DD kullanın.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # DiningReservation.reservation_time bir TimeField'tır ve post_save
+        # sinyali (agencies/signals.py) üzerinde .strftime() çağırır; bu yüzden
+        # string yerine gerçek time nesnesi yazılmalı.
+        try:
+            parsed_time = datetime.strptime(start_time, '%H:%M').time()
+        except ValueError:
+            return Response(
+                {'error': 'Geçersiz saat formatı. HH:MM kullanın.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        tour = combo.tour
+        menu = combo.menu
+
+        try:
+            with transaction.atomic():
+                # ── Tur kontenjanını kilitle (tek gerçek kilit) ──────────────
+                slot = TourAvailability.objects.filter(tour=tour, date=start_date).first()
+                if slot is None:
+                    raise ValueError('Seçilen tarih için müsaitlik bulunmamaktadır.')
+                if slot.is_closed:
+                    raise ValueError('Seçilen tarih satışa kapalıdır.')
+
+                reserved = TourAvailability.objects.filter(
+                    pk=slot.pk,
+                    is_closed=False,
+                    booked_count__lte=F('max_capacity') - guests,
+                ).update(booked_count=F('booked_count') + guests)
+                if not reserved:
+                    slot.refresh_from_db()
+                    raise ValueError(
+                        f'Seçilen tarihte en fazla {max(slot.remaining, 0)} kişilik yer kalmıştır.'
+                    )
+
+                # ── Fiyat sunucuda: indirim (tur günlük fiyatı + menü) toplamına ─
+                tour_unit = slot.effective_price
+                menu_unit = menu.effective_price()
+                bundle_unit = combo.bundle_unit_price(tour_unit, menu_unit)
+                total_price = bundle_unit * guests
+                # Restoran analitiği için menü tarafının brüt tutarı (indirimsiz);
+                # platform indirimi paket düzeyinde uygulanır.
+                dining_amount = (Decimal(menu_unit) * guests).quantize(
+                    Decimal('0.01'), rounding=ROUND_HALF_UP
+                )
+
+                intent = get_provider().create_intent(
+                    amount=total_price,
+                    currency='TRY',
+                    metadata={'combo_id': combo.id, 'user_id': booking_user.id},
+                )
+
+                combo_group = uuid.uuid4()
+                booking_ref = intent.booking_ref
+                guest_full_name = (request.data.get('guest_full_name') or '')[:150]
+                guest_email = (request.data.get('guest_email') or '')[:254]
+                guest_phone = (request.data.get('guest_phone') or '')[:32]
+
+                booking = Booking.objects.create(
+                    user=booking_user,
+                    tour=tour,
+                    combo=combo,
+                    combo_group=combo_group,
+                    service_type='combo',
+                    start_date=start_date,
+                    start_time=parsed_time,
+                    guests=guests,
+                    total_price=total_price,
+                    status='pending',
+                    booking_ref=booking_ref,
+                    payment_intent_id=intent.intent_id,
+                    guest_full_name=guest_full_name,
+                    guest_email=guest_email,
+                    guest_phone=guest_phone,
+                    guest_hotel=(request.data.get('guest_hotel') or '')[:255],
+                )
+
+                # Restoran tarafı: kapasitesiz DiningReservation (aynı gruptan).
+                DiningReservation.objects.create(
+                    restaurant=menu.restaurant,
+                    guest_name=guest_full_name or display_name(booking_user),
+                    guest_phone=guest_phone,
+                    guest_email=guest_email or booking_user.email,
+                    guest_count=guests,
+                    reservation_date=start_date,
+                    reservation_time=parsed_time,
+                    notes=f'Combo: {combo.title} (Rez. {booking_ref})',
+                    status='pending',
+                    total_amount=dining_amount,
+                    combo_group=combo_group,
+                )
+
+        except ValueError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except ProviderNotConfigured as e:
+            return Response({'error': str(e)}, status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except PaymentError as e:
+            return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        send_templated_mail('booking_created', booking_user.email, {
+            'user_name': display_name(booking_user),
+            'service_label': f'{combo.title} paketi',
+            'date_label': f'{start_date} {start_time}',
+            'guest_label': 'Kişi sayısı',
+            'guests': guests,
+            'total_price': total_price,
+            'booking_ref': booking_ref,
+            'ticket_url': ticket_link_for(booking),
+        })
+
+        serializer = self.get_serializer(booking)
+        return Response(
+            {'booking': serializer.data, 'clientSecret': intent.client_secret},
+            status=status.HTTP_201_CREATED
+        )
+
     @staticmethod
     def _release_tour_capacity(booking):
         """
@@ -461,7 +632,21 @@ class BookingViewSet(viewsets.ModelViewSet):
         if booking.service_type == 'shuttle':
             cls._release_shuttle_capacity(booking)
         else:
+            # Combo da tur kontenjanı kullanır; _release_tour_capacity combo'yu
+            # da işler (service_type != 'shuttle' ve tour_id/start_date dolu).
             cls._release_tour_capacity(booking)
+
+    @staticmethod
+    def _sync_combo_dining(booking, new_status):
+        """
+        Combo Booking'in durumu değişince (onay/iptal/başarısız), aynı
+        `combo_group`'a bağlı restoran DiningReservation'ını da senkronlar
+        (F5-03). Combo dışı rezervasyonlarda no-op. DiningReservation'da
+        'failed' yok; ödeme başarısızı da 'cancelled' olarak yazılır.
+        """
+        if not booking.combo_group:
+            return
+        DiningReservation.objects.filter(combo_group=booking.combo_group).update(status=new_status)
 
     # ─────────────────────────────────────────────────────────────────────────
     # GUEST TICKET — İmzalı sihirli bağlantıyla misafir bileti görüntüleme
@@ -556,6 +741,8 @@ class BookingViewSet(viewsets.ModelViewSet):
         with transaction.atomic():
             if booking.status in ('pending', 'confirmed'):
                 self._release_capacity(booking)
+                # Combo ise eşlenmiş restoran rezervasyonunu da iptal et (F5-03).
+                self._sync_combo_dining(booking, 'cancelled')
 
             booking.status = 'cancelled'
             booking.cancelled_at = timezone.now()
@@ -641,6 +828,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                         # rezerve edildi (F5-01); burada tekrar düşmek çift sayıma
                         # yol açar, o yüzden webhook kontenjana dokunmaz.
 
+                        # Combo ise restoran tarafını da onayla (F5-03).
+                        self._sync_combo_dining(booking, 'confirmed')
+
                 # E-posta atomic dışında
                 send_templated_mail('booking_confirmed', booking.user.email, {
                     'user_name': display_name(booking.user),
@@ -710,6 +900,8 @@ class BookingViewSet(viewsets.ModelViewSet):
                     # Bırakılmazsa gün, hiç satılmamış koltuklarla dolu görünür.
                     if not already_failed:
                         self._release_capacity(booking)
+                        # Combo ise eşlenmiş restoran rezervasyonunu da iptal et.
+                        self._sync_combo_dining(booking, 'cancelled')
                 logger.info(f"Booking {booking.booking_ref} marked as failed via webhook")
 
                 send_templated_mail('booking_payment_failed', booking.user.email, {

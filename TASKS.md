@@ -673,13 +673,13 @@ Yeni `notifications` uygulaması eklendi:
 
 ---
 
-### [ ] F5-03 · Combo (tur + restoran) uçtan uca
+### [x] F5-03 · Combo (tur + restoran) uçtan uca
 
 **Öncelik:** P2 · **Efor:** L
 
 **Adımlar:** Backend combo fiyat hesabı (server-side indirim), tek ödemede iki rezervasyon atomik oluşturma (tek `transaction.atomic` bloğunda iki availability kilidi — deadlock önlemek için sabit kilit sırası), iki panelde ayrı görünüm, ComboCard'ın gerçek veriye bağlanması.
 
-**Notlar:** _
+**Notlar:** Küratörlü `Combo` modeli eklendi (Tour FK + Menu FK + `discount_rate`; fiyat hesabı `bundle_unit_price`/`original_unit_price`/`savings` ile sunucuda). Satın alma tek `transaction.atomic` bloğunda **tek gerçek kilit** kullanır: yalnız tur kontenjanı koşullu UPDATE ile tutulur — restoran tarafı F5-02'de ertelendiği için kapasitesizdir, dolayısıyla görevdeki "iki availability kilidi / sabit kilit sırası" premisi geçerli değil (tek kilit → deadlock imkânsız). Alım tek `Booking(service_type='combo', tour+combo)` + tek `DiningReservation` yaratır, ikisi ortak `combo_group` (UUID) ile bağlanır; ödeme onayı/iptali/başarısızlığı `_sync_combo_dining` ile her iki kaydı birlikte yönetir. Fiyat tamamen sunucuda; istemci `total_price`'ı yok sayılır. Public read-only `/combos/` + `/combos/{id}/`. Frontend: `app/lib/combos.ts`, `/combo/[id]` detay, checkout combo dalı, anasayfa ComboCard gerçek veriye bağlandı (aktif combo yoksa bölüm gizlenir). **Bulunup düzeltilen:** DiningReservation `post_save` sinyali (`agencies/signals.py`) `reservation_time.strftime()` çağırıyor; `start_time` string olarak yazılınca AttributeError veriyordu — combo akışında `start_time` artık `HH:MM` doğrulanıp `time` nesnesine çevriliyor (hem Booking.start_time hem DiningReservation.reservation_time). Testler: `ComboBookingTestCase` (8 test) — kontenjan rezervasyonu + bağlı dining, sunucu fiyatı, istemci fiyatı yok sayma, overbooking (dining yaratılmaz), webhook ikisini de onaylar, başarısız ödeme turu bırakır + dining iptal, iptal ikisini de iptal, pasif combo 404. Doğrulama: makemigrations --check temiz, migrate --check temiz, 269 backend test OK, tsc/eslint/build temiz (`/combo/[id]` route üretildi), AST duplike taraması temiz.
 
 ---
 

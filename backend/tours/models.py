@@ -1,5 +1,7 @@
+from decimal import Decimal, ROUND_HALF_UP
+
 from django.db import models
-from agencies.models import Agency
+from agencies.models import Agency, Menu
 
 
 # ── İptal / İade Politikası Motoru (F4-04) ───────────────────────────────────
@@ -126,3 +128,58 @@ class TourAvailability(models.Model):
 
     def __str__(self):
         return f"{self.tour.title} - {self.date} ({self.remaining} remaining)"
+
+
+class Combo(models.Model):
+    """
+    Küratörlü paket: bir Tour + bir restoran Menüsü, tek ödemede indirimli
+    satılır (F5-03). Fiyat her zaman sunucuda hesaplanır — indirim, turun o
+    güne ait geçerli fiyatı ile menünün geçerli fiyatının TOPLAMINA uygulanır.
+    Restoran/menü tarafında kapasite kavramı yok (F5-02'de ertelendi); bu
+    nedenle satın alırken yalnızca turun kontenjanı atomik olarak kilitlenir.
+    """
+    id = models.SlugField(primary_key=True, max_length=100)  # e.g. 'kapadokya-museum'
+    title = models.CharField(max_length=255)
+    tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='combos')
+    menu = models.ForeignKey(Menu, on_delete=models.CASCADE, related_name='combos')
+    # İndirim yüzdesi (0-100). Toplam (tur + menü) üzerine uygulanır.
+    discount_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('0.00'))
+    description = models.TextField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    @staticmethod
+    def _q(value):
+        """Para değerini 2 ondalığa yuvarlar (ROUND_HALF_UP)."""
+        return Decimal(value).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+
+    def bundle_unit_price(self, tour_unit_price, menu_unit_price):
+        """
+        Kişi başı indirimli paket fiyatı. Çağıran, turun o güne ait geçerli
+        fiyatını (TourAvailability.effective_price) ve menünün geçerli fiyatını
+        verir; indirim ikisinin toplamına uygulanır.
+        """
+        original = Decimal(tour_unit_price) + Decimal(menu_unit_price)
+        discounted = original * (Decimal('100') - self.discount_rate) / Decimal('100')
+        return self._q(discounted)
+
+    @property
+    def original_unit_price(self):
+        """Vitrin için indirimsiz kişi başı toplam (tur temel + menü geçerli)."""
+        return self._q(Decimal(self.tour.price) + Decimal(self.menu.effective_price()))
+
+    @property
+    def bundle_price(self):
+        """Vitrin için indirimli kişi başı fiyat (tur temel fiyatı baz alınır)."""
+        return self.bundle_unit_price(self.tour.price, self.menu.effective_price())
+
+    @property
+    def savings(self):
+        """Vitrin için kişi başı tasarruf tutarı."""
+        return self._q(self.original_unit_price - self.bundle_price)
+
+    def __str__(self):
+        return f"{self.title} ({self.tour.title} + {self.menu.name})"

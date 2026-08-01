@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
-from tours.models import Tour
+from tours.models import Tour, Combo
 from shuttles.models import ShuttleRoute
 import uuid
 
@@ -15,13 +15,24 @@ class Booking(models.Model):
     # (payment_intent_id lookup + atomic capacity restore) is reused as-is.
     tour = models.ForeignKey(Tour, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)
     shuttle_route = models.ForeignKey(ShuttleRoute, on_delete=models.CASCADE, related_name='bookings', null=True, blank=True)
+    # Combo (tur + restoran menüsü) satın alımında tur tarafını temsil eden
+    # Booking'in bağlı olduğu paket. Restoran tarafı ayrı bir DiningReservation
+    # olarak oluşturulur ve ikisi `combo_group` ile eşlenir (F5-03).
+    combo = models.ForeignKey(Combo, on_delete=models.SET_NULL, related_name='bookings', null=True, blank=True)
 
     SERVICE_TYPE_CHOICES = [
         ('tour', 'Tour'),
         ('meal', 'Meal'),
         ('shuttle', 'Shuttle'),
+        ('combo', 'Combo'),
     ]
     service_type = models.CharField(max_length=20, choices=SERVICE_TYPE_CHOICES, default='tour')
+
+    # Combo satın alımında bu Booking ile eş zamanlı oluşturulan
+    # DiningReservation'ı bağlayan ortak grup kimliği. Combo dışı
+    # rezervasyonlarda boştur. İptal/iade ve webhook onayı bu grup üzerinden
+    # her iki kaydı birlikte yönetir.
+    combo_group = models.UUIDField(null=True, blank=True, db_index=True)
 
     date_label = models.CharField(max_length=255, blank=True, null=True)  # legacy compat
     start_date = models.DateField(null=True, blank=True)

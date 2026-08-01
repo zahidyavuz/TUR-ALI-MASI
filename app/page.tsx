@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { fetchTours } from '@/app/lib/tours';
+import { fetchCombos, Combo } from '@/app/lib/combos';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import Link from 'next/link';
@@ -16,34 +17,38 @@ import PartnerOnboardingStepper from './components/PartnerOnboardingStepper';
 import { useAuth } from './context/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-// --- YENİ BİLEŞEN: ComboCard (Geniş / Wide Format) ---
-const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice, router }: { id: string, tour: any, restaurant: any, discountRate: number, formatPrice: (p: number) => string, router: any }) => {
+// --- ComboCard (Geniş / Wide Format) — gerçek /combos/ verisiyle beslenir. ---
+const ComboCard = ({ combo, formatPrice, router }: { combo: Combo, formatPrice: (p: number) => string, router: any }) => {
 
-  // Bundle_Pricing Logic
-  const originalTotal = tour.price + restaurant.price;
-  const discountAmount = originalTotal * (discountRate / 100);
-  const bundlePrice = originalTotal - discountAmount;
-  const savings = Math.round(discountAmount);
+  // Fiyatlar sunucuda hesaplanır (original_price / bundle_price / savings);
+  // burada yalnız gösterilir.
+  const originalTotal = Number(combo.original_price);
+  const bundlePrice = Number(combo.bundle_price);
+  const savings = Number(combo.savings);
 
   const handleCheckout = () => {
-    router.push(`/tour/${id}`);
+    router.push(`/combo/${combo.id}`);
   };
 
   return (
-    <div 
+    <div
       onClick={handleCheckout}
-      className="relative bg-white rounded-[20px] overflow-hidden shadow-xl hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-700 group cursor-pointer border border-gray-100 dark:border-none flex flex-col md:flex-row w-full mb-4"> 
+      className="relative bg-white rounded-[20px] overflow-hidden shadow-xl hover:shadow-[0_15px_40px_rgba(0,0,0,0.1)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] transition-all duration-700 group cursor-pointer border border-gray-100 dark:border-none flex flex-col md:flex-row w-full mb-4">
       {/* Görsel Alanı (Geniş Split) */}
       <div className="relative h-44 md:h-auto md:w-[35%] overflow-hidden flex">
         <div className="w-1/2 h-full relative border-r-2 border-white z-10 shrink-0">
-          <Image src={tour.image} alt={tour.name} fill priority={true} className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+          <Image src={combo.tour.image_main} alt={combo.tour.title} fill priority={true} className="object-cover group-hover:scale-110 transition-transform duration-1000" unoptimized />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
         </div>
         <div className="w-1/2 h-full relative shrink-0">
-          <Image src={restaurant.image} alt={restaurant.name} fill priority={true} className="object-cover group-hover:scale-110 transition-transform duration-1000" />
+          {combo.menu.image ? (
+            <Image src={combo.menu.image} alt={combo.menu.name} fill priority={true} className="object-cover group-hover:scale-110 transition-transform duration-1000" unoptimized />
+          ) : (
+            <div className="w-full h-full bg-slate-200 flex items-center justify-center text-3xl">🍽️</div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-60"></div>
         </div>
-        
+
         {/* Ortasındaki "Birlikte Daha Güçlü" İkonu */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-10 h-10 bg-white rounded-full shadow-xl flex items-center justify-center z-20 border-4 border-slate-50 transform group-hover:rotate-12 transition-transform">
           <span className="text-xl font-bold text-orange-500">＋</span>
@@ -64,18 +69,18 @@ const ComboCard = ({ id, tour, restaurant, discountRate, formatPrice, router }: 
           </div>
           <span className="text-[10px] font-black text-orange-600 uppercase tracking-widest bg-orange-50 px-2 py-1 rounded-lg border border-orange-100">Avantaj: {formatPrice(savings)} İndirim</span>
         </div>
-        
-        <h3 
+
+        <h3
           className="text-lg md:text-xl font-black text-slate-900 leading-tight mb-2 group-hover:text-[#008cb3] transition-colors cursor-pointer"
         >
-          {tour.name} <span className="text-gray-300 font-light mx-1">&</span> {restaurant.name}
+          {combo.tour.title} <span className="text-gray-300 font-light mx-1">&</span> {combo.menu.name}
         </h3>
 
-        
+
         <p className="text-xs md:text-sm text-gray-500 font-medium mb-6 leading-relaxed max-w-xl">
           Eşsiz bir gezi ve gurme akşam yemeği tek pakette! Birlikte alın, <b>{formatPrice(savings)}</b> kazançlı çıkın.
         </p>
-        
+
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-gray-100">
           <div>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.1em] mb-1">Paket Fiyatı</p>
@@ -108,11 +113,18 @@ const BACKGROUND_IMAGES = [
 export default function Home() {
   const { t, locale, setLocale, formatPrice } = useLocale();
   const [tours, setTours] = useState<any[]>([]);
+  const [combos, setCombos] = useState<Combo[]>([]);
   const [currentImage, setCurrentImage] = useState(0);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    fetchCombos()
+      .then((data) => setCombos(data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -794,63 +806,32 @@ export default function Home() {
         </div>
       </div>
     
-      {/* 4.5. Tur + VIP Menü Komboları (Combo Showcase - Yeni) */}
-      <div className="w-full bg-[#f9f8f4] dark:bg-transparent py-16 border-t border-gray-200/50 transition-colors duration-500">
-        <div className="max-w-7xl mx-auto px-4 md:px-6">
-          <div className="text-center mb-10">
-            <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-3 block">Ayrıcalıklı Paketler</span>
-            <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-4 italic italic-font-fix transition-colors duration-500">Tur + VIP Menü <span className="text-orange-500 underline decoration-indigo-200 underline-offset-8 italic">Komboları</span></h2>
-            <p className="text-xs md:text-sm text-gray-500 font-medium max-w-xl mx-auto leading-relaxed">
-              Zamanınızı ve bütçenizi en verimli şekilde kullanın. Popüler turlarımız ve seçkin restoran menüleri tek pakette.
-            </p>
-          </div>
+      {/* 4.5. Tur + VIP Menü Komboları (Combo Showcase) — gerçek /combos/ verisi.
+          Aktif combo yoksa bölüm hiç gösterilmez. */}
+      {combos.length > 0 && (
+        <div className="w-full bg-[#f9f8f4] dark:bg-transparent py-16 border-t border-gray-200/50 transition-colors duration-500">
+          <div className="max-w-7xl mx-auto px-4 md:px-6">
+            <div className="text-center mb-10">
+              <span className="text-[10px] font-black text-[#008cb3] uppercase tracking-[0.4em] mb-3 block">Ayrıcalıklı Paketler</span>
+              <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-4 italic italic-font-fix transition-colors duration-500">Tur + VIP Menü <span className="text-orange-500 underline decoration-indigo-200 underline-offset-8 italic">Komboları</span></h2>
+              <p className="text-xs md:text-sm text-gray-500 font-medium max-w-xl mx-auto leading-relaxed">
+                Zamanınızı ve bütçenizi en verimli şekilde kullanın. Popüler turlarımız ve seçkin restoran menüleri tek pakette.
+              </p>
+            </div>
 
-          <div className="flex flex-col gap-10">
-            <ComboCard 
-              id="vip-1"
-              formatPrice={formatPrice}
-              discountRate={25}
-              router={router}
-
-              tour={{
-                name: "VIP Gün Batımı ATV Safari",
-                image: "https://images.unsplash.com/photo-1621259182978-f09e5e2ca845?w=800&q=80",
-                price: 5350
-              }}
-              restaurant={{
-                name: "Museum Terrace VIP Menü",
-                image: "https://images.unsplash.com/photo-1559339352-11d035aa65de?w=800&q=80",
-                price: 2400
-              }}
-            />
-
-            <ComboCard 
-              id="vip-2"
-              formatPrice={formatPrice}
-              discountRate={20}
-              router={router}
-
-              tour={{
-                name: "Özel Rehberli Tarihi Yarımada Turu",
-                image: "https://images.unsplash.com/photo-1541432901042-2d8bd64b4a9b?w=800&q=80",
-                price: 4230
-              }}
-              restaurant={{
-                name: "Ziyade Ocakbaşı Gurme Menü",
-                image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=800&q=80",
-                price: 1850
-              }}
-            />
-          </div>
-
-          <div className="mt-12 flex justify-center">
-            <button className="text-sm font-black text-slate-800 dark:text-white hover:text-orange-500 dark:hover:text-orange-400 flex items-center gap-2 group transition-all">
-              TÜM KOMBO PAKETLERİ LİSTELE
-              <span className="w-8 h-8 rounded-full bg-white dark:bg-slate-800 shadow-sm flex items-center justify-center group-hover:bg-orange-500 group-hover:text-white transition-all">➔</span>
-            </button>
+            <div className="flex flex-col gap-10">
+              {combos.map((combo) => (
+                <ComboCard
+                  key={combo.id}
+                  combo={combo}
+                  formatPrice={formatPrice}
+                  router={router}
+                />
+              ))}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* 5. Anılar (Memories / Social Wall - Yeni) */}
       <div className="w-full bg-slate-900 py-10 relative overflow-hidden">

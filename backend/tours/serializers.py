@@ -1,6 +1,6 @@
 from rest_framework import serializers
-from .models import Tour, TourItinerary, Category, TourAvailability
-from agencies.serializers import AgencySerializer
+from .models import Tour, TourItinerary, Category, TourAvailability, Combo
+from agencies.serializers import AgencySerializer, MenuSerializer
 
 
 class SmartImageField(serializers.ImageField):
@@ -88,6 +88,28 @@ class AgencyTourListSerializer(TourListSerializer):
         tutulmaz ki panelde gösterilen durum ile gerçek görünürlük ayrışmasın.
         """
         return bool(obj.image_main)
+
+
+class ComboSerializer(serializers.ModelSerializer):
+    """
+    Vitrin + detay için küratörlü paket. Fiyat alanları (original/bundle/savings)
+    modelin sunucu-tarafı hesaplayıcılarından türetilir; istemci fiyatı asla
+    kabul edilmez (satın alma anında da sunucuda yeniden doğrulanır).
+    """
+    tour = TourListSerializer(read_only=True)
+    tour_availability = TourAvailabilitySerializer(source='tour.availability_slots', many=True, read_only=True)
+    menu = MenuSerializer(read_only=True)
+    original_price = serializers.DecimalField(source='original_unit_price', max_digits=10, decimal_places=2, read_only=True)
+    bundle_price = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+    savings = serializers.DecimalField(max_digits=10, decimal_places=2, read_only=True)
+
+    class Meta:
+        model = Combo
+        fields = [
+            'id', 'title', 'description', 'discount_rate', 'is_active',
+            'tour', 'menu', 'tour_availability',
+            'original_price', 'bundle_price', 'savings',
+        ]
 
 
 class TourDetailSerializer(serializers.ModelSerializer):
