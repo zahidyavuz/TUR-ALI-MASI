@@ -658,13 +658,18 @@ Yeni `notifications` uygulaması eklendi:
 
 ---
 
-### [ ] F5-02 · Restaurant paneli gerçek veri + canlı rezervasyon
+### [x] F5-02 · Restaurant paneli gerçek veri + canlı rezervasyon
 
 **Öncelik:** P1 · **Efor:** M
 
 **Adımlar:** `dashboard/restaurant/*` sayfalarını `restaurant_views.py`'ye bağla (menü CRUD, masa/slot, rezervasyon listesi); WS canlı bildirim — frontend'in `?token=` query-string'i gönderdiğini doğrula (`agencies/consumers.py` bekliyor), göndermiyorsa ekle.
 
-**Notlar:** _
+**Notlar:**
+- **Menü CRUD (ana iş):** `app/dashboard/restaurant/products/page.tsx` %100 mock'tan gerçek `/menus/` (`MenuViewSet`, zaten kayıtlı `api_urls:50`) CRUD'una bağlandı: GET liste (sunucu queryset'i sahibin işletmesine daraltıyor), POST create (multipart `FormData` — görsel dahil; `restaurant` alanı istemciden gönderilmiyor, `perform_create` ile `request.user.agency_profile`'a bağlanıyor), PATCH düzenle, DELETE sil, `toggle-availability` (AKTİF/TÜKENDİ). Backend'de karşılığı olmayan sahte "Cross-Sell (Ekstra İstekler)" bölümü kaldırıldı (aşağıda BULUNAN YENİ SORUNLAR'a not düşüldü).
+- **Rezervasyon listesi + WS:** `app/dashboard/restaurant/page.tsx` (genel bakış) zaten gerçek `/restaurant/daily-stats/` + `/restaurant/reservations/` çekiyordu ve WebSocket'i `?token=${encodeURIComponent(token)}` ile açıyordu (`page.tsx:89`, `auth.getAccessToken()`) — `consumers.py`'nin beklediği query-string token doğrulandı, değişiklik gerekmedi.
+- **Masa/slot (`availability/page.tsx`):** Backend'de masa/zaman-slotu için CRUD ucu YOK (yalnızca `restaurant/reservations` + `restaurant/daily-stats/` kayıtlı). Yeni model+migration gerektirdiği için kapsam dışı bırakıldı; BULUNAN YENİ SORUNLAR'a taşındı. Sayfa şimdilik mock kaldı.
+- **Değişen dosya:** `app/dashboard/restaurant/products/page.tsx` (yalnızca frontend).
+- **Doğrulama:** `tsc --noEmit` ✔, `npm run lint` ✔, `npm run build` ✔ (backend değişmedi; migration kontrolü gerekmedi).
 
 ---
 
@@ -804,6 +809,12 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P2 · UX/veri] Kategori filtresi `Category` tablosu seyrek olduğu için pratikte boş.** F4-01 kategori filtresi artık gerçek `Category` kayıtlarını (`category_obj__slug`) kullanıyor — doğru mimari — ama `Category` tablosu neredeyse boş ve turların çoğu `category_obj` FK'siz (yalnız legacy serbest metin `category` alanı dolu). Sonuç: ön yüzde kategori kutucukları ya hiç görünmüyor (`categories.length === 0` gizliyor) ya da seçilince çoğu turu eler. F2-01 bulgusuyla (`Tour.category` taksonomi kargaşası) aynı; kategoriler netleştirilip turlar `category_obj`'e bağlanana kadar bu filtre eksik çalışır.
 
 * **[P1 · kırık link] Ödeme sonrası `returnUrl` var olmayan `/checkout-success` sayfasına gidiyor.** `app/checkout/page.tsx` Stripe onayından sonra `returnUrl`'i `/checkout-success?ref=<booking-uuid>`'e kuruyor ama `app/checkout-success/` sayfası **yok** (F4-07 öncesinde de yoktu; kök `app/success/page.tsx` ayrı ve o da sahipsiz — bkz. yukarıdaki F1-05 bulgusu). Sonuç: kart bilgisi doğrulandıktan sonra kullanıcı 404 görür. F4-07 kapsamı misafir bilet erişimini **e-postadaki imzalı sihirli linkle** çözdüğü için (bilet 404'e bağımlı değil) bu sayfa bu görevde eklenmedi. Gereken: hem üye hem misafir için ödeme-sonrası onay sayfası (`ref`/`token` ile Booking'i çekip durum + bilet linki gösteren) — F5-01 ya da özel bir "ödeme sonrası akış" görevinde ele alınmalı.
+
+* **[P2 · eksik backend] Restoran masa/zaman-slotu yönetimi için CRUD ucu yok — `availability/page.tsx` hâlâ mock.** F5-02'de tespit edildi: menü CRUD (`/menus/`) gerçek veriye bağlandı ama `app/dashboard/restaurant/availability/page.tsx` (zaman-slotu bazlı `maxTables`/`maxPax`/`currentBookedPax` yönetimi) backend'de karşılığı olmadığı için mock kaldı. `api_urls.py`'de yalnız `restaurant/reservations` (`DiningReservation`) ve `restaurant/daily-stats/` kayıtlı; `Agency.available_tables` tek bir sayı, zaman-slotu modeli yok. Kalıcı çözüm yeni model (ör. `RestaurantSlot`: date/time/max_tables/max_pax/booked_pax) + migration + RLS korumalı ViewSet (F2-01 deseni) gerektirir → yeni model/migration kapsam genişletmesi olduğu için bu görevde ertelendi.
+
+* **[P2 · sahte özellik] Restoran menüsünde "Cross-Sell (Ekstra İstekler)" backend'de yoktu — kaldırıldı.** F5-02'de `products/page.tsx` menü CRUD'una bağlanırken, sepette gösterileceği iddia edilen "Ekstra İstekler / Cross-Sell" bölümü sahte state'ti (`Menu` modelinde ne cross-sell ilişkisi ne de böyle bir alan var; checkout akışında da tüketilmiyor). Yanıltıcı olmaması için UI'dan çıkarıldı. Gerçek çapraz satış istenirse ürün kararı + backend işi (yeni model, menüye bağlama, checkout'ta fiyata ekleme, server-side doğrulama).
+
+* **[P2 · duplike kod] İki ayrı `DiningReservationViewSet` var; yalnız biri kayıtlı.** F5-02'de doğrulandı: `agencies/restaurant_views.py::DiningReservationViewSet` (perms `[IsAuthenticated, IsAgentOwner, IsVerifiedAgent]`, bugüne filtreli manuel serileştirme) `restaurant/reservations`'a kayıtlı; `agencies/views.py::DiningReservationViewSet` (perms yalnız `[IsAuthenticated]`, `update-status` action'ı, docstring'i var olmayan `/api/v1/table-reservations/`'a atıf yapıyor) hiçbir router'a **kayıtlı değil** — ölü kod. Aynı isim iki modülde kafa karıştırıcı. Görev kapsamı dışı olduğu için silinmedi; bir temizlik turunda `views.py`'deki kayıtsız kopya kaldırılmalı.
 
 ---
 
