@@ -683,13 +683,28 @@ Yeni `notifications` uygulaması eklendi:
 
 ---
 
-### [ ] F5-04 · Chat modülü uçtan uca doğrulama
+### [x] F5-04 · Chat modülü uçtan uca doğrulama
 
 **Öncelik:** P2 · **Efor:** M
 
 **Adımlar:** ChatRoom oluşturma tetikleyicisi (rezervasyon confirmed olunca?) netleştir; `group-chat` sayfası WS URL'ine token ekliyor mu; Redis (channels-redis) prod config; yalnız onaylı katılımcı erişimi testi.
 
-**Notlar:** _
+**Notlar:**
+
+**Asıl boşluk gerçek-zamanlı katmandı.** Chat modülünün REST tarafı (liste/detay/mesaj), yetkilendirmesi ve oda yaşam döngüsü (`update_chat_room_status`) hazırdı; ancak **hiç WebSocket consumer'ı yoktu** (yalnız `agencies` tarafında `RestaurantConsumer` vardı) ve `group-chat` sayfası tümüyle mock veriyle çalışıyordu. Eksik canlı katman, kanıtlanmış `RestaurantConsumer` desenini izleyerek eklendi.
+
+- **ChatRoom tetikleyicisi netleştirildi:** Oda, `bookings` `confirmed` olunca değil, **`TourAvailability` oluşturulunca** `chat/signals.py::create_chat_room` (post_save) ile oluşuyor. Yani oda tur+tarih başına birebir; müşteri erişimi ise o tur+tarih için `status='confirmed'` rezervasyon şartına bağlı (oda varlığından bağımsız). Bu ayrım consumer ve REST yetkisinde tek kaynaktan (`_user_can_access_room`) uygulanıyor.
+- **`ChatConsumer` (`chat/consumers.py`):** JWT token query-string ile (`?token=`), `RestaurantConsumer` deseni — cross-site çerez taşınamadığı için. Kapanış kodları: 4401 token yok/geçersiz, 4403 katılımcı değil. **Bağlanma yalnız yetki ister** (geçmiş okunabilsin); **mesaj gönderme** ayrıca oda aktif + salt-okunur-değil şartına bağlı (`_persist_message` içinde `update_chat_room_status` + refresh ile REST'le aynı kural). Duyuru yalnız acentaya; müşterininki 'text'e düşer, acentanınki auto-pin.
+- **Yayın serileştirme (Redis/msgpack güvenli):** `MessageSerializer.data` içindeki `room` alanı UUID; hem `json.dumps` hem prod'daki `channels-redis` (msgpack) bunu doğrudan serileştiremez. `_persist_message`, `JSONRenderer().render()` + `json.loads` ile saf JSON tiplerine indiriyor — InMemory (DEBUG) ve Redis (prod) katmanlarının ikisinde de çalışır.
+- **REST detay ucu sızıntısı kapatıldı:** `ChatRoomDetailView` yalnız `IsAuthenticated`'dı, herhangi bir kimlikli kullanıcı UUID'yi bilse oda meta verisini (tur adı/tarihi) çekebiliyordu. Ortak `_user_can_access_room` helper'ı eklenip detay ucuna `PermissionDenied` kontrolü kondu; `MessageListCreateView` de aynı helper'ı kullanacak şekilde sadeleştirildi (davranış birebir korundu).
+- **Frontend gerçek veriye bağlandı:** `app/lib/chat.ts` (REST + `buildChatWsUrl` token ekleyerek); `app/group-chat/page.tsx` mock'tan REST+WS'e çevrildi (`<Suspense>` sarmalı, `?room=` okuma, WS reconnect/dedup, salt-okunur banner). Duyuru bildirimindeki kırık `action_url` (`/tour-chat/{id}`) gerçek route'a (`/group-chat?room={id}`) düzeltildi.
+- **Redis prod config zaten mevcut:** `settings.py` CHANNEL_LAYERS DEBUG'da `InMemoryChannelLayer`, prod'da `channels_redis.core.RedisChannelLayer` (`REDIS_URL`); `channels==4.1.0` + `channels-redis==4.2.1` requirements'ta. Ek değişiklik gerekmedi.
+
+**Testler (`chat/tests.py`, 15 test, hepsi geçiyor):** `ChatRestAccessTestCase` (7) — onaylı müşteri/acenta mesaj okur, yabancı boş liste + detayda 403, kimliksiz 401, `pending` rezervasyon yetkisiz. `ChatWebSocketTestCase` (8, `WebsocketCommunicator` + `InMemoryChannelLayer` override, `TransactionTestCase`) — token yok/geçersiz/yabancı reddi, onaylı bağlanma, mesaj yayın+kalıcılık, müşteri duyurusu 'text'e düşer, acenta duyurusu pinlenir, salt-okunur oda gönderimi reddeder ama bağlanmaya izin verir.
+
+**Doğrulama:** Backend tam suite **269 test OK**; `makemigrations --check`/`migrate --check` temiz; `tsc --noEmit`, `npm run lint`, `npm run build` temiz; AST duplicate method/route taraması temiz.
+
+**Bulunan+düzeltilen:** (1) `MessageSerializer.data` UUID → JSON/msgpack serileşmiyordu (yukarıda). (2) Mesaj listesi `PageNumberPagination` ile sayfalı — testte `results` okunmalı. (3) WS testleri `database_sync_to_async` ORM'i ayrı thread/bağlantıda kullandığından `TransactionTestCase` şart (veri commit edilmeli). (4) Salt-okunur senaryosunda yetki `booking.start_date == ta.date` olduğundan turu geçmişe alırken rezervasyon tarihi de güncellenmeli.
 
 ---
 

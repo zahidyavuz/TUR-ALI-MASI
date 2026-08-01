@@ -2,6 +2,7 @@ import datetime
 from django.utils import timezone
 from django.db.models import Exists, OuterRef
 from rest_framework import generics, permissions
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
 from .models import ChatRoom, Message
 from .serializers import ChatRoomSerializer, MessageSerializer
@@ -51,6 +52,16 @@ def _user_has_confirmed_booking(user, tour_availability):
     ).exists()
 
 
+def _user_can_access_room(user, room):
+    """Odaya erişim: acenta kendi turu ise, müşteri onaylı rezervasyonu varsa.
+    REST detay/mesaj uçları ve WS consumer aynı kuralı paylaşır."""
+    ta = room.tour_availability
+    agency = getattr(user, 'agency_profile', None)
+    if agency is not None:
+        return ta.tour.agency_id == agency.id
+    return _user_has_confirmed_booking(user, ta)
+
+
 class ChatRoomListView(generics.ListAPIView):
     serializer_class = ChatRoomSerializer
     permission_classes = [permissions.IsAuthenticated]
@@ -85,6 +96,8 @@ class ChatRoomDetailView(generics.RetrieveAPIView):
 
     def get_object(self):
         obj = super().get_object()
+        if not _user_can_access_room(self.request.user, obj):
+            raise PermissionDenied('Bu sohbet odasına erişim yetkiniz yok.')
         update_chat_room_status(obj)
         return obj
 
@@ -98,12 +111,8 @@ class MessageListCreateView(generics.ListCreateAPIView):
         room = get_object_or_404(ChatRoom, pk=room_id)
         user = self.request.user
 
-        if hasattr(user, 'agency_profile') and user.agency_profile:
-            if room.tour_availability.tour.agency != user.agency_profile:
-                return Message.objects.none()
-        else:
-            if not _user_has_confirmed_booking(user, room.tour_availability):
-                return Message.objects.none()
+        if not _user_can_access_room(user, room):
+            return Message.objects.none()
 
         return Message.objects.filter(room=room).order_by('created_at')
 
@@ -140,7 +149,7 @@ class MessageListCreateView(generics.ListCreateAPIView):
                     title=f"Kritik Duyuru: {room.tour_availability.tour.title}",
                     message=message.content[:100] if message.content else "Yeni bir duyuru paylaşıldı.",
                     type="announcement",
-                    action_url=f"/tour-chat/{room.id}",
+                    action_url=f"/group-chat?room={room.id}",
                 )
                 for bu_id in set(booked_users)
                 if bu_id != user.id
