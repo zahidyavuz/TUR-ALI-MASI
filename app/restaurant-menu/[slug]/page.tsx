@@ -267,10 +267,12 @@ export default function RestaurantMenuPage() {
                 
                 <div className="absolute bottom-0 left-0 w-full px-4 md:px-8 max-w-7xl mx-auto translate-y-1/2 flex items-center gap-6 z-10">
                     <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white dark:border-slate-900 shadow-2xl overflow-hidden relative bg-white shrink-0">
-                        <img
+                        <Image
                             src={restaurant.logo}
                             alt="Logo"
-                            className="object-cover w-full h-full"
+                            fill
+                            sizes="(max-width: 768px) 96px, 128px"
+                            className="object-cover"
                         />
                     </div>
                     <div className="text-left mb-2 md:mb-6 mt-4 md:mt-0 flex-1 flex flex-col md:flex-row md:items-center justify-between gap-4">

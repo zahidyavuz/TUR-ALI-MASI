@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Image from 'next/image';
 import { fetchAPI } from '@/app/lib/api';
 
 interface AgencyApplication {
@@ -207,7 +208,9 @@ export default function AdminApplicationsPage() {
               </div>
 
               {selected.logo && (
-                <img src={selected.logo} alt="Logo" className="w-20 h-20 rounded-xl object-cover border border-slate-800" />
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-slate-800">
+                  <Image src={selected.logo} alt="Logo" fill sizes="80px" className="object-cover" />
+                </div>
               )}
 
               <DetailRow label="Sahip" value={selected.owner_username} />

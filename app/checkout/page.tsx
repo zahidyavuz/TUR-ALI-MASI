@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { fetchTour } from "@/app/lib/tours";
 import { fetchShuttle, ShuttleRoute } from "@/app/lib/shuttles";
@@ -344,15 +345,19 @@ function CheckoutLogic() {
               </button>
 
               <div className="flex items-center justify-center gap-6 pt-4 border-t border-slate-100">
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/4/41/Visa_Logo.png"
+                <Image
+                  src="/payments/visa.svg"
                   alt="Visa"
-                  className="h-4 grayscale opacity-50"
+                  width={48}
+                  height={16}
+                  className="h-4 w-auto grayscale opacity-50"
                 />
-                <img
-                  src="https://upload.wikimedia.org/wikipedia/commons/2/2a/Mastercard-logo.svg"
+                <Image
+                  src="/payments/mastercard.svg"
                   alt="Mastercard"
-                  className="h-6 grayscale opacity-50"
+                  width={48}
+                  height={30}
+                  className="h-6 w-auto grayscale opacity-50"
                 />
                 <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400">
                   🛡️ GÜVENLİ ÖDEME
@@ -428,17 +433,25 @@ function CheckoutLogic() {
             <>
               <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
                 <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10 flex">
-                  <img
-                    src={combo.tour.image_main}
-                    alt={combo.tour.title}
-                    className="object-cover w-1/2 h-full"
-                  />
-                  {combo.menu.image ? (
-                    <img
-                      src={combo.menu.image}
-                      alt={combo.menu.name}
-                      className="object-cover w-1/2 h-full"
+                  <div className="relative w-1/2 h-full">
+                    <Image
+                      src={combo.tour.image_main}
+                      alt={combo.tour.title}
+                      fill
+                      sizes="40px"
+                      className="object-cover"
                     />
+                  </div>
+                  {combo.menu.image ? (
+                    <div className="relative w-1/2 h-full">
+                      <Image
+                        src={combo.menu.image}
+                        alt={combo.menu.name}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    </div>
                   ) : (
                     <div className="w-1/2 h-full bg-slate-700 flex items-center justify-center text-xl">🍽️</div>
                   )}
@@ -502,10 +515,12 @@ function CheckoutLogic() {
             <>
               <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
                 <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10">
-                  <img
+                  <Image
                     src={shuttle.image_main}
                     alt={shuttle.title}
-                    className="object-cover w-full h-full"
+                    fill
+                    sizes="80px"
+                    className="object-cover"
                   />
                 </div>
                 <div className="flex flex-col justify-center">
@@ -567,10 +582,12 @@ function CheckoutLogic() {
             <>
               <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
                 <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10">
-                  <img
+                  <Image
                     src={tour.image_main || tour.imageMain}
                     alt={tour.title}
-                    className="object-cover w-full h-full"
+                    fill
+                    sizes="80px"
+                    className="object-cover"
                   />
                 </div>
                 <div className="flex flex-col justify-center">

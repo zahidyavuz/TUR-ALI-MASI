@@ -116,17 +116,14 @@ export default function Home() {
   const toast = useToast();
   const [tours, setTours] = useState<any[]>([]);
   const [combos, setCombos] = useState<Combo[]>([]);
+  const [combosLoading, setCombosLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   useEffect(() => {
     fetchCombos()
       .then((data) => setCombos(data))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => setCombosLoading(false));
   }, []);
 
   useEffect(() => {
@@ -285,10 +282,10 @@ export default function Home() {
           <div className="relative z-10 w-full max-w-5xl mx-auto flex flex-col items-center mt-2">
             
             <h1 className="text-2xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-3 drop-shadow-lg leading-tight w-full max-w-4xl animate-in fade-in slide-in-from-bottom-4 duration-700" 
-                dangerouslySetInnerHTML={{ __html: mounted ? t.hero.title : '' }} suppressHydrationWarning>
+                dangerouslySetInnerHTML={{ __html: t.hero.title }} suppressHydrationWarning>
             </h1>
             <p className="text-xs md:text-sm text-white/90 font-medium max-w-3xl mx-auto mb-6 drop-shadow-md px-4 leading-relaxed animate-in fade-in slide-in-from-bottom-2 duration-700 delay-150" suppressHydrationWarning>
-              {mounted ? t.hero.subtitle : ''}
+              {t.hero.subtitle}
             </p>
 
             {/* Gelişmiş Filtre Çubuğu */}
@@ -809,8 +806,8 @@ export default function Home() {
       </div>
     
       {/* 4.5. Tur + VIP Menü Komboları (Combo Showcase) — gerçek /combos/ verisi.
-          Aktif combo yoksa bölüm hiç gösterilmez. */}
-      {combos.length > 0 && (
+          Yüklenirken skeleton, aktif combo yoksa bölüm hiç gösterilmez. */}
+      {(combosLoading || combos.length > 0) && (
         <div className="w-full bg-[#f9f8f4] dark:bg-transparent py-16 border-t border-gray-200/50 transition-colors duration-500">
           <div className="max-w-7xl mx-auto px-4 md:px-6">
             <div className="text-center mb-10">
@@ -822,14 +819,29 @@ export default function Home() {
             </div>
 
             <div className="flex flex-col gap-10">
-              {combos.map((combo) => (
-                <ComboCard
-                  key={combo.id}
-                  combo={combo}
-                  formatPrice={formatPrice}
-                  router={router}
-                />
-              ))}
+              {combosLoading
+                ? [0, 1].map((i) => (
+                    <div
+                      key={`combo-skeleton-${i}`}
+                      className="bg-white dark:bg-white/5 rounded-[20px] overflow-hidden border border-gray-100 dark:border-none flex flex-col md:flex-row w-full animate-pulse"
+                    >
+                      <div className="h-44 md:h-auto md:w-[35%] bg-gray-200 dark:bg-white/10" />
+                      <div className="flex-1 p-6 flex flex-col gap-4">
+                        <div className="h-5 w-1/3 bg-gray-200 dark:bg-white/10 rounded" />
+                        <div className="h-4 w-2/3 bg-gray-200 dark:bg-white/10 rounded" />
+                        <div className="h-4 w-1/2 bg-gray-200 dark:bg-white/10 rounded" />
+                        <div className="mt-auto h-10 w-40 bg-gray-200 dark:bg-white/10 rounded-xl" />
+                      </div>
+                    </div>
+                  ))
+                : combos.map((combo) => (
+                    <ComboCard
+                      key={combo.id}
+                      combo={combo}
+                      formatPrice={formatPrice}
+                      router={router}
+                    />
+                  ))}
             </div>
           </div>
         </div>

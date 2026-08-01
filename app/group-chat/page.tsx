@@ -2,6 +2,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@/app/context/AuthContext';
 import {
@@ -339,7 +340,7 @@ function GroupChatView() {
                                 .filter((m) => m.media_file_url)
                                 .map((m) => (
                                     <div key={m.id} className="aspect-square bg-gray-800 rounded-xl overflow-hidden relative">
-                                        <img src={m.media_file_url as string} alt="Medya" className="w-full h-full object-cover" />
+                                        <Image src={m.media_file_url as string} alt="Medya" fill sizes="(max-width: 768px) 33vw, 200px" className="object-cover" />
                                     </div>
                                 ))
                         )}
