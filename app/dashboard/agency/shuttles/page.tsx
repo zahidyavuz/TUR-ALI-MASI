@@ -67,6 +67,7 @@ export default function AgencyShuttlesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const loadShuttles = useCallback(async () => {
     setLoading(true);
@@ -124,6 +125,30 @@ export default function AgencyShuttlesPage() {
     });
     setImagePreview(shuttle.image_main);
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Soft-delete: backend `agency=None, is_active=False` yapar; rota veritabanından
+  // silinmez (geçmiş rezervasyonların bütünlüğü korunur) ama listeden ve satıştan
+  // düşer. 204 No Content döndüğü için başarıda gövde yoktur; throwOnHttpError ile
+  // yalnız gerçek HTTP hatası (403/404) yakalanır, 204 sessizce geçer.
+  const handleDelete = async (shuttle: ShuttleRoute) => {
+    if (!window.confirm(`"${shuttle.title}" transferini silmek istediğinize emin misiniz?`)) {
+      return;
+    }
+    setDeletingId(shuttle.id);
+    setLoadError(null);
+    try {
+      await fetchAPI(`/agency/shuttles/${shuttle.id}/`, {
+        method: 'DELETE',
+        throwOnHttpError: true,
+      });
+      if (editingId === shuttle.id) resetForm();
+      await loadShuttles();
+    } catch (error: any) {
+      setLoadError(error?.message || 'Transfer silinemedi.');
+    } finally {
+      setDeletingId(null);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -379,7 +404,16 @@ export default function AgencyShuttlesPage() {
                   <span className={`text-[10px] font-semibold px-2 py-0.5 rounded border ${shuttle.is_active ? 'text-green-600 bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' : 'text-slate-500 bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700'}`}>
                     {shuttle.is_active ? 'Aktif' : 'Pasif'}
                   </span>
-                  <button onClick={() => startEditing(shuttle)} className="text-[11px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors underline">Düzenle</button>
+                  <div className="flex items-center gap-3">
+                    <button onClick={() => startEditing(shuttle)} className="text-[11px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors underline">Düzenle</button>
+                    <button
+                      onClick={() => handleDelete(shuttle)}
+                      disabled={deletingId === shuttle.id}
+                      className="text-[11px] font-medium text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors underline disabled:opacity-50"
+                    >
+                      {deletingId === shuttle.id ? 'Siliniyor...' : 'Sil'}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

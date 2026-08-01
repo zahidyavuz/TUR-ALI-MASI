@@ -345,19 +345,28 @@ class BookingViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # ── ATOMIC: Kapasite kontrolü + rezervasyon kaydı (tur akışıyla aynı desen) ─
+        # ── ATOMIC: Kontenjan rezervasyonu + rezervasyon kaydı ───────────────
+        # Kontenjan BURADA düşülür, webhook'ta değil (tur akışıyla aynı desen).
+        # Aksi halde N eşzamanlı istek aynı `remaining` değerini okuyup hepsi
+        # geçer, sonra hepsi onaylanıp overbooking oluşur (para çoktan alınmıştır).
+        # Rezervasyon tek bir koşullu UPDATE ile yapılır ki satır kilidi (SQLite'ta
+        # etkisiz) gerekmesin ve kaybeden istek 0 satır güncelleyip hata alsın.
         try:
             with transaction.atomic():
-                try:
-                    availability = ShuttleAvailability.objects.select_for_update().get(
-                        shuttle_route=shuttle_route, date=start_date, time=start_time
-                    )
-                except ShuttleAvailability.DoesNotExist:
+                slot = ShuttleAvailability.objects.filter(
+                    shuttle_route=shuttle_route, date=start_date, time=start_time
+                ).first()
+                if slot is None:
                     raise ValueError('Seçilen tarih/saat için müsaitlik bulunmamaktadır.')
 
-                if guests > availability.remaining:
+                reserved = ShuttleAvailability.objects.filter(
+                    pk=slot.pk,
+                    booked_count__lte=F('max_capacity') - guests,
+                ).update(booked_count=F('booked_count') + guests)
+                if not reserved:
+                    slot.refresh_from_db()
                     raise ValueError(
-                        f'Seçilen saatte en fazla {availability.remaining} kişilik yer kalmıştır.'
+                        f'Seçilen saatte en fazla {max(slot.remaining, 0)} kişilik yer kalmıştır.'
                     )
 
                 # Fiyat her zaman backend'de hesaplanır — client'tan gelen bir
@@ -383,7 +392,11 @@ class BookingViewSet(viewsets.ModelViewSet):
                     total_price=total_price,
                     status='pending',
                     booking_ref=booking_ref,
-                    payment_intent_id=intent.intent_id
+                    payment_intent_id=intent.intent_id,
+                    guest_full_name=(request.data.get('guest_full_name') or '')[:150],
+                    guest_email=(request.data.get('guest_email') or '')[:254],
+                    guest_phone=(request.data.get('guest_phone') or '')[:32],
+                    guest_hotel=(request.data.get('guest_hotel') or '')[:255],
                 )
 
         except ValueError as e:
@@ -423,6 +436,32 @@ class BookingViewSet(viewsets.ModelViewSet):
             date=booking.start_date,
             booked_count__gte=booking.guests,
         ).update(booked_count=F('booked_count') - booking.guests)
+
+    @staticmethod
+    def _release_shuttle_capacity(booking):
+        """
+        `_create_shuttle_booking()` sırasında tutulan transfer kontenjanını geri
+        bırakır. Tur akışıyla aynı koşullu UPDATE deseni: eksiye düşmez, kilit
+        gerektirmez.
+        """
+        if booking.service_type != 'shuttle' or not (
+            booking.shuttle_route_id and booking.start_date and booking.start_time
+        ):
+            return
+        ShuttleAvailability.objects.filter(
+            shuttle_route_id=booking.shuttle_route_id,
+            date=booking.start_date,
+            time=booking.start_time,
+            booked_count__gte=booking.guests,
+        ).update(booked_count=F('booked_count') - booking.guests)
+
+    @classmethod
+    def _release_capacity(cls, booking):
+        """Rezervasyon türüne göre doğru kontenjanı serbest bırakır."""
+        if booking.service_type == 'shuttle':
+            cls._release_shuttle_capacity(booking)
+        else:
+            cls._release_tour_capacity(booking)
 
     # ─────────────────────────────────────────────────────────────────────────
     # GUEST TICKET — İmzalı sihirli bağlantıyla misafir bileti görüntüleme
@@ -511,23 +550,12 @@ class BookingViewSet(viewsets.ModelViewSet):
                         status=status.HTTP_400_BAD_REQUEST
                     )
 
-        # Kontenjanı geri ver. Tur rezervasyonlarında kontenjan `create()`
-        # anında tutulduğu için 'pending' kayıtlar da yer işgal eder; bu yüzden
-        # iade yapılmayan (ödenmemiş) iptallerde de bırakılması gerekir.
+        # Kontenjanı geri ver. Hem tur hem transfer rezervasyonlarında kontenjan
+        # `create()` anında tutulduğu için 'pending' kayıtlar da yer işgal eder;
+        # bu yüzden iade yapılmayan (ödenmemiş) iptallerde de bırakılması gerekir.
         with transaction.atomic():
-            if booking.service_type == 'shuttle' and booking.shuttle_route_id and booking.start_date and booking.start_time:
-                if booking.status == 'confirmed':
-                    # Transfer kontenjanı yalnızca onayda düşülüyor (F5-01).
-                    try:
-                        availability = ShuttleAvailability.objects.select_for_update().get(
-                            shuttle_route=booking.shuttle_route, date=booking.start_date, time=booking.start_time
-                        )
-                        availability.booked_count = max(0, availability.booked_count - booking.guests)
-                        availability.save(update_fields=['booked_count'])
-                    except ShuttleAvailability.DoesNotExist:
-                        pass
-            elif booking.status in ('pending', 'confirmed'):
-                self._release_tour_capacity(booking)
+            if booking.status in ('pending', 'confirmed'):
+                self._release_capacity(booking)
 
             booking.status = 'cancelled'
             booking.cancelled_at = timezone.now()
@@ -609,20 +637,9 @@ class BookingViewSet(viewsets.ModelViewSet):
                         newly_confirmed = True
                         logger.info(f"Booking {booking.booking_ref} confirmed via webhook")
 
-                        # Tur kontenjanı create() sırasında zaten rezerve
-                        # edildi; burada tekrar düşmek çift sayıma yol açar.
-                        # Transfer akışı (F5-01) hâlâ webhook'ta düşüyor.
-                        if booking.service_type == 'shuttle' and booking.shuttle_route_id and booking.start_date and booking.start_time:
-                            try:
-                                availability = ShuttleAvailability.objects.select_for_update().get(
-                                    shuttle_route=booking.shuttle_route, date=booking.start_date, time=booking.start_time
-                                )
-                                availability.booked_count += booking.guests
-                                availability.save(update_fields=['booked_count'])
-                            except ShuttleAvailability.DoesNotExist:
-                                logger.warning(
-                                    f"ShuttleAvailability not found for {booking.shuttle_route_id} on {booking.start_date} {booking.start_time}"
-                                )
+                        # Hem tur hem transfer kontenjanı create() sırasında zaten
+                        # rezerve edildi (F5-01); burada tekrar düşmek çift sayıma
+                        # yol açar, o yüzden webhook kontenjana dokunmaz.
 
                 # E-posta atomic dışında
                 send_templated_mail('booking_confirmed', booking.user.email, {
@@ -692,7 +709,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     # Ödeme başarısız → create()'te tutulan kontenjanı bırak.
                     # Bırakılmazsa gün, hiç satılmamış koltuklarla dolu görünür.
                     if not already_failed:
-                        self._release_tour_capacity(booking)
+                        self._release_capacity(booking)
                 logger.info(f"Booking {booking.booking_ref} marked as failed via webhook")
 
                 send_templated_mail('booking_payment_failed', booking.user.email, {

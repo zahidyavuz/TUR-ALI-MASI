@@ -6,8 +6,6 @@ import Image from 'next/image';
 import Navbar from '../../components/Navbar';
 import { useCurrency } from '../../context/CurrencyContext';
 import { fetchShuttle, ShuttleRoute } from '@/app/lib/shuttles';
-import { fetchAPI } from '@/app/lib/api';
-import { auth } from '@/app/lib/auth';
 
 const VEHICLE_LABELS: Record<string, string> = {
   sedan: '🚗 Sedan',
@@ -30,9 +28,7 @@ export default function TransferDetailPage() {
   const [selectedTime, setSelectedTime] = useState('');
   const [guests, setGuests] = useState(1);
 
-  const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [bookingResult, setBookingResult] = useState<{ booking_ref: string } | null>(null);
 
   useEffect(() => {
     if (!id) return;
@@ -74,44 +70,25 @@ export default function TransferDetailPage() {
     setGuests(bounded);
   };
 
-  const handleBook = async () => {
+  const handleBook = () => {
     if (!shuttle) return;
     setSubmitError(null);
 
-    if (!auth.isAuthenticated()) {
-      setSubmitError('Rezervasyon yapmak için giriş yapmalısınız.');
-      return;
-    }
     if (!selectedDate || !selectedTime) {
       setSubmitError('Lütfen bir tarih ve saat seçin.');
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const response = await fetchAPI('/bookings/', {
-        method: 'POST',
-        body: JSON.stringify({
-          service_type: 'shuttle',
-          shuttle_route_id: shuttle.id,
-          guests,
-          start_date: selectedDate,
-          start_time: selectedTime,
-        }),
-      });
-
-      if (!response || !response.booking) {
-        setSubmitError('Rezervasyon oluşturulamadı. Lütfen tekrar deneyin.');
-        setSubmitting(false);
-        return;
-      }
-
-      setBookingResult({ booking_ref: response.booking.booking_ref });
-    } catch (err: any) {
-      setSubmitError(err?.message || 'Rezervasyon sırasında bir hata oluştu.');
-    } finally {
-      setSubmitting(false);
-    }
+    // Ödeme, ortak checkout akışında yapılır (tur/yemekle aynı). Kontenjan ve
+    // fiyat rezervasyon anında sunucuda doğrulanır; burada yalnız seçim taşınır.
+    const query = new URLSearchParams({
+      type: 'shuttle',
+      shuttleId: shuttle.id,
+      date: selectedDate,
+      time: selectedTime,
+      guests: String(guests),
+    });
+    router.push(`/checkout?${query.toString()}`);
   };
 
   if (loading) {
@@ -177,19 +154,7 @@ export default function TransferDetailPage() {
         {/* Sağ: Rezervasyon Kartı */}
         <div className="lg:col-span-1">
           <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.08)] dark:shadow-[0_20px_50px_rgba(0,0,0,0.6)] border border-gray-100 dark:border-slate-800 p-6 sticky top-24">
-            {bookingResult ? (
-              <div className="text-center py-6">
-                <div className="text-4xl mb-3">✅</div>
-                <h3 className="text-lg font-black text-slate-800 dark:text-white mb-2">Rezervasyonunuz Alındı</h3>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">
-                  Referans No: <span className="font-bold text-slate-700 dark:text-slate-200">{bookingResult.booking_ref}</span>
-                </p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">
-                  Ödeme onay süreci yakında aktif edilecektir. Rezervasyon durumunuz &quot;beklemede&quot; olarak kaydedildi.
-                </p>
-              </div>
-            ) : (
-              <>
+            <>
                 <div className="flex items-baseline gap-1 mb-6">
                   <span className="text-2xl font-black text-[#008cb3]">{formatPrice(Number(shuttle.price_per_person))}</span>
                   <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">/ Kişi Başı</span>
@@ -258,13 +223,12 @@ export default function TransferDetailPage() {
 
                 <button
                   onClick={handleBook}
-                  disabled={submitting || !selectedDate || !selectedTime}
+                  disabled={!selectedDate || !selectedTime}
                   className="w-full bg-[#008cb3] hover:bg-slate-900 text-white font-bold py-3.5 rounded-xl transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? 'İşleniyor...' : 'Rezervasyon Yap'}
+                  Devam Et
                 </button>
               </>
-            )}
           </div>
         </div>
       </div>

@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { fetchTour } from "@/app/lib/tours";
+import { fetchShuttle, ShuttleRoute } from "@/app/lib/shuttles";
 import { fetchAPI } from "@/app/lib/api";
 import StripePaymentSection from "@/app/components/StripePaymentSection";
 import { policyInfo } from "@/app/lib/cancellationPolicy";
@@ -14,9 +15,16 @@ function CheckoutLogic() {
   const guests = parseInt(searchParams.get("guests") || "1");
   const date = searchParams.get("date");
   const menuId = searchParams.get("menuId");
-  const itemType = searchParams.get("type"); // 'meal' or 'tour'
+  const itemType = searchParams.get("type"); // 'meal' | 'tour' | 'shuttle'
+
+  // Transfer (shuttle) rezervasyonu — tur/yemekle aynı ödeme akışını paylaşır;
+  // yalnız kaynak (shuttleId + time) ve sipariş özeti farklıdır.
+  const isShuttle = itemType === "shuttle";
+  const shuttleId = searchParams.get("shuttleId");
+  const shuttleTime = searchParams.get("time");
 
   const [tour, setTour] = useState<any>(null);
+  const [shuttle, setShuttle] = useState<ShuttleRoute | null>(null);
   const [step, setStep] = useState<1 | 2>(1); // 1: Bilgiler, 2: Ödeme
 
   // Django'nun oluşturduğu rezervasyon + PaymentIntent
@@ -37,11 +45,18 @@ function CheckoutLogic() {
   });
 
   useEffect(() => {
+    if (isShuttle) {
+      if (!shuttleId) return;
+      fetchShuttle(shuttleId)
+        .then((s) => setShuttle(s))
+        .catch(() => {});
+      return;
+    }
     if (!tourId) return;
     fetchTour(tourId)
       .then((t) => setTour(t))
       .catch(() => {});
-  }, [tourId]);
+  }, [isShuttle, shuttleId, tourId]);
 
   /**
    * Step 1 → Step 2: Django'da rezervasyonu ve Stripe PaymentIntent'i oluşturur.
@@ -67,20 +82,33 @@ function CheckoutLogic() {
     // rezervasyon doğrudan o hesaba bağlanır.
     setIsCreatingBooking(true);
     try {
+      const commonGuest = {
+        guest_full_name: `${formData.firstName} ${formData.lastName}`.trim(),
+        guest_email: formData.email,
+        guest_phone: formData.phone,
+        guest_hotel: formData.hotelName,
+      };
+      const payload = isShuttle
+        ? {
+            service_type: "shuttle",
+            shuttle_route_id: shuttleId,
+            guests,
+            start_date: date || undefined,
+            start_time: shuttleTime || undefined,
+            ...commonGuest,
+          }
+        : {
+            service_type: itemType === "meal" ? "meal" : "tour",
+            tour_slug: tourId,
+            guests,
+            start_date: date || undefined,
+            date_label: date || "",
+            ...commonGuest,
+          };
       const result = await fetchAPI("/bookings/", {
         method: "POST",
         throwOnHttpError: true,
-        body: JSON.stringify({
-          service_type: itemType === "meal" ? "meal" : "tour",
-          tour_slug: tourId,
-          guests,
-          start_date: date || undefined,
-          date_label: date || "",
-          guest_full_name: `${formData.firstName} ${formData.lastName}`.trim(),
-          guest_email: formData.email,
-          guest_phone: formData.phone,
-          guest_hotel: formData.hotelName,
-        }),
+        body: JSON.stringify(payload),
       });
 
       if (!result?.clientSecret) {
@@ -100,7 +128,7 @@ function CheckoutLogic() {
     }
   };
 
-  if (!tourId)
+  if (isShuttle ? !shuttleId : !tourId)
     return (
       <div className="p-10 text-center text-white font-bold">
         Eksik rezervasyon parametreleri.
@@ -111,12 +139,14 @@ function CheckoutLogic() {
         )}
       </div>
     );
-  if (!tour)
+  if (isShuttle ? !shuttle : !tour)
     return <div className="p-10 text-center text-white">Detaylar yükleniyor...</div>;
 
   // Fiyat yalnızca gösterim amaçlıdır; tahsil edilen tutar Django'nun
   // hesapladığı `booking.total_price`'tır.
-  const estimatedPrice = tour.price * guests;
+  const estimatedPrice = isShuttle
+    ? Number(shuttle!.price_per_person) * guests
+    : tour.price * guests;
   const totalPrice = booking ? Number(booking.total_price) : estimatedPrice;
 
   // Stripe onay sonrası dönülecek mutlak URL. `ref` parametresi Booking'in
@@ -366,7 +396,72 @@ function CheckoutLogic() {
             <span className="text-2xl">📋</span> Sipariş Özeti
           </h3>
 
-          {tour ? (
+          {isShuttle && shuttle ? (
+            <>
+              <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
+                <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10">
+                  <img
+                    src={shuttle.image_main}
+                    alt={shuttle.title}
+                    className="object-cover w-full h-full"
+                  />
+                </div>
+                <div className="flex flex-col justify-center">
+                  <h4 className="font-bold text-white text-base leading-tight">
+                    {shuttle.title}
+                  </h4>
+                  <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-2 flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 bg-[#38bdf8] rounded-full"></span>{" "}
+                    {shuttle.origin} → {shuttle.destination}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4 text-sm font-bold text-slate-300 mb-8 bg-white/5 p-6 rounded-[24px] border border-white/5">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    📅 Tarih
+                  </span>
+                  <span className="text-white">
+                    {new Date(String(date)).toLocaleDateString("tr-TR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    ⏰ Saat
+                  </span>
+                  <span className="text-white">{shuttleTime}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                    👥 Yolcu
+                  </span>
+                  <span className="text-white">{guests} Kişi</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-white/10">
+                <span className="text-slate-400 font-black text-[10px] uppercase tracking-widest">
+                  Toplam
+                </span>
+                <span className="text-2xl font-black text-white" suppressHydrationWarning>
+                  {totalPrice.toLocaleString("tr-TR", {
+                    style: "currency",
+                    currency: "TRY",
+                  })}
+                </span>
+              </div>
+              {!booking && (
+                <p className="text-[10px] font-bold text-slate-500 mt-2 text-right">
+                  * Kesin tutar rezervasyon oluşturulurken sunucuda hesaplanır.
+                </p>
+              )}
+            </>
+          ) : tour ? (
             <>
               <div className="flex gap-4 mb-8 p-4 bg-white/5 rounded-2xl border border-white/5">
                 <div className="w-20 h-20 rounded-2xl bg-slate-800 overflow-hidden relative shrink-0 border border-white/10">

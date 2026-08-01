@@ -422,9 +422,10 @@ class WebhookIdempotencyTestCase(TestCase):
         # create()'teki 2 dışında hiçbir artış olmamalı (çift sayım yok).
         self.assertEqual(slot.booked_count, 2)
 
-    def test_shuttle_webhook_increments_quota_once(self):
-        """Transfer kontenjanı webhook'ta artırılır; aynı event 2× gelse de
-        sayaç yalnızca 1× artar."""
+    def test_shuttle_webhook_never_touches_quota(self):
+        """Transfer kontenjanı da create()'te rezerve edilir (F5-01); webhook
+        (kaç kez gelirse gelsin) sayaca dokunmaz — yalnızca durumu 'confirmed'
+        yapar. Aksi halde create+webhook çift sayıma yol açardı."""
         route = ShuttleRoute.objects.create(
             id='wh-route', agency=self.agency, title='WH Route', description='d',
             origin='A', destination='B', price_per_person=Decimal('100.00'),
@@ -432,7 +433,7 @@ class WebhookIdempotencyTestCase(TestCase):
         slot_time = dtime(9, 0)
         avail = ShuttleAvailability.objects.create(
             shuttle_route=route, date=self.day, time=slot_time,
-            max_capacity=8, booked_count=0,
+            max_capacity=8, booked_count=3,
         )
         booking = Booking.objects.create(
             user=self.user, shuttle_route=route, service_type='shuttle',
@@ -448,8 +449,93 @@ class WebhookIdempotencyTestCase(TestCase):
         booking.refresh_from_db()
         avail.refresh_from_db()
         self.assertEqual(booking.status, 'confirmed')
-        # İlk event 3 ekler; ikinci event 'confirmed' guard'ıyla atlanır.
+        # create()'teki 3 dışında hiçbir artış olmamalı (çift sayım yok).
         self.assertEqual(avail.booked_count, 3)
+
+
+@override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
+@patch('bookings.payments.stripe_provider.stripe.PaymentIntent.create', side_effect=_fake_payment_intent_create)
+class ShuttleCapacityReservationTestCase(TestCase):
+    """F5-01 — Transfer kontenjanı da (tur akışıyla aynı desende) rezervasyon
+    anında koşullu UPDATE ile tutulur; webhook'ta değil. Overbooking engellenir,
+    başarısız/iptal edilen rezervasyonlarda kontenjan geri bırakılır."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = User.objects.create_user(username='sh_user', password='pass', email='sh@test.com')
+        self.agency = Agency.objects.create(name='Sh Agency', status='onaylandi', is_verified=True)
+        self.route = ShuttleRoute.objects.create(
+            id='res-route', agency=self.agency, title='Res Route', description='d',
+            origin='A', destination='B', price_per_person=Decimal('100.00'),
+            min_passengers=1, max_passengers=8,
+        )
+        self.day = date.today() + timedelta(days=10)
+        self.slot_time = dtime(9, 0)
+        self.slot = ShuttleAvailability.objects.create(
+            shuttle_route=self.route, date=self.day, time=self.slot_time,
+            max_capacity=8, booked_count=0,
+        )
+        self.client.force_authenticate(user=self.user)
+
+    def _book(self, guests=2, **extra):
+        return self.client.post('/api/v1/bookings/', {
+            'service_type': 'shuttle',
+            'shuttle_route_id': self.route.pk,
+            'start_date': self.day.strftime('%Y-%m-%d'),
+            'start_time': '09:00',
+            'guests': guests,
+            **extra,
+        })
+
+    def test_capacity_reserved_at_creation(self, _intent):
+        """Kontenjan webhook'u beklemeden rezervasyon anında düşer"""
+        response = self._book(guests=3)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 3)
+
+    def test_overbooking_rejected(self, _intent):
+        """Kalan kontenjandan fazlası istenirse 400 ve sayaç değişmez"""
+        self.assertEqual(self._book(guests=6).status_code, 201)
+        response = self._book(guests=5)
+        self.assertEqual(response.status_code, 400)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 6)
+
+    def test_client_total_price_is_ignored(self, _intent):
+        """Fiyat sunucuda price_per_person × guests ile hesaplanır"""
+        response = self._book(guests=2, total_price='1.00')
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(float(response.data['booking']['total_price']), 200.0)
+
+    def test_cancelling_pending_releases_capacity(self, _intent):
+        """Ödenmemiş (pending) transfer iptalinde kontenjan geri döner"""
+        booking_id = self._book(guests=4).data['booking']['id']
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 4)
+
+        response = self.client.post(f'/api/v1/bookings/{booking_id}/cancel/')
+        self.assertEqual(response.status_code, 200, response.data)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 0)
+
+    def test_failed_payment_releases_capacity(self, _intent):
+        """Ödeme başarısız olursa webhook create()'te tutulan kontenjanı bırakır"""
+        booking_id = self._book(guests=3).data['booking']['id']
+        booking = Booking.objects.get(pk=booking_id)
+        self.slot.refresh_from_db()
+        self.assertEqual(self.slot.booked_count, 3)
+
+        fake = _FakeProvider(booking.payment_intent_id, event_type=WebhookEvent.FAILED)
+        with patch('bookings.views.get_provider', return_value=fake):
+            r = self.client.post(
+                '/api/v1/bookings/webhook/', data='{}', content_type='application/json'
+            )
+        self.assertEqual(r.status_code, 200)
+        booking.refresh_from_db()
+        self.slot.refresh_from_db()
+        self.assertEqual(booking.status, 'failed')
+        self.assertEqual(self.slot.booked_count, 0)
 
 
 @override_settings(STRIPE_SECRET_KEY='sk_test_dummy')
