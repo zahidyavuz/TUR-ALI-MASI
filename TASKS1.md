@@ -53,7 +53,7 @@ Toast + `/`'a yönlendirme, backend validasyon hataları Toast ile gösteriliyor
 tamamı sahte olan e-posta doğrulama (`isVerifyingEmail`) dalı + 6 haneli kod ekranı silindi.
 Client-side min 6 karakter şifre kontrolü eklendi. tsc/lint/build temiz.
 
-### [ ] T1-02 · `app/tickets/*` sahte bilet sayfası hâlâ erişilebilir
+### [x] T1-02 · `app/tickets/*` sahte bilet sayfası hâlâ erişilebilir
 **Öncelik:** P1 · **Efor:** S
 **Adımlar:** `app/tickets/page.tsx` + `app/tickets/[id]/page.tsx` hardcoded (`TKT-8932`,
 "Kapadokya Balon Turu") sahte biletler gösteriyor; kullanıcının gerçek rezervasyonlarıyla
@@ -61,6 +61,9 @@ ilgisi yok. Gerçek bilet artık `/dashboard/customer/tickets`'te. Hâlâ buraya
 2 nokta var: `app/components/BottomTabBar.tsx:44` (mobil alt menü) ve `app/success/page.tsx:56`.
 İki linki `/dashboard/customer/tickets`'e çevir, sonra `app/tickets/*`'ı sil. (Not:
 `app/success/page.tsx` T1-03'te silinecekse oradaki link kendiliğinden gider.)
+**YAPILDI:** `BottomTabBar.tsx:44` ve `success/page.tsx:56` linkleri
+`/dashboard/customer/tickets`'e çevrildi; `app/tickets/page.tsx` + `app/tickets/[id]/page.tsx`
+`git rm` ile silindi (dizin kalktı). Kalan `/tickets` referansı yok. tsc/lint/build temiz.
 
 ### [ ] T1-03 · `app/success/page.tsx` sahipsiz + uydurma IBAN gösteriyor
 **Öncelik:** P1 · **Efor:** S

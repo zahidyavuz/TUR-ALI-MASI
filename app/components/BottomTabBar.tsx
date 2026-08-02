@@ -41,7 +41,7 @@ export default function BottomTabBar() {
     ...(user
       ? [
           {
-            href: '/tickets',
+            href: '/dashboard/customer/tickets',
             label: 'Biletlerim',
             icon: (active: boolean) => (
               <svg width="24" height="24" fill={active ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
