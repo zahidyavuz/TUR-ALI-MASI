@@ -947,3 +947,135 @@ class BankAccountChangeTestCase(TestCase):
     def test_admin_queue_requires_staff(self):
         response = self.client.get('/api/v1/admin/bank-changes/')
         self.assertEqual(response.status_code, 403)
+
+
+class AgencySpaCrudTestCase(TestCase):
+    """T2-04 — Acenta panelinden spa mekân + hizmet CRUD'u (RLS korumalı)."""
+
+    def setUp(self):
+        from spas.models import SpaVenue
+        self.SpaVenue = SpaVenue
+
+        self.client = APIClient()
+        self.owner = User.objects.create_user(username='spa_owner', password='pass')
+        self.agency = Agency.objects.create(
+            owner=self.owner, name='Spa Acenta', status='onaylandi',
+            is_verified=True, is_active=True,
+        )
+        self.client.force_authenticate(user=self.owner)
+
+    VENUE = {'name': 'Bodrum Termal Spa', 'location': 'Bodrum', 'description': 'Şifalı sular'}
+    SERVICE = {
+        'title': 'Klasik İsveç Masajı', 'description': 'Rahatlatıcı',
+        'price_per_person': '750.00', 'duration_minutes': 60,
+        'min_guests': 1, 'max_guests': 4,
+    }
+
+    def _create_venue(self, **overrides):
+        return self.client.post('/api/v1/agency/spas/venues/', {**self.VENUE, **overrides}, format='json')
+
+    def _create_service(self, venue_id, **overrides):
+        return self.client.post(
+            '/api/v1/agency/spas/services/',
+            {**self.SERVICE, 'venue': venue_id, **overrides}, format='json',
+        )
+
+    # ── Mekân ────────────────────────────────────────────────────────────────
+    def test_create_venue_generates_slug(self):
+        response = self._create_venue()
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertEqual(response.data['id'], 'bodrum-termal-spa')
+        self.assertEqual(response.data['agency']['id'], self.agency.id)
+
+    def test_venue_patch_whitelist_blocks_unknown_field(self):
+        vid = self._create_venue().data['id']
+        # is_active güvenli listede değil → 400
+        bad = self.client.patch(f'/api/v1/agency/spas/venues/{vid}/', {'is_active': False}, format='json')
+        self.assertEqual(bad.status_code, 400)
+        ok = self.client.patch(f'/api/v1/agency/spas/venues/{vid}/', {'name': 'Yeni Ad'}, format='json')
+        self.assertEqual(ok.status_code, 200, ok.data)
+        self.assertEqual(ok.data['name'], 'Yeni Ad')
+
+    def test_venue_soft_delete_detaches(self):
+        vid = self._create_venue().data['id']
+        self.assertEqual(self.client.delete(f'/api/v1/agency/spas/venues/{vid}/').status_code, 200)
+        self.assertEqual(self.client.get('/api/v1/agency/spas/venues/').data['count'], 0)
+        venue = self.SpaVenue.objects.get(pk=vid)
+        self.assertIsNone(venue.agency_id)
+        self.assertFalse(venue.is_active)
+
+    def test_other_agency_cannot_see_venue(self):
+        vid = self._create_venue().data['id']
+        intruder = User.objects.create_user(username='intruder_spa', password='pass')
+        Agency.objects.create(owner=intruder, name='Rakip', status='onaylandi', is_verified=True, is_active=True)
+        other = APIClient()
+        other.force_authenticate(user=intruder)
+        self.assertEqual(other.get('/api/v1/agency/spas/venues/').data['count'], 0)
+        self.assertEqual(other.patch(f'/api/v1/agency/spas/venues/{vid}/', {'name': 'x'}, format='json').status_code, 404)
+
+    # ── Hizmet ────────────────────────────────────────────────────────────────
+    def test_create_service_generates_slug_and_slots(self):
+        from spas.models import SpaAvailability
+        vid = self._create_venue().data['id']
+        response = self._create_service(vid, default_capacity=10)
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertTrue(response.data['id'].startswith('bodrum-termal-spa-'))
+
+        slots = SpaAvailability.objects.filter(spa_service_id=response.data['id'])
+        self.assertEqual(slots.count(), 90 * 2)  # DEFAULT_SPA_TIMES = 2 saat
+        self.assertEqual(slots.first().max_capacity, 10)
+
+    def test_create_service_rejects_foreign_venue(self):
+        # Başka acentanın mekânına hizmet iliştirilemez.
+        intruder = User.objects.create_user(username='intruder2', password='pass')
+        other_agency = Agency.objects.create(
+            owner=intruder, name='Öteki', status='onaylandi', is_verified=True, is_active=True)
+        foreign_venue = self.SpaVenue.objects.create(
+            id='foreign-venue', agency=other_agency, name='Foreign', description='d', location='X')
+        response = self._create_service(foreign_venue.id)
+        self.assertEqual(response.status_code, 400)
+
+    def test_service_patch_whitelist(self):
+        vid = self._create_venue().data['id']
+        sid = self._create_service(vid).data['id']
+        bad = self.client.patch(f'/api/v1/agency/spas/services/{sid}/', {'venue': 'x'}, format='json')
+        self.assertEqual(bad.status_code, 400)
+        ok = self.client.patch(f'/api/v1/agency/spas/services/{sid}/', {'price_per_person': '999'}, format='json')
+        self.assertEqual(ok.status_code, 200, ok.data)
+        self.assertEqual(str(ok.data['price_per_person']), '999.00')
+
+    def test_service_soft_delete(self):
+        from spas.models import SpaService
+        vid = self._create_venue().data['id']
+        sid = self._create_service(vid).data['id']
+        self.assertEqual(self.client.delete(f'/api/v1/agency/spas/services/{sid}/').status_code, 200)
+        self.assertFalse(SpaService.objects.get(pk=sid).is_active)
+
+    def test_update_capacity_creates_slot(self):
+        vid = self._create_venue().data['id']
+        sid = self._create_service(vid).data['id']
+        target = (date.today() + timedelta(days=5)).isoformat()
+        response = self.client.patch(
+            f'/api/v1/agency/spas/services/{sid}/update-capacity/',
+            {'date': target, 'time': '10:00', 'max_capacity': 20}, format='json',
+        )
+        self.assertEqual(response.status_code, 200, response.data)
+        self.assertEqual(response.data['max_capacity'], 20)
+
+    def test_service_isolation_by_venue_agency(self):
+        vid = self._create_venue().data['id']
+        self._create_service(vid)
+        intruder = User.objects.create_user(username='intruder3', password='pass')
+        Agency.objects.create(owner=intruder, name='Rakip3', status='onaylandi', is_verified=True, is_active=True)
+        other = APIClient()
+        other.force_authenticate(user=intruder)
+        self.assertEqual(other.get('/api/v1/agency/spas/services/').data['count'], 0)
+
+    def test_unverified_agency_blocked(self):
+        Agency.objects.filter(pk=self.agency.pk).update(status='beklemede', is_verified=False)
+        self.assertEqual(self._create_venue().status_code, 403)
+
+    def test_anonymous_cannot_list(self):
+        anon = APIClient()
+        self.assertEqual(anon.get('/api/v1/agency/spas/venues/').status_code, 401)
+        self.assertEqual(anon.get('/api/v1/agency/spas/services/').status_code, 401)

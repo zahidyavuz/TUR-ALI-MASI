@@ -24,6 +24,7 @@ from core.views import ExchangeRateView
 from agencies.agency_tours_views import AgencyTourViewSet
 from agencies.agency_shuttles_views import AgencyShuttleViewSet
 from agencies.agency_bookings_views import AgencyBookingViewSet
+from agencies.agency_spas_views import AgencySpaVenueViewSet, AgencySpaServiceViewSet
 from agencies.finance_views import (
     AgencyFinanceSummaryView,
     AgencyFinanceLedgerView,
@@ -66,6 +67,8 @@ router.register(r'restaurant/reservations', DiningReservationViewSet, basename='
 router.register(r'agency/tours', AgencyTourViewSet, basename='agency-tour')
 router.register(r'agency/shuttles', AgencyShuttleViewSet, basename='agency-shuttle')
 router.register(r'agency/bookings', AgencyBookingViewSet, basename='agency-booking')
+router.register(r'agency/spas/venues', AgencySpaVenueViewSet, basename='agency-spa-venue')
+router.register(r'agency/spas/services', AgencySpaServiceViewSet, basename='agency-spa-service')
 
 
 

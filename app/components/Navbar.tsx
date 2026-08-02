@@ -85,6 +85,15 @@ export default function Navbar({ setShowAgencyModal, setAgencyTab }: { setShowAg
               <span className="tracking-tight uppercase">Transfer</span>
               <div className="absolute bottom-0 left-0 w-0 h-1 bg-teal-500 group-hover:w-full transition-all duration-500"></div>
             </Link>
+
+            <Link
+              href="/spa"
+              className="group flex items-center gap-3 px-6 py-3 rounded-2xl text-[17px] font-black text-slate-800 dark:text-white hover:bg-purple-50 dark:hover:bg-purple-500/10 hover:text-purple-600 dark:hover:text-purple-400 transition-all duration-300 relative overflow-hidden whitespace-nowrap"
+            >
+              <span className="text-2xl group-hover:scale-125 transition-transform duration-300">🧖</span>
+              <span className="tracking-tight uppercase">Spa</span>
+              <div className="absolute bottom-0 left-0 w-0 h-1 bg-purple-500 group-hover:w-full transition-all duration-500"></div>
+            </Link>
           </div>
 
         </div>

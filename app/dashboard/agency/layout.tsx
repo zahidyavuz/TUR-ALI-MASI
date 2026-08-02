@@ -27,6 +27,7 @@ export default function AgencyDashboardLayout({ children }: { children: React.Re
     { name: 'İstatistik Merkezi', path: '/dashboard/agency', icon: '📊' },
     { name: 'Tur Yönetimi', path: '/dashboard/agency/tours', icon: '🗺️' },
     { name: 'Transfer Yönetimi', path: '/dashboard/agency/shuttles', icon: '🚐' },
+    { name: 'Spa Yönetimi', path: '/dashboard/agency/spas', icon: '🧖' },
     { name: 'Rezervasyon Takibi', path: '/dashboard/agency/bookings', icon: '📋' },
     { name: 'Değerlendirmeler', path: '/dashboard/agency/reviews', icon: '⭐' },
     { name: 'Finansal Raporlar', path: '/dashboard/agency/finance', icon: '💰' },

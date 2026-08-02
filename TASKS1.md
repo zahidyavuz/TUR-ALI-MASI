@@ -166,7 +166,7 @@ uygulanmaz; yeni IBAN bir onay kuyruğundan geçer, onaya kadar eski hesap aktif
   canlı IBAN'ı günceller, admin ret dokunmaz, ret sebebi zorunlu, çift onay bloklanır,
   çözüm sonrası yeniden talep, onaysız acenta 403, admin kuyruğu staff ister.
 
-### [ ] T2-04 · Spa modülü frontend + B2B yönetim ucu yok
+### [x] T2-04 · Spa modülü frontend + B2B yönetim ucu yok
 **Öncelik:** P1 · **Efor:** L
 **Adımlar:** `spas` backend'i tam (public read-only + booking + finans + testler) ama:
 **(1) Frontend** — spa mekân/hizmet listeleme + detay + checkout yok; `app/checkout/page.tsx`
@@ -174,6 +174,30 @@ uygulanmaz; yeni IBAN bir onay kuyruğundan geçer, onaya kadar eski hesap aktif
 için `AgencySpaViewSet` (shuttles'taki `AgencyShuttleViewSet` deseni: RLS +
 `StrictMassAssignmentPermission` + toplu slot üretimi + görsel yükleme) yok; şu an yalnız
 Django admin'den girilebiliyor. İki alt-parça ayrı ele alınabilir.
+
+**YAPILDI:**
+- **(1) Frontend (müşteri):** `app/lib/spas.ts` (transfer/shuttle deseni: `SpaVenue`/`SpaService`/
+  `SpaAvailabilitySlot` arayüzleri + `fetchSpaVenues`/`fetchSpaVenue`/`fetchSpaService`);
+  `app/spa/page.tsx` (mekân listeleme + konum/arama filtresi); `app/spa/[id]/page.tsx` (mekân
+  detay + hizmet seçimi → seçilen hizmetin slot'ları ayrı çekilir → tarih/saat/kişi → checkout).
+  `app/checkout/page.tsx`'e `isSpa` dalı (spaServiceId/time param, `service_type:'spa'` payload,
+  spa sipariş özeti; spa'da otel/pickup alanı gizli). Navbar'a `/spa` bağlantısı.
+- **(2) B2B:** `backend/agencies/agency_spas_views.py` — iki ViewSet (spa iki katmanlı olduğu için):
+  `AgencySpaVenueViewSet` (mekân CRUD + görsel yükleme + soft-detach) ve `AgencySpaServiceViewSet`
+  (hizmet CRUD + 90 günlük toplu slot üretimi + manifest + update-capacity + görsel). Her ikisi de
+  `[IsAuthenticated, IsAgentOwner, IsVerifiedAgent, StrictMassAssignmentPermission]`; izolasyon
+  venue → `agency=`, service → `venue__agency=`. Hizmet create'te mekân sahipliği ayrıca doğrulanır.
+  Slug PK sunucuda ada/başlığa göre üretilir (Türkçe karakter çevirisiyle). PATCH beyaz listesi;
+  soft delete (venue: agency=None+is_active=False, service: is_active=False).
+  Serializer'lar `spas/serializers.py`'de (`AgencySpaVenueSerializer`/`AgencySpaServiceSerializer` —
+  görseller create'te opsiyonel, id/agency read-only). `api_urls.py`'e `agency/spas/venues` +
+  `agency/spas/services` route'ları. `app/dashboard/agency/spas/page.tsx` (iki panelli yönetim:
+  mekân seç → hizmetlerini düzenle) + sidebar bağlantısı.
+- **Doğrulama:** makemigrations --check (değişiklik yok, model dokunulmadı), migrate --check OK,
+  310 backend testi OK (12 yeni `AgencySpaCrudTestCase`: slug üretimi, slot sayısı 90×2, yabancı
+  mekân reddi, PATCH beyaz listesi, soft delete, RLS izolasyonu, kapasite güncelleme, onaysız 403,
+  anonim 401), tsc temiz, lint temiz, build başarılı (/spa, /spa/[id], /dashboard/agency/spas),
+  AST metod + route dup taraması temiz.
 
 ---
 
