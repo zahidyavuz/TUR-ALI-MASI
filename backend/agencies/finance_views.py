@@ -29,7 +29,12 @@ from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
 
 from agencies.models import Agency
-from agencies.finance_models import AgentFinanceLedger, AgentPayoutRequest
+from agencies.finance_models import (
+    AgentFinanceLedger,
+    AgentPayoutRequest,
+    BankAccountChangeRequest,
+)
+from agencies.onboarding_serializers import IBAN_RE
 from core.permissions import IsAgentOwner, IsVerifiedAgent
 
 logger = logging.getLogger('agencies')
@@ -361,4 +366,103 @@ class AgencyPayoutRequestView(AgencyFinanceBaseView):
             'iban_masked':  mask_iban(payout.iban),
             'status':       payout.status,
             'requested_at': payout.requested_at.isoformat(),
+        }, status=status.HTTP_201_CREATED)
+
+
+class AgencyBankChangeView(AgencyFinanceBaseView):
+    """
+    GET  /api/v1/agency/finance/bank-change/  → Mevcut kayıtlı hesap + son talep
+    POST /api/v1/agency/finance/bank-change/  → IBAN/banka değişiklik talebi
+
+    Para yönlendirmesi olduğu için değişiklik doğrudan uygulanmaz: yeni bilgi
+    `BankAccountChangeRequest` olarak beklemeye alınır, admin onaylayana kadar
+    `Agency.iban` (hakedişin gittiği hesap) DEĞİŞMEZ. Böylece paneli ele
+    geçiren biri hakedişi tek başına başka hesaba yönlendiremez.
+    """
+
+    def _serialize_request(self, obj):
+        return {
+            'id':                 obj.id,
+            'proposed_iban_masked': mask_iban(obj.proposed_iban),
+            'proposed_bank_name': obj.proposed_bank_name,
+            'proposed_holder':    obj.proposed_bank_account_holder,
+            'status':             obj.status,
+            'status_label':       obj.get_status_display(),
+            'admin_notes':        obj.admin_notes,
+            'requested_at':       obj.requested_at.isoformat(),
+            'resolved_at':        obj.resolved_at.isoformat() if obj.resolved_at else None,
+        }
+
+    def get(self, request):
+        agency = self.get_agency(request)
+        if agency is None:
+            return self.agency_missing_response()
+
+        pending = BankAccountChangeRequest.objects.filter(
+            agency=agency, status='pending'
+        ).first()
+        latest = BankAccountChangeRequest.objects.filter(agency=agency).first()
+
+        return Response({
+            'current_bank_account': {
+                'iban_masked':  mask_iban(agency.iban),
+                'bank_name':    agency.bank_name,
+                'holder':       agency.bank_account_holder,
+                'is_complete':  bool(agency.iban and agency.bank_account_holder),
+            },
+            'pending_request': self._serialize_request(pending) if pending else None,
+            'latest_request':  self._serialize_request(latest) if latest else None,
+        })
+
+    def post(self, request):
+        agency = self.get_agency(request)
+        if agency is None:
+            return self.agency_missing_response()
+
+        raw_iban = (request.data.get('iban') or '').replace(' ', '').upper()
+        holder = (request.data.get('bank_account_holder') or '').strip()
+        bank_name = (request.data.get('bank_name') or '').strip()
+
+        if not raw_iban or not holder:
+            return Response(
+                {'error': 'IBAN ve hesap sahibi zorunludur.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        if not IBAN_RE.match(raw_iban):
+            return Response(
+                {'error': 'Geçersiz IBAN. TR ile başlayan 26 haneli olmalıdır.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # Talep bir para-yönlendirme yazımı: aynı anda iki sekmeden gelen
+        # istek iki bekleyen talep oluşturmasın diye acenta satırı kilitlenip
+        # kontrol ve kayıt tek kritik bölgede yapılır.
+        with transaction.atomic():
+            locked_agency = Agency.objects.select_for_update().get(pk=agency.pk)
+
+            if BankAccountChangeRequest.objects.filter(
+                agency=locked_agency, status='pending'
+            ).exists():
+                return Response(
+                    {'error': 'Bekleyen bir banka değişiklik talebiniz zaten var. Önce incelenmesini bekleyin.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            change = BankAccountChangeRequest.objects.create(
+                agency=locked_agency,
+                proposed_iban=raw_iban,
+                proposed_bank_account_holder=holder,
+                proposed_bank_name=bank_name,
+                previous_iban=locked_agency.iban,
+            )
+
+        logger.info(
+            f"[BANK-CHANGE] Bank change request created: agency='{agency.name}' "
+            f"proposed={mask_iban(raw_iban)}"
+        )
+
+        return Response({
+            'detail':  'Banka bilgisi değişiklik talebiniz alındı. Onaylanana kadar '
+                       'hakediş ödemeleri mevcut hesabınıza yapılmaya devam eder.',
+            **self._serialize_request(change),
         }, status=status.HTTP_201_CREATED)

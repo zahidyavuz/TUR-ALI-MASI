@@ -191,3 +191,46 @@ class AgentPayoutRequest(models.Model):
         ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0')
 
         return total_net - paid_out
+
+
+class BankAccountChangeRequest(models.Model):
+    """
+    Acenta onboarding onayından sonra IBAN/banka bilgisini değiştirmek
+    istediğinde oluşturulan talep.
+
+    Para yönlendirmesi olduğu için değişiklik doğrudan uygulanmaz: eski
+    IBAN hakediş ödemesi için aktif kalır, admin onaylayana kadar
+    `Agency.iban` güncellenmez (bkz. T2-03). Onay/ret admin panelinden
+    yapılır ve onaylandığında proposed_* alanları canlı Agency alanlarına
+    kopyalanır.
+    """
+    STATUS_CHOICES = [
+        ('pending',  'İncelemede'),
+        ('approved', 'Onaylandı'),
+        ('rejected', 'Reddedildi'),
+    ]
+
+    agency = models.ForeignKey(
+        Agency, on_delete=models.CASCADE, related_name='bank_change_requests'
+    )
+
+    # Talep edilen yeni bilgiler (Agency alanlarıyla aynı max_length).
+    proposed_iban = models.CharField(max_length=32)
+    proposed_bank_account_holder = models.CharField(max_length=255)
+    proposed_bank_name = models.CharField(max_length=255, blank=True)
+
+    # Talep anındaki eski IBAN snapshot'ı — muhasebe/denetim izi için.
+    previous_iban = models.CharField(max_length=32, blank=True, null=True)
+
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending')
+    admin_notes = models.TextField(blank=True, null=True)
+    requested_at = models.DateTimeField(default=timezone.now)
+    resolved_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-requested_at']
+        verbose_name = 'Banka Bilgisi Değişiklik Talebi'
+        verbose_name_plural = 'Banka Bilgisi Değişiklik Talepleri'
+
+    def __str__(self):
+        return f"{self.agency.name} | {self.proposed_iban} | {self.get_status_display()}"

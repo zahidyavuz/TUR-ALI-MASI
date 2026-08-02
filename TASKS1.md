@@ -136,13 +136,35 @@ sayfadaki "Hemen Al"/"Hemen Sipariş Ver" butonlarının kırık `/checkout?menu
 kaldırıldı; tıklamada sahte checkout yerine dürüst "🔒 Çevrimiçi Ödeme Yakında" durumu gösteriliyor.
 `app/menu/[slug]` içinde kullanılmaz hâle gelen `useRouter` importu temizlendi.
 
-### [ ] T2-03 · Acenta onaylandıktan sonra IBAN/banka bilgisi değiştiremiyor
+### [x] T2-03 · Acenta onaylandıktan sonra IBAN/banka bilgisi değiştiremiyor
 **Öncelik:** P1 · **Efor:** M
 **Adımlar:** IBAN yalnız onboarding sırasında yazılabiliyor; `OnboardingUpdateView`
 `status='onaylandi'` sonrası kapanıyor ve panelde banka düzenleme ekranı yok. Banka değiştiren
 acenta hakedişini eski hesaba talep etmek zorunda. Acenta profilinde IBAN güncelleme ucu ekle —
 **para yönlendirmesi olduğu için** değişiklik admin onayı veya yeniden doğrulamaya tabi
 olmalı (doğrudan serbest bırakma). Finans sayfası şu an "destek ile iletişime geçin" diyor.
+
+**YAPILDI (admin onaylı değişiklik talebi):** Para yönlendirmesi doğrudan
+uygulanmaz; yeni IBAN bir onay kuyruğundan geçer, onaya kadar eski hesap aktif kalır.
+- **Model:** `agencies/finance_models.py → BankAccountChangeRequest` (agency FK,
+  proposed_iban / proposed_bank_account_holder / proposed_bank_name, previous_iban
+  snapshot, status pending/approved/rejected, admin_notes, requested_at, resolved_at).
+  Migration `0014_bankaccountchangerequest`.
+- **Acenta ucu:** `AgencyBankChangeView` — `GET/POST /agency/finance/bank-change/`
+  (`[IsAuthenticated, IsAgentOwner, IsVerifiedAgent]`). POST IBAN'ı `IBAN_RE` ile
+  doğrular, `select_for_update` altında bekleyen talep varsa reddeder, **`Agency.iban`'a
+  DOKUNMAZ**; sadece pending talep oluşturur.
+- **Admin ucu:** `AdminBankChangeViewSet` — `GET /admin/bank-changes/`,
+  `POST .../approve/` (proposed→canlı Agency alanlarına kopyalar, bildirim),
+  `POST .../reject/` (sebep zorunlu, IBAN değişmez, bildirim). `[IsAdminUser]`.
+  Ayrıca Django admin `BankAccountChangeRequestAdmin` (approve/reject aksiyonları).
+- **Frontend:** `app/dashboard/agency/finance/page.tsx` — "destek ile iletişime geçin"
+  bloğu gerçek IBAN düzenleme formuyla değiştirildi; bekleyen talep durumu + reddedilen
+  son talep sebebi gösteriliyor; onay uyarısı ("onaya kadar eski hesap aktif") eklendi.
+- **Test:** `BankAccountChangeTestCase` (13 test) — pending oluşur & canlı IBAN
+  değişmez, çift talep bloklanır, geçersiz IBAN/eksik sahip reddedilir, admin onay
+  canlı IBAN'ı günceller, admin ret dokunmaz, ret sebebi zorunlu, çift onay bloklanır,
+  çözüm sonrası yeniden talep, onaysız acenta 403, admin kuyruğu staff ister.
 
 ### [ ] T2-04 · Spa modülü frontend + B2B yönetim ucu yok
 **Öncelik:** P1 · **Efor:** L

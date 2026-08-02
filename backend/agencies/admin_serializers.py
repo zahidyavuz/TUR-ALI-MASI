@@ -1,7 +1,7 @@
 from django.db.models import Q
 from rest_framework import serializers
 from .models import Agency
-from .finance_models import AgentPayoutRequest
+from .finance_models import AgentPayoutRequest, BankAccountChangeRequest
 from tours.models import Tour
 from bookings.models import Booking
 
@@ -46,6 +46,33 @@ class AdminPayoutRequestSerializer(serializers.ModelSerializer):
     def get_iban_masked(self, obj):
         from .finance_views import mask_iban
         return mask_iban(obj.iban)
+
+
+class AdminBankChangeSerializer(serializers.ModelSerializer):
+    """Banka bilgisi değişiklik talebi — admin onay kuyruğu için."""
+    agency_name = serializers.CharField(source='agency.name', read_only=True)
+    agency_id = serializers.IntegerField(source='agency.id', read_only=True)
+    proposed_iban_masked = serializers.SerializerMethodField()
+    previous_iban_masked = serializers.SerializerMethodField()
+    status_label = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = BankAccountChangeRequest
+        fields = [
+            'id', 'agency_id', 'agency_name',
+            'proposed_iban_masked', 'proposed_bank_account_holder', 'proposed_bank_name',
+            'previous_iban_masked',
+            'status', 'status_label', 'admin_notes',
+            'requested_at', 'resolved_at',
+        ]
+
+    def get_proposed_iban_masked(self, obj):
+        from .finance_views import mask_iban
+        return mask_iban(obj.proposed_iban)
+
+    def get_previous_iban_masked(self, obj):
+        from .finance_views import mask_iban
+        return mask_iban(obj.previous_iban)
 
 
 class AdminAgencyDetailSerializer(serializers.ModelSerializer):

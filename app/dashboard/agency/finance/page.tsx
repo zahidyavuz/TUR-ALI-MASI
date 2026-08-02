@@ -63,6 +63,29 @@ interface PayoutRequest {
     resolved_at: string | null;
 }
 
+interface BankChangeRequest {
+    id: number;
+    proposed_iban_masked: string | null;
+    proposed_bank_name: string;
+    proposed_holder: string;
+    status: string;
+    status_label: string;
+    admin_notes: string | null;
+    requested_at: string;
+    resolved_at: string | null;
+}
+
+interface BankChangeState {
+    current_bank_account: {
+        iban_masked: string | null;
+        bank_name: string | null;
+        holder: string | null;
+        is_complete: boolean;
+    };
+    pending_request: BankChangeRequest | null;
+    latest_request: BankChangeRequest | null;
+}
+
 const TYPE_FILTERS = [
     { value: '', label: 'Tümü' },
     { value: 'sale', label: 'Satış' },
@@ -102,6 +125,16 @@ export default function AgencyFinancePage() {
     const [payoutSuccess, setPayoutSuccess] = useState('');
     const [exportError, setExportError] = useState('');
 
+    // Banka bilgisi değişiklik talebi (para yönlendirmesi → admin onaylı).
+    const [bankChange, setBankChange] = useState<BankChangeState | null>(null);
+    const [bankFormOpen, setBankFormOpen] = useState(false);
+    const [ibanInput, setIbanInput] = useState('');
+    const [holderInput, setHolderInput] = useState('');
+    const [bankNameInput, setBankNameInput] = useState('');
+    const [bankSubmitting, setBankSubmitting] = useState(false);
+    const [bankError, setBankError] = useState('');
+    const [bankSuccess, setBankSuccess] = useState('');
+
     const loadSummary = useCallback(async () => {
         const [summaryData, payoutData] = await Promise.all([
             fetchAPI('/agency/finance/summary/'),
@@ -114,6 +147,11 @@ export default function AgencyFinancePage() {
         setLoadError('');
         setSummary(summaryData);
         setPayouts(Array.isArray(payoutData) ? payoutData : []);
+    }, []);
+
+    const loadBankChange = useCallback(async () => {
+        const data = await fetchAPI('/agency/finance/bank-change/');
+        if (data) setBankChange(data);
     }, []);
 
     const loadLedger = useCallback(async () => {
@@ -134,6 +172,7 @@ export default function AgencyFinancePage() {
     }, [month, entryType, page]);
 
     useEffect(() => { loadSummary(); }, [loadSummary]);
+    useEffect(() => { loadBankChange(); }, [loadBankChange]);
     useEffect(() => { loadLedger(); }, [loadLedger]);
 
     // Filtre değişince ilk sayfaya dön: 3. sayfadayken filtre daraltılırsa
@@ -193,6 +232,51 @@ export default function AgencyFinancePage() {
         if (!ok) setExportError('Ekstre indirilemedi.');
     };
 
+    const handleBankChangeSubmit = async () => {
+        setBankError('');
+        setBankSuccess('');
+
+        const iban = ibanInput.replace(/\s+/g, '').toUpperCase();
+        const holder = holderInput.trim();
+        if (!iban || !holder) {
+            setBankError('IBAN ve hesap sahibi zorunludur.');
+            return;
+        }
+        // Sunucu asıl doğrulamayı yapar; burada boşuna istek atmamak için.
+        if (!/^TR\d{24}$/.test(iban)) {
+            setBankError('Geçersiz IBAN. TR ile başlayan 26 haneli olmalıdır.');
+            return;
+        }
+
+        setBankSubmitting(true);
+        try {
+            const data = await fetchAPI('/agency/finance/bank-change/', {
+                method: 'POST',
+                body: JSON.stringify({
+                    iban,
+                    bank_account_holder: holder,
+                    bank_name: bankNameInput.trim(),
+                }),
+                throwOnHttpError: true,
+            });
+            if (!data) {
+                setBankError('Talep gönderilemedi. Sunucuya ulaşılamıyor olabilir.');
+            } else {
+                setBankSuccess(data.detail);
+                setBankFormOpen(false);
+                setIbanInput('');
+                setHolderInput('');
+                setBankNameInput('');
+                await loadBankChange();
+            }
+        } catch (err: unknown) {
+            const e = err as { data?: { error?: string }; message?: string };
+            setBankError(e?.data?.error || e?.message || 'Talep gönderilemedi.');
+        }
+        setBankSubmitting(false);
+    };
+
+    const bankPending = bankChange?.pending_request ?? null;
     const totalPages = Math.max(1, Math.ceil(entryCount / 20));
 
     return (
@@ -303,12 +387,26 @@ export default function AgencyFinancePage() {
                         )}
                     </div>
 
-                    {/* Kayıtlı hesap — IBAN maskeli: doğrulamaya yetecek kadar. */}
+                    {/* Kayıtlı hesap — IBAN maskeli: doğrulamaya yetecek kadar.
+                        Değişiklik para yönlendirmesi olduğu için doğrudan
+                        uygulanmaz; talep admin onayına düşer, onaya kadar eski
+                        hesap aktif kalır (T2-03). */}
                     <div className="bg-white dark:bg-slate-900 rounded-lg p-5 shadow-sm border border-slate-200 dark:border-slate-800 font-sans">
-                        <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                            Kayıtlı Banka Hesabı
-                        </h3>
+                        <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                                Kayıtlı Banka Hesabı
+                            </h3>
+                            {!bankFormOpen && !bankPending && (
+                                <button
+                                    onClick={() => { setBankFormOpen(true); setBankError(''); setBankSuccess(''); }}
+                                    className="text-[10px] font-semibold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-2.5 py-1 rounded-md hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                >
+                                    {summary?.bank_account.iban_masked ? 'Değiştir' : 'Ekle'}
+                                </button>
+                            )}
+                        </div>
+
                         {summary?.bank_account.iban_masked ? (
                             <>
                                 <p className="text-sm text-slate-800 dark:text-slate-200 font-mono font-medium mb-1">
@@ -320,14 +418,105 @@ export default function AgencyFinancePage() {
                                 </p>
                             </>
                         ) : (
-                            /* Onay sonrası banka bilgisi düzenleme ekranı henüz yok
-                               (onboarding onaydan sonra kapanıyor), bu yüzden var
-                               olmayan bir sayfaya yönlendirmek yerine destek deniyor. */
                             <p className="text-xs text-slate-500">
                                 Kayıtlı banka hesabı yok. Hakediş ödemesi alabilmek için
-                                IBAN bilgilerinizin eklenmesi gerekiyor; lütfen destek ekibiyle
-                                iletişime geçin.
+                                aşağıdan IBAN bilgilerinizi ekleyin.
                             </p>
+                        )}
+
+                        {/* Bekleyen değişiklik talebi: onaya kadar eski hesap geçerli. */}
+                        {bankPending && (
+                            <div className="mt-3 rounded-md border border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-900/20 px-3 py-2.5">
+                                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-300 uppercase tracking-wider mb-1">
+                                    Onay bekleyen değişiklik
+                                </p>
+                                <p className="text-xs text-amber-800 dark:text-amber-200 font-mono">
+                                    {bankPending.proposed_iban_masked}
+                                </p>
+                                <p className="text-[10px] text-amber-700 dark:text-amber-300 mt-0.5">
+                                    {[bankPending.proposed_bank_name, bankPending.proposed_holder]
+                                        .filter(Boolean).join(' — ')}
+                                </p>
+                                <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-1.5">
+                                    {formatDate(bankPending.requested_at)} tarihli talebiniz inceleniyor.
+                                    Onaylanana kadar ödemeler mevcut hesabınıza yapılır.
+                                </p>
+                            </div>
+                        )}
+
+                        {/* Son talep reddedildiyse sebebini göster. */}
+                        {!bankPending && bankChange?.latest_request?.status === 'rejected' && (
+                            <p className="mt-3 text-[10px] text-red-600 dark:text-red-400">
+                                Son değişiklik talebiniz reddedildi
+                                {bankChange.latest_request.admin_notes
+                                    ? `: ${bankChange.latest_request.admin_notes}` : '.'}
+                            </p>
+                        )}
+
+                        {bankSuccess && !bankFormOpen && (
+                            <p className="mt-3 text-[11px] text-green-600 dark:text-green-400 font-medium">{bankSuccess}</p>
+                        )}
+
+                        {/* Değişiklik formu */}
+                        {bankFormOpen && (
+                            <div className="mt-4 space-y-2.5 border-t border-slate-100 dark:border-slate-800 pt-4">
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">IBAN</label>
+                                    <input
+                                        type="text"
+                                        value={ibanInput}
+                                        onChange={e => setIbanInput(e.target.value)}
+                                        placeholder="TR__ ____ ____ ____ ____ ____ __"
+                                        className="w-full text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-md px-2.5 py-2 font-mono focus:outline-none focus:border-slate-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Hesap Sahibi</label>
+                                    <input
+                                        type="text"
+                                        value={holderInput}
+                                        onChange={e => setHolderInput(e.target.value)}
+                                        className="w-full text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-md px-2.5 py-2 focus:outline-none focus:border-slate-400"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-[10px] font-semibold text-slate-500 uppercase tracking-wider mb-1">Banka Adı (opsiyonel)</label>
+                                    <input
+                                        type="text"
+                                        value={bankNameInput}
+                                        onChange={e => setBankNameInput(e.target.value)}
+                                        className="w-full text-sm border border-slate-200 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 rounded-md px-2.5 py-2 focus:outline-none focus:border-slate-400"
+                                    />
+                                </div>
+
+                                <p className="text-[10px] text-slate-500 leading-relaxed">
+                                    Güvenlik gereği banka bilgisi değişikliği admin onayına
+                                    tabidir. Onaylanana kadar hakediş ödemeleri mevcut
+                                    hesabınıza yapılmaya devam eder.
+                                </p>
+
+                                {bankError && (
+                                    <p className="text-[11px] text-red-600 dark:text-red-400 font-medium">{bankError}</p>
+                                )}
+
+                                <div className="flex gap-2 pt-1">
+                                    <button
+                                        onClick={handleBankChangeSubmit}
+                                        disabled={bankSubmitting}
+                                        className="flex-1 py-2 rounded-md bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-xs font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 flex justify-center items-center gap-2"
+                                    >
+                                        {bankSubmitting ? (
+                                            <><div className="w-3 h-3 border-2 border-white dark:border-slate-900 border-t-transparent rounded-full animate-spin"></div> Gönderiliyor...</>
+                                        ) : 'Onaya Gönder'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setBankFormOpen(false); setBankError(''); }}
+                                        className="px-4 py-2 rounded-md border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
+                                    >
+                                        Vazgeç
+                                    </button>
+                                </div>
+                            </div>
                         )}
                     </div>
 

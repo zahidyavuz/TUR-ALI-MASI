@@ -9,7 +9,13 @@ from reviews.views import ReviewViewSet
 from bookings.views import BookingViewSet
 from blogs.views import BlogViewSet, TagViewSet
 from agencies.dashboard import AgencyDashboardView
-from agencies.admin_views import AdminDashboardView, AdminAgencyViewSet, AdminMetricsView, AdminPayoutViewSet
+from agencies.admin_views import (
+    AdminDashboardView,
+    AdminAgencyViewSet,
+    AdminMetricsView,
+    AdminPayoutViewSet,
+    AdminBankChangeViewSet,
+)
 from users.views import UserMeView, WishlistViewSet, NotificationViewSet, UserCouponViewSet
 from users.auth_views import ThrottledLoginView, ThrottledRegisterView, ClaimAccountView
 from contacts.views import ContactMessageViewSet, LeadViewSet
@@ -23,6 +29,7 @@ from agencies.finance_views import (
     AgencyFinanceLedgerView,
     AgencyFinanceExportView,
     AgencyPayoutRequestView,
+    AgencyBankChangeView,
 )
 from agencies.onboarding_views import (
     OnboardingStartView,
@@ -52,6 +59,7 @@ router.register(r'users/notifications', NotificationViewSet, basename='notificat
 router.register(r'users/coupons', UserCouponViewSet, basename='usercoupon')
 router.register(r'admin/agencies', AdminAgencyViewSet, basename='admin-agency')
 router.register(r'admin/payouts', AdminPayoutViewSet, basename='admin-payout')
+router.register(r'admin/bank-changes', AdminBankChangeViewSet, basename='admin-bank-change')
 router.register(r'menus', MenuViewSet, basename='menu')
 router.register(r'restaurant/reservations', DiningReservationViewSet, basename='restaurant-reservation')
 # ── Acenta Tur Yönetimi (RLS korumalı) ───────────────────────────────────────
@@ -77,6 +85,7 @@ urlpatterns = [
     path('agency/finance/ledger/', AgencyFinanceLedgerView.as_view(), name='agency-finance-ledger'),
     path('agency/finance/export/', AgencyFinanceExportView.as_view(), name='agency-finance-export'),
     path('agency/finance/payout-request/', AgencyPayoutRequestView.as_view(), name='agency-payout-request'),
+    path('agency/finance/bank-change/', AgencyBankChangeView.as_view(), name='agency-bank-change'),
     # ── Restoran Endpoint'leri ─────────────────────────────────────────────
     path('restaurant/daily-stats/', RestaurantDailyStatsView.as_view(), name='restaurant-daily-stats'),
     path('', include(router.urls)),

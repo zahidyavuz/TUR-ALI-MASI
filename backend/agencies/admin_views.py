@@ -14,7 +14,11 @@ from datetime import timedelta
 from backend.admin_permissions import IsAdminUser
 from core.emails import display_name, frontend_url, send_templated_mail
 from agencies.models import Agency
-from agencies.finance_models import AgentFinanceLedger, AgentPayoutRequest
+from agencies.finance_models import (
+    AgentFinanceLedger,
+    AgentPayoutRequest,
+    BankAccountChangeRequest,
+)
 from tours.models import Tour
 from bookings.models import Booking
 from users.models import Notification
@@ -22,6 +26,7 @@ from .admin_serializers import (
     AdminAgencyListSerializer,
     AdminAgencyDetailSerializer,
     AdminPayoutRequestSerializer,
+    AdminBankChangeSerializer,
 )
 
 logger = logging.getLogger('agencies')
@@ -333,6 +338,107 @@ class AdminPayoutViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             user=owner, title=title, icon=icon,
             message=f'{message} Sebep: {reason}' if reason else message,
             type='payout_status', action_url='/dashboard/agency/finance',
+        )
+
+
+class AdminBankChangeViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """
+    Banka bilgisi değişiklik onay kuyruğu (T2-03).
+      GET  /api/v1/admin/bank-changes/                 → Talepler (varsayılan: pending)
+      POST /api/v1/admin/bank-changes/<id>/approve/    → Onayla (Agency.iban güncellenir)
+      POST /api/v1/admin/bank-changes/<id>/reject/     → Reddet (sebep zorunlu)
+
+    Onay anına kadar `Agency.iban` (hakedişin gittiği hesap) DEĞİŞMEZ; para
+    yönlendirmesi yalnız admin onayıyla serbest bırakılır.
+    """
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminBankChangeSerializer
+    queryset = BankAccountChangeRequest.objects.select_related('agency').all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status_filter = self.request.query_params.get('status', 'pending')
+        if status_filter and status_filter != 'all':
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve(self, request, pk=None):
+        note = (request.data.get('admin_notes') or '').strip()
+        # Para yönlendirmesi burada serbest bırakılır: talep ve acenta satırı
+        # birlikte kilitlenir, proposed_* alanları canlı Agency alanlarına
+        # kopyalanır. Yalnız 'pending' talep onaylanabilir (çift işleme karşı).
+        with transaction.atomic():
+            change = BankAccountChangeRequest.objects.select_for_update().get(pk=pk)
+            if change.status != 'pending':
+                return Response(
+                    {'error': f'Yalnız bekleyen talepler onaylanabilir (mevcut: {change.get_status_display()}).'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            agency = Agency.objects.select_for_update().get(pk=change.agency_id)
+            agency.iban = change.proposed_iban
+            agency.bank_account_holder = change.proposed_bank_account_holder
+            agency.bank_name = change.proposed_bank_name
+            agency.save(update_fields=['iban', 'bank_account_holder', 'bank_name'])
+
+            change.status = 'approved'
+            change.admin_notes = note or change.admin_notes
+            change.resolved_at = timezone.now()
+            change.save(update_fields=['status', 'admin_notes', 'resolved_at'])
+
+        self._notify(
+            change,
+            title='Banka Bilgisi Değişikliğiniz Onaylandı ✅',
+            message='Yeni IBAN bilgileriniz onaylandı. Bundan sonraki hakediş '
+                    'ödemeleri güncel hesabınıza yapılacaktır.',
+            icon='✅',
+        )
+        logger.info(
+            f"[BANK-CHANGE] Approved: agency='{change.agency.name}' by {request.user.username}"
+        )
+        return Response(AdminBankChangeSerializer(change).data)
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        reason = (request.data.get('reason') or request.data.get('admin_notes') or '').strip()
+        if not reason:
+            return Response({'error': 'Red sebebi zorunludur.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            change = BankAccountChangeRequest.objects.select_for_update().get(pk=pk)
+            if change.status != 'pending':
+                return Response(
+                    {'error': f'Yalnız bekleyen talepler reddedilebilir (mevcut: {change.get_status_display()}).'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            # Red durumunda Agency.iban'a DOKUNULMAZ — eski hesap aktif kalır.
+            change.status = 'rejected'
+            change.admin_notes = reason
+            change.resolved_at = timezone.now()
+            change.save(update_fields=['status', 'admin_notes', 'resolved_at'])
+
+        self._notify(
+            change,
+            title='Banka Bilgisi Değişikliğiniz Reddedildi',
+            message='Banka bilgisi değişiklik talebiniz reddedildi. Hakediş '
+                    'ödemeleri mevcut hesabınıza yapılmaya devam eder.',
+            icon='❌',
+            reason=reason,
+        )
+        logger.info(
+            f"[BANK-CHANGE] Rejected: agency='{change.agency.name}' by {request.user.username}"
+        )
+        return Response(AdminBankChangeSerializer(change).data)
+
+    @staticmethod
+    def _notify(change, title, message, icon, reason=''):
+        owner = change.agency.owner
+        if not owner:
+            return
+        Notification.objects.create(
+            user=owner, title=title, icon=icon,
+            message=f'{message} Sebep: {reason}' if reason else message,
+            type='bank_change_status', action_url='/dashboard/agency/finance',
         )
 
 

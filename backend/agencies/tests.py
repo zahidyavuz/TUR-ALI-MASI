@@ -6,6 +6,7 @@ from django.utils import timezone
 from rest_framework.test import APIClient
 
 from .models import Agency
+from .finance_models import BankAccountChangeRequest
 
 
 class PartnerOnboardingTestCase(TestCase):
@@ -817,3 +818,132 @@ class MissingFieldsTestCase(TestCase):
         self.client.force_authenticate(user=agency.owner)
         missing = self.client.get('/api/v1/agencies/onboarding/').data['missing_fields']
         self.assertIn('trade_registry_document', missing)
+
+
+class BankAccountChangeTestCase(TestCase):
+    """
+    T2-03 — Onaylı acenta IBAN/banka bilgisini güncelleyebilir; para
+    yönlendirmesi olduğu için değişiklik admin onayına tabidir, onaya kadar
+    eski IBAN aktif kalır.
+    """
+    OWNER_URL = '/api/v1/agency/finance/bank-change/'
+    OLD_IBAN = 'TR' + '1' * 24
+    NEW_IBAN = 'TR330006100519786457841326'
+
+    def setUp(self):
+        self.client = APIClient()
+        self.owner = User.objects.create_user(username='bc-owner', password='pass', email='bc@test.com')
+        self.agency = Agency.objects.create(
+            owner=self.owner, name='Bank Co', business_type='acenta',
+            legal_entity_type='individual', status='onaylandi', is_verified=True,
+            iban=self.OLD_IBAN, bank_account_holder='Eski Sahip', bank_name='Ziraat',
+        )
+        self.client.force_authenticate(user=self.owner)
+
+        self.admin = User.objects.create_user(username='bc-admin', password='pass', is_staff=True)
+        self.admin_client = APIClient()
+        self.admin_client.force_authenticate(user=self.admin)
+
+    def _submit(self, iban=None, holder='Yeni Sahip', bank_name='Garanti'):
+        return self.client.post(self.OWNER_URL, {
+            'iban': iban or self.NEW_IBAN,
+            'bank_account_holder': holder,
+            'bank_name': bank_name,
+        }, format='json')
+
+    def test_submit_creates_pending_and_does_not_touch_live_iban(self):
+        response = self._submit()
+        self.assertEqual(response.status_code, 201, response.data)
+
+        change = BankAccountChangeRequest.objects.get(agency=self.agency)
+        self.assertEqual(change.status, 'pending')
+        self.assertEqual(change.proposed_iban, self.NEW_IBAN)
+        self.assertEqual(change.previous_iban, self.OLD_IBAN)
+
+        # Canlı IBAN onaya kadar değişmemeli.
+        self.agency.refresh_from_db()
+        self.assertEqual(self.agency.iban, self.OLD_IBAN)
+
+    def test_cannot_submit_while_pending_exists(self):
+        self.assertEqual(self._submit().status_code, 201)
+        second = self._submit(iban='TR' + '2' * 24)
+        self.assertEqual(second.status_code, 400)
+        self.assertEqual(BankAccountChangeRequest.objects.filter(agency=self.agency).count(), 1)
+
+    def test_invalid_iban_rejected(self):
+        response = self._submit(iban='TR123')
+        self.assertEqual(response.status_code, 400)
+        self.assertFalse(BankAccountChangeRequest.objects.filter(agency=self.agency).exists())
+
+    def test_missing_holder_rejected(self):
+        response = self._submit(holder='')
+        self.assertEqual(response.status_code, 400)
+
+    def test_admin_approve_updates_live_iban(self):
+        self._submit()
+        change = BankAccountChangeRequest.objects.get(agency=self.agency)
+
+        response = self.admin_client.post(
+            f'/api/v1/admin/bank-changes/{change.id}/approve/', {}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+
+        change.refresh_from_db()
+        self.agency.refresh_from_db()
+        self.assertEqual(change.status, 'approved')
+        self.assertIsNotNone(change.resolved_at)
+        self.assertEqual(self.agency.iban, self.NEW_IBAN)
+        self.assertEqual(self.agency.bank_account_holder, 'Yeni Sahip')
+        self.assertEqual(self.agency.bank_name, 'Garanti')
+
+    def test_admin_reject_leaves_live_iban_untouched(self):
+        self._submit()
+        change = BankAccountChangeRequest.objects.get(agency=self.agency)
+
+        response = self.admin_client.post(
+            f'/api/v1/admin/bank-changes/{change.id}/reject/',
+            {'reason': 'Hesap sahibi uyuşmuyor'}, format='json')
+        self.assertEqual(response.status_code, 200, response.data)
+
+        change.refresh_from_db()
+        self.agency.refresh_from_db()
+        self.assertEqual(change.status, 'rejected')
+        self.assertEqual(change.admin_notes, 'Hesap sahibi uyuşmuyor')
+        self.assertEqual(self.agency.iban, self.OLD_IBAN)
+
+    def test_admin_reject_requires_reason(self):
+        self._submit()
+        change = BankAccountChangeRequest.objects.get(agency=self.agency)
+        response = self.admin_client.post(
+            f'/api/v1/admin/bank-changes/{change.id}/reject/', {}, format='json')
+        self.assertEqual(response.status_code, 400)
+
+    def test_approve_twice_blocked(self):
+        self._submit()
+        change = BankAccountChangeRequest.objects.get(agency=self.agency)
+        self.admin_client.post(f'/api/v1/admin/bank-changes/{change.id}/approve/', {}, format='json')
+        second = self.admin_client.post(
+            f'/api/v1/admin/bank-changes/{change.id}/approve/', {}, format='json')
+        self.assertEqual(second.status_code, 400)
+
+    def test_can_submit_again_after_resolution(self):
+        self._submit()
+        change = BankAccountChangeRequest.objects.get(agency=self.agency)
+        self.admin_client.post(
+            f'/api/v1/admin/bank-changes/{change.id}/reject/', {'reason': 'x'}, format='json')
+        # Çözümlenmiş talep varken yeni talep açılabilmeli.
+        self.assertEqual(self._submit(iban='TR' + '3' * 24).status_code, 201)
+
+    def test_owner_get_returns_current_and_pending(self):
+        self._submit()
+        response = self.client.get(self.OWNER_URL)
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.data['current_bank_account']['iban_masked'])
+        self.assertIsNotNone(response.data['pending_request'])
+
+    def test_unverified_agency_blocked(self):
+        Agency.objects.filter(pk=self.agency.pk).update(status='beklemede', is_verified=False)
+        self.assertEqual(self._submit().status_code, 403)
+
+    def test_admin_queue_requires_staff(self):
+        response = self.client.get('/api/v1/admin/bank-changes/')
+        self.assertEqual(response.status_code, 403)

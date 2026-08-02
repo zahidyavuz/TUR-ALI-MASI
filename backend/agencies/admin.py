@@ -1,8 +1,13 @@
 from django.contrib import admin
+from django.db import transaction
 from django.utils import timezone
 
 from .models import Agency, Menu, Table, DiningReservation
-from .finance_models import AgentFinanceLedger, AgentPayoutRequest
+from .finance_models import (
+    AgentFinanceLedger,
+    AgentPayoutRequest,
+    BankAccountChangeRequest,
+)
 
 
 @admin.register(Agency)
@@ -116,5 +121,51 @@ class AgentPayoutRequestAdmin(admin.ModelAdmin):
     @admin.action(description='Seçili talepleri REDDET')
     def mark_rejected(self, request, queryset):
         count = self._resolve(queryset, 'rejected')
+        self.message_user(request, f'{count} talep reddedildi.')
+
+
+@admin.register(BankAccountChangeRequest)
+class BankAccountChangeRequestAdmin(admin.ModelAdmin):
+    """
+    Banka bilgisi değişiklik onay kuyruğu (T2-03).
+
+    Onay para yönlendirmesini serbest bırakır: 'Onayla' aksiyonu proposed_*
+    alanlarını canlı Agency alanlarına kopyalar. Ret ise Agency.iban'a
+    dokunmaz, eski hesap aktif kalır.
+    """
+    list_display = ['agency', 'proposed_iban', 'proposed_bank_account_holder',
+                    'status', 'requested_at', 'resolved_at']
+    list_filter = ['status', 'requested_at']
+    search_fields = ['agency__name', 'proposed_iban', 'proposed_bank_account_holder']
+    readonly_fields = ['agency', 'proposed_iban', 'proposed_bank_account_holder',
+                       'proposed_bank_name', 'previous_iban', 'requested_at']
+    date_hierarchy = 'requested_at'
+    actions = ['approve_changes', 'reject_changes']
+
+    @admin.action(description='Seçili talepleri ONAYLA (IBAN güncellenir)')
+    def approve_changes(self, request, queryset):
+        count = 0
+        for change in queryset.filter(status='pending'):
+            with transaction.atomic():
+                locked = BankAccountChangeRequest.objects.select_for_update().get(pk=change.pk)
+                if locked.status != 'pending':
+                    continue
+                agency = Agency.objects.select_for_update().get(pk=locked.agency_id)
+                agency.iban = locked.proposed_iban
+                agency.bank_account_holder = locked.proposed_bank_account_holder
+                agency.bank_name = locked.proposed_bank_name
+                agency.save(update_fields=['iban', 'bank_account_holder', 'bank_name'])
+
+                locked.status = 'approved'
+                locked.resolved_at = timezone.now()
+                locked.save(update_fields=['status', 'resolved_at'])
+                count += 1
+        self.message_user(request, f'{count} talep onaylandı, IBAN güncellendi.')
+
+    @admin.action(description='Seçili talepleri REDDET (IBAN değişmez)')
+    def reject_changes(self, request, queryset):
+        count = queryset.filter(status='pending').update(
+            status='rejected', resolved_at=timezone.now(),
+        )
         self.message_user(request, f'{count} talep reddedildi.')
 
