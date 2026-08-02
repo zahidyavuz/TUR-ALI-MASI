@@ -14,3 +14,10 @@ media/
 staticfiles/
 *.log
 backend/logs/*.log
+
+# build / generated artifacts
+next-env.d.ts
+tsconfig.tsbuildinfo
+public/sitemap.xml
+public/sitemap-*.xml
+public/robots.txt

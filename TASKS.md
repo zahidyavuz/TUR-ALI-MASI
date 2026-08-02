@@ -758,13 +758,25 @@ Yeni `notifications` uygulaması eklendi:
 
 ---
 
-### [ ] F5-08 · Repo hijyeni
+### [x] F5-08 · Repo hijyeni
 
 **Öncelik:** P2 · **Efor:** S
 
 **Adımlar:** Kökteki `fix-*.js`, `update-*.js|py`, `extract_*.js`, `search_*.py`, `fix_images*.py` → `scripts/` altına (kullanılmayanları sil); `tsconfig.tsbuildinfo` gitignore + `git rm --cached`; `scratch/` ve `Archive_Old/` karar: sil veya `.gitignore`. README'yi create-next-app şablonundan gerçek proje README'sine çevir (kurulum, env, mimari özet).
 
-**Notlar:** _
+**Notlar:** Kök betikler ikiye ayrıldı: **Silindiler** — `fix-bookings.js`, `fix-finance.js`, `fix-products.js`, `extract_footer.js`, `extract_navbar.js`, `update-tour.js`, `update-menu.js`, `update-tables.js`, `update_page.js` (hepsi belirli sayfa dosyalarına tek seferlik string-replace codemod'ları; hedef dosyalar o günden beri değiştiği için yeniden çalıştırılırsa **dosyayı bozarlar**, sıfır gelecek değer) + `update_tours.py`, `fix_images.py` (yıkıcı demo seed'leri — `Tour.objects.all().delete()` içeriyor). **`scripts/`'e taşındılar** — `search_ddg.py`, `search_unsplash.py`, `search_wikimedia.py` (Django'dan bağımsız, tekrar kullanılabilir görsel-arama yardımcıları). Hiçbiri `package.json`/CI/dokümandan referanslı değildi (git grep ile teyit).
+
+`scratch/` (check_brackets.js, fix_imports.py, test_case.js + 190KB'lık `git_log_profile.txt`/`old_profile.txt` dökümleri) ve `Archive_Old/` (eski duplike sayfa bileşenleri, 22 dosya) tamamen **silindi** — git geçmişinden geri alınabilir.
+
+Üretilen artefaktlar `.gitignore`'a eklendi + `git rm --cached`: `tsconfig.tsbuildinfo`, `next-env.d.ts`, `public/sitemap.xml` (+`sitemap-*.xml`), `public/robots.txt`. Bunlar her commit'te "modified" görünüp gürültü yapıyordu; artık takip edilmiyor (dosyalar diskte kalıyor, build/postbuild yeniden üretiyor).
+
+Ölü bağımlılıklar kaldırıldı: `npm uninstall nodemailer @types/nodemailer js-cookie @types/js-cookie` (F3-01/F3-03 bulgularının kapanışı; `git grep` ile `app/`+`backend/` içinde sıfır kullanım teyit edildi). `package.json` + `package-lock.json` güncellendi.
+
+README create-next-app şablonundan gerçek proje README'sine çevrildi: mimari (Next 16 + Django 4.2 DRF), dizin yapısı, frontend/backend kurulumu, frontend+backend ortam değişkeni tabloları (settings.py + `process.env` taramasından türetildi), geliştirme değişmezleri ve komut listesi.
+
+**Doğrulama:** `npx tsc --noEmit` temiz, `npm run lint` temiz, `npm run build` başarılı (sitemap `fetch failed` beklenen — backend build sırasında kapalı). Backend'e dokunulmadı.
+
+**Kapsam dışı bırakıldı:** `backend/` altında da benzer tek-seferlik betikler var (`backend/fix_images.py`, `backend/fix_images_2.py`, `backend/update_tours.py`, `backend/seed_availabilities.py`, `backend/seed_cap_tours.py`) — görev yalnız **kök** dizini kapsadığı için dokunulmadı; BULUNAN YENİ SORUNLAR'a yazıldı.
 
 ---
 
@@ -856,6 +868,7 @@ Claude Code görev dışı bir sorun bulursa buraya ekler; kullanıcı öncelikl
 * **[P1 · performans] ISR/statik render CSP nonce'u yüzünden hâlâ kapalı (F5-07 kararı).** F5-07 adım 1 "hero+kategoriler ISR/server-render" istiyordu ama F3-05'teki istek-başına CSP nonce'u (`layout.tsx` `headers()` okuyor) tüm route'ları `ƒ (Dynamic)` yapıyor; ISR ile statik LCP kazancı bu mimaride imkânsız. Kullanıcıyla kararlaştırıldı: **CSP korunur, ISR atlanır.** ISR gerçekten istenirse layout'u bölüp nonce'u yalnız belirli segmentlerde uygulamak veya statik sayfalarda `unsafe-inline`+hash'e dönmek gerekir (bkz. yukarıdaki F3-05 CSP↔ISR çakışma notu). Bunun yerine algılanan performans kazançları verildi: ana sayfa hero'sunun gereksiz `mounted` gate'i kaldırıldı (H1/LCP elemanı ilk render'da basılıyor) ve combos bölümüne skeleton eklendi.
 * **[P2 · performans] `next/image` migrasyonu yapıldı ama `images.unoptimized: true` yüzünden optimizasyon yok.** F5-07'de tüm canlı `<img>`'ler `next/image`'e taşındı (checkout ödeme logoları Wikimedia yerine local `public/payments/{visa,mastercard}.svg`; combo/shuttle/tour thumbnail'ları, restoran menü logosu, admin başvuru logosu, group-chat galeri). Ancak `next.config.ts`'de `images.unoptimized: true` olduğu için next/image yalnız lazy-load + explicit-dimension CLS koruması sağlıyor; resize/format-dönüşümü (WebP/AVIF) yapmıyor. Kullanıcıyla kararlaştırıldı: **deploy-güvenli kalması için unoptimized bırakıldı, yine de migrate edildi.** Gerçek görsel optimizasyonu için ya Next image optimizer'ı (sunucu/loader gerektirir) ya da harici bir CDN loader yapılandırılmalı. Bilinçli olarak data-URL kaynaklı `<img>`'ler (QR/harita/preview) ve boyutu bilinmeyen group-chat sohbet balonu görseli taşınmadı.
 * **[P2 · ölçüm] Lighthouse mobil LCP < 2.5s hedefi bu ortamda ölçülemedi.** F5-07 hedefi ölçüp rapora yazmaktı ama çalışan bir sunucu + lighthouse bu ortamda yok (insan aksiyonu). LCP kazancı için yapılan değişiklikler (hero un-gate, combos skeleton) kod düzeyinde teslim edildi; sayısal LCP ölçümü canlı/staging ortamda `lighthouse --preset=mobile` ile alınmalı.
+* **[P2 · repo hijyeni] `backend/` altında tek-seferlik/yıkıcı betikler duruyor.** F5-08'de fark edildi: `backend/fix_images.py`, `backend/fix_images_2.py`, `backend/update_tours.py` (hepsi `Tour.objects.all().delete()` + Wikimedia görsel indirme), `backend/seed_availabilities.py`, `backend/seed_cap_tours.py` versiyon kontrolünde. F5-08 kapsamı **yalnız kök dizin** olduğu için dokunulmadı. Seed'ler geliştirme için tutulacaksa `backend/scripts/` veya bir management command'e (`python manage.py seed_demo`) taşınmalı; değilse silinmeli. Yıkıcı `delete()` içerenler yanlış ortamda çalıştırılırsa veri kaybı riski taşır.
 * **[P2 · ölü kod] Ana sayfa `tours` fetch'i kullanılmıyor, vitrin bölümleri hardcoded dizi.** F5-07'de fark edildi: `app/page.tsx` `tours` state'ini fetch ediyor ama ana sayfadaki tur vitrinleri (öne çıkan/popüler bölümler) sabit dizilerden besleniyor — fetch edilen `tours` hiçbir yerde render edilmiyor (ölü ağ isteği + ilk yüklemede gereksiz istek). Ya vitrinler gerçek `tours` verisine bağlanmalı ya da fetch kaldırılmalı. F5-07 kapsamı performans/görsel olduğu ve vitrin içeriğini değiştirmek ürün kararı gerektirdiği için dokunulmadı.
 
 ---
