@@ -65,13 +65,16 @@ ilgisi yok. Gerçek bilet artık `/dashboard/customer/tickets`'te. Hâlâ buraya
 `/dashboard/customer/tickets`'e çevrildi; `app/tickets/page.tsx` + `app/tickets/[id]/page.tsx`
 `git rm` ile silindi (dizin kalktı). Kalan `/tickets` referansı yok. tsc/lint/build temiz.
 
-### [ ] T1-03 · `app/success/page.tsx` sahipsiz + uydurma IBAN gösteriyor
+### [x] T1-03 · `app/success/page.tsx` sahipsiz + uydurma IBAN gösteriyor
 **Öncelik:** P1 · **Efor:** S
 **Adımlar:** Tek girişi (silinen `app/api/checkout/route.tsx`) kalktığı için sayfaya hiçbir
 yerden ulaşılamıyor. Sayfa "Havale/EFT" akışında **uydurma IBAN** (`TR12 0006 2000 0001
 2345 6789 00`) + "Tourkia Turizm ve Seyahat A.Ş." unvanını gösteriyor — müşteriye yanlış
 hesap gösterme riski. Karar: gerçek havale akışı yoksa **sayfayı sil** (önerilen). Gerçek
 havale planlanıyorsa ayrı görev + gerçek IBAN yapılandırması gerekir.
+**YAPILDI:** `/success`'e hiçbir yerden referans olmadığı doğrulandı (grep temiz);
+`app/success/page.tsx` `git rm` ile silindi. Uydurma IBAN + banka bilgileri + placeholder
+WhatsApp numarası (`905555555555`) kaldırıldı. tsc/lint/build temiz.
 
 ### [ ] T1-04 · `app/lib/auditLog.ts` build sırasında sahte güvenlik olayları basıyor
 **Öncelik:** P2 · **Efor:** S
