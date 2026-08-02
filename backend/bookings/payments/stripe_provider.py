@@ -4,9 +4,10 @@ bookings/payments/stripe_provider.py
 Stripe adapter'ı — mevcut (ve şu an tek çalışan) tahsilat yolu.
 
 Buradaki davranış `bookings/views.py`'de dağınık duran eski çağrıların
-birebir taşınmış hâlidir: aynı tutar birimi (kuruş), aynı para birimi,
-aynı `booking_ref` türetimi (intent id'nin son 8 hanesi). Amaç PSP geçişini
-hazırlamak; Stripe akışının davranışını değiştirmek değil.
+birebir taşınmış hâlidir: aynı tutar birimi (kuruş), aynı para birimi. Amaç
+PSP geçişini hazırlamak; Stripe akışının davranışını değiştirmek değil.
+(Rezervasyon referansı artık intent id'den türetilmez, sunucuda üretilir —
+bkz. T3-04.)
 """
 import logging
 from decimal import Decimal
@@ -65,7 +66,6 @@ class StripeProvider(PaymentProvider):
             provider=self.name,
             intent_id=intent.id,
             client_secret=intent.client_secret,
-            booking_ref=intent.id[-8:].upper(),
         )
 
     def refund(self, *, intent_id: str, amount: Optional[Decimal] = None) -> RefundResult:

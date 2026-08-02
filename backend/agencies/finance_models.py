@@ -27,7 +27,10 @@ class AgentFinanceLedger(models.Model):
     ]
 
     agency         = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name='ledger_entries')
-    booking_ref    = models.CharField(max_length=50, unique=True)          # Booking.booking_ref
+    # Booking.booking_ref 50 karaktere kadar olabilir; ters kayıt buna
+    # `-REFUND` (7) ekler → 57. Alan `Booking.booking_ref` + son ek + pay için
+    # 64'e genişletildi ki uzun referansta PostgreSQL taşma vermesin (T3-05).
+    booking_ref    = models.CharField(max_length=64, unique=True)          # Booking.booking_ref (+ '-REFUND' / 'PAYOUT-')
     tour_title     = models.CharField(max_length=255)
     tour_date      = models.DateField(null=True, blank=True)
 

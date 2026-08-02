@@ -262,7 +262,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     metadata={'tour_id': tour.id, 'user_id': booking_user.id},
                 )
 
-                booking_ref = intent.booking_ref
+                booking_ref = Booking.generate_unique_ref()
                 booking = Booking.objects.create(
                     user=booking_user,
                     tour=tour,
@@ -394,7 +394,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     metadata={'shuttle_route_id': shuttle_route.id, 'user_id': booking_user.id},
                 )
 
-                booking_ref = intent.booking_ref
+                booking_ref = Booking.generate_unique_ref()
                 booking = Booking.objects.create(
                     user=booking_user,
                     shuttle_route=shuttle_route,
@@ -521,7 +521,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                     metadata={'spa_service_id': spa_service.id, 'user_id': booking_user.id},
                 )
 
-                booking_ref = intent.booking_ref
+                booking_ref = Booking.generate_unique_ref()
                 booking = Booking.objects.create(
                     user=booking_user,
                     spa_service=spa_service,
@@ -665,7 +665,7 @@ class BookingViewSet(viewsets.ModelViewSet):
                 )
 
                 combo_group = uuid.uuid4()
-                booking_ref = intent.booking_ref
+                booking_ref = Booking.generate_unique_ref()
                 guest_full_name = (request.data.get('guest_full_name') or '')[:150]
                 guest_email = (request.data.get('guest_email') or '')[:254]
                 guest_phone = (request.data.get('guest_phone') or '')[:32]

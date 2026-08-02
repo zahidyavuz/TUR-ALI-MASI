@@ -34,6 +34,60 @@ from tours.models import Tour
 from datetime import date, timedelta
 
 
+class BookingRefGenerationTestCase(TestCase):
+    """
+    T3-04: `booking_ref` PSP intent id'sinden değil, sunucuda çakışma
+    kontrollü üretilir. Önceki türetim (intent id son 8 hane + upper) unique
+    alanda çakışıp IntegrityError/500 riski taşıyordu.
+    """
+
+    def setUp(self):
+        owner = User.objects.create_user(username='ref_owner', password='pw')
+        agency = Agency.objects.create(
+            owner=owner, name='Ref Acenta', status='onaylandi', is_verified=True,
+        )
+        self.tour = Tour.objects.create(
+            id='ref-tour', agency=agency, title='Ref Tour', location='İzmir',
+            price=100, duration='1 Day', guide='Turkish', description='d', category='nature',
+        )
+        self.user = User.objects.create_user(username='ref_customer', password='pw')
+
+    def _booking(self, ref):
+        return Booking.objects.create(
+            user=self.user, tour=self.tour, booking_ref=ref, status='pending',
+            start_date=date.today() + timedelta(days=3), guests=1,
+            total_price=Decimal('100.00'),
+        )
+
+    def test_ref_has_expected_length_and_alphabet(self):
+        ref = Booking.generate_unique_ref()
+        self.assertEqual(len(ref), Booking.REF_LENGTH)
+        self.assertTrue(set(ref) <= set(Booking.REF_ALPHABET))
+        # Karışan karakterler dışlanmış olmalı.
+        self.assertFalse(set(ref) & set('O0I1'))
+
+    def test_ref_avoids_existing_value_on_collision(self):
+        self._booking('AAAAAAAAAA')
+        # İlk 10 seçim mevcut referansı üretsin (çakışma), sonraki 10 tazesini.
+        seq = list('AAAAAAAAAA') + list('BBBBBBBBBB')
+        with patch('bookings.models.secrets.choice', side_effect=seq):
+            ref = Booking.generate_unique_ref()
+        self.assertEqual(ref, 'BBBBBBBBBB')
+
+    def test_raises_when_no_unique_ref_found(self):
+        self._booking('AAAAAAAAAA')
+        # Her seçim mevcut referansı üretirse benzersiz üretilemez → açık hata.
+        with patch('bookings.models.secrets.choice', return_value='A'):
+            with self.assertRaises(RuntimeError):
+                Booking.generate_unique_ref()
+
+    def test_intent_result_has_no_booking_ref_field(self):
+        # Referans artık PSP sonucundan gelmediği için dataclass'ta alan yok.
+        from bookings.payments.base import PaymentIntentResult
+        result = PaymentIntentResult(provider='stripe', intent_id='pi_x', client_secret='sec')
+        self.assertFalse(hasattr(result, 'booking_ref'))
+
+
 class CommissionSplitTestCase(TestCase):
     """
     Komisyon hesabı tek yerde ve Decimal güvenli olmalı.
@@ -141,8 +195,9 @@ class StripeProviderTestCase(TestCase):
         self.assertEqual(kwargs['currency'], 'try')
         self.assertEqual(kwargs['metadata'], {'tour_id': 't1'})
         self.assertEqual(result.intent_id, 'pi_test_abcdef1234')
-        # booking_ref intent id'nin son 8 hanesi — eski davranış korunuyor.
-        self.assertEqual(result.booking_ref, 'ABCDEF1234'[-8:])
+        # T3-04: booking_ref artık intent'ten türetilmez; result üzerinde böyle
+        # bir alan da yoktur (referans Booking.generate_unique_ref ile üretilir).
+        self.assertFalse(hasattr(result, 'booking_ref'))
 
     @patch('bookings.payments.stripe_provider.stripe.Webhook.construct_event')
     def test_webhook_normalizes_success(self, mock_construct):
@@ -318,6 +373,24 @@ class LedgerRefundTestCase(TestCase):
         # Satış satırı korunur — muhasebe izi bozulmamalı.
         self.assertTrue(
             AgentFinanceLedger.objects.filter(booking_ref='LDG00001', entry_type='sale').exists()
+        )
+
+    def test_refund_entry_fits_max_length_for_long_ref(self):
+        # T3-05: Booking.booking_ref 50 karaktere kadar; ters kayıt buna
+        # '-REFUND' ekler (57). Ledger alanı 64'e genişletildiği için taşmamalı.
+        long_ref = 'L' * 50
+        booking = Booking.objects.create(
+            user=self.user, tour=self.tour, booking_ref=long_ref, status='confirmed',
+            start_date=date.today() + timedelta(days=4), guests=1,
+            total_price=Decimal('1000.00'),
+        )
+        AgentFinanceLedger.create_from_booking(booking)
+        refund = AgentFinanceLedger.create_refund_entry(booking)
+        self.assertIsNotNone(refund)
+        self.assertEqual(refund.booking_ref, f'{long_ref}-REFUND')
+        self.assertLessEqual(
+            len(refund.booking_ref),
+            AgentFinanceLedger._meta.get_field('booking_ref').max_length,
         )
 
     def test_refund_entry_is_idempotent(self):

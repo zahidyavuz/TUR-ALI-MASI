@@ -39,9 +39,10 @@ class PaymentIntentResult:
     provider: str
     intent_id: str
     client_secret: Optional[str]
-    # Rezervasyon referansı sağlayıcının ödeme kimliğinden türetilir; hangi
-    # ödemenin hangi bilete ait olduğu böylece PSP panelinden de izlenebilir.
-    booking_ref: str
+    # Not: rezervasyon referansı (`booking_ref`) artık PSP ödeme kimliğinden
+    # türetilmez — çakışma/500 riski yüzünden `Booking.generate_unique_ref()`
+    # ile sunucuda üretilir (bkz. T3-04). Ödeme–bilet eşlemesi ayrı
+    # `Booking.payment_intent_id` sütununda izlenir.
 
 
 @dataclass(frozen=True)

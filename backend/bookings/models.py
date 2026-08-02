@@ -3,6 +3,8 @@ from django.contrib.auth.models import User
 from tours.models import Tour, Combo
 from shuttles.models import ShuttleRoute
 from spas.models import SpaService
+import secrets
+import string
 import uuid
 
 
@@ -90,6 +92,31 @@ class Booking(models.Model):
 
     class Meta:
         ordering = ['-created_at']
+
+    # Karışıklık yaratan karakterler (0/O, 1/I) çıkarıldı: referans telefonda
+    # okunuyor, destek kaydına elle giriliyor.
+    REF_ALPHABET = ''.join(c for c in (string.ascii_uppercase + string.digits) if c not in 'O0I1')
+    REF_LENGTH = 10
+
+    @classmethod
+    def generate_unique_ref(cls, max_attempts=10):
+        """
+        Sunucu tarafında çakışma kontrollü rezervasyon referansı üretir.
+
+        Önceden referans PSP intent id'sinin son 8 hanesinden türetiliyordu;
+        `booking_ref` unique olduğu için teorik çakışma IntegrityError/500'e
+        yol açıyordu (üstelik uppercase'e çevirme büyük/küçük harf ayrımını da
+        yok ediyordu). Referans artık ödeme kimliğinden bağımsız üretilir;
+        hangi ödemenin hangi bilete ait olduğu ayrı `payment_intent_id`
+        sütununda zaten izlenebiliyor.
+        """
+        for _ in range(max_attempts):
+            ref = ''.join(secrets.choice(cls.REF_ALPHABET) for _ in range(cls.REF_LENGTH))
+            if not cls.objects.filter(booking_ref=ref).exists():
+                return ref
+        # 34^10 uzayında art arda çakışma pratikte imkânsız; buraya düşülürse
+        # sessizce yinelenen referans üretmektense açık hata vermek yeğdir.
+        raise RuntimeError('Benzersiz rezervasyon referansı üretilemedi.')
 
     def __str__(self):
         service_label = self.tour.title if self.tour else (

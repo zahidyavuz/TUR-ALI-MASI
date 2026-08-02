@@ -244,19 +244,32 @@ yap + migration.
 > ediyor; `makemigrations --check` "No changes" döndü, DB şeması değişmiyor (yalnız kaynak
 > tuzağı giderildi). STD-CHECK: agencies suite 130 test OK, makemigrations --check temiz.
 
-### [ ] T3-04 · `booking_ref` Stripe intent id son 8 hanesinden türetiliyor
+### [x] T3-04 · `booking_ref` Stripe intent id son 8 hanesinden türetiliyor
 **Öncelik:** P2 · **Efor:** M
 **Adımlar:** `bookings/payments/stripe_provider.py`. `Booking.booking_ref` **unique** →
 teorik çakışma `IntegrityError`/500 (uppercase'e çevirme büyük/küçük harf ayrımını da yok
 ediyor). Sunucuda çakışma kontrollü üret (`get_or_create` döngüsü veya sequence). Davranış
 değişikliği içerdiğinden regresyon testiyle korunmalı.
+> **YAPILDI:** Referans artık PSP intent id'sinden türetilmez. `Booking.generate_unique_ref()`
+> classmethod'u eklendi: 10 haneli, karışan karakterler (O/0, I/1) dışlanmış alfabeden
+> `secrets` ile üretilir ve mevcut referansla çakışırsa yenilenir (10 denemede bulunamazsa
+> açık `RuntimeError`). `bookings/views.py`'deki 4 akış (tur/shuttle/spa/combo) `booking_ref =
+> intent.booking_ref` yerine bunu çağırıyor. `PaymentIntentResult.booking_ref` alanı ve
+> Stripe'ın `intent.id[-8:].upper()` türetimi kaldırıldı; ödeme–bilet eşlemesi zaten ayrı
+> `Booking.payment_intent_id` sütununda izleniyor. Regresyon: uzunluk/alfabe, çakışmada
+> yenileme, tükenince RuntimeError, sonuç dataclass'ında alan yok. STD-CHECK: 318 test OK.
 
-### [ ] T3-05 · İade ledger kaydının `-REFUND` son eki alan genişliğini aşabilir
+### [x] T3-05 · İade ledger kaydının `-REFUND` son eki alan genişliğini aşabilir
 **Öncelik:** P2 · **Efor:** S
 **Adımlar:** `AgentFinanceLedger.booking_ref` `max_length=50`; ters kayıt `f'{ref}-REFUND'`.
 `Booking.booking_ref` 50 karaktere kadar izinli — 44+ karakterlik referansta PostgreSQL hata
 verir (SQLite sessizce kabul, testte yakalanmaz). Alanı genişlet **veya** ters kaydı ayrı bir
 alanla işaretle (`reverses_id` FK). T3-04 ile birlikte ele alınabilir.
+> **YAPILDI:** `AgentFinanceLedger.booking_ref` `max_length` 50 → 64 (Booking.booking_ref 50 +
+> `-REFUND` 7 = 57 sığar; `PAYOUT-` öneki de küçük). Migration
+> `0016_alter_agentfinanceledger_booking_ref`. Regresyon: 50 karakterlik referansta iade
+> kaydı üretiliyor ve `booking_ref` alan genişliğini aşmıyor. Not: T3-04 sonrası üretilen
+> referanslar zaten 10 hane, yani taşma pratikte de yapısal olarak giderildi.
 
 ---
 
