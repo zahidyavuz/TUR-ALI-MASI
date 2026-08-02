@@ -1,6 +1,7 @@
 from django.db.models import Q
 from rest_framework import serializers
 from .models import Agency
+from .finance_models import AgentPayoutRequest
 from tours.models import Tour
 from bookings.models import Booking
 
@@ -25,6 +26,26 @@ class AdminAgencyListSerializer(serializers.ModelSerializer):
 
     def get_owner_username(self, obj):
         return obj.owner.username if obj.owner else None
+
+
+class AdminPayoutRequestSerializer(serializers.ModelSerializer):
+    """Hakediş talebi — admin onay kuyruğu için."""
+    agency_name = serializers.CharField(source='agency.name', read_only=True)
+    agency_id = serializers.IntegerField(source='agency.id', read_only=True)
+    iban_masked = serializers.SerializerMethodField()
+    status_label = serializers.CharField(source='get_status_display', read_only=True)
+
+    class Meta:
+        model = AgentPayoutRequest
+        fields = [
+            'id', 'agency_id', 'agency_name', 'amount', 'iban_masked',
+            'status', 'status_label', 'admin_notes',
+            'requested_at', 'resolved_at',
+        ]
+
+    def get_iban_masked(self, obj):
+        from .finance_views import mask_iban
+        return mask_iban(obj.iban)
 
 
 class AdminAgencyDetailSerializer(serializers.ModelSerializer):

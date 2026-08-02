@@ -1,20 +1,28 @@
 import logging
+from decimal import Decimal
 
 from rest_framework.views import APIView
-from rest_framework import viewsets, status
+from rest_framework import viewsets, mixins, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
-from django.db.models import Sum, Count, Q
+from django.db import transaction
+from django.db.models import Sum, Count, Q, F
+from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from datetime import timedelta
 
 from backend.admin_permissions import IsAdminUser
 from core.emails import display_name, frontend_url, send_templated_mail
 from agencies.models import Agency
+from agencies.finance_models import AgentFinanceLedger, AgentPayoutRequest
 from tours.models import Tour
 from bookings.models import Booking
 from users.models import Notification
-from .admin_serializers import AdminAgencyListSerializer, AdminAgencyDetailSerializer
+from .admin_serializers import (
+    AdminAgencyListSerializer,
+    AdminAgencyDetailSerializer,
+    AdminPayoutRequestSerializer,
+)
 
 logger = logging.getLogger('agencies')
 
@@ -105,6 +113,227 @@ class AdminDashboardView(APIView):
             'total_tours': total_tours,
             'recent_activities': recent_activities,
         })
+
+
+class AdminMetricsView(APIView):
+    """
+    GET /api/v1/admin/metrics/
+    Operasyon paneli metrikleri — hepsi gerçek aggregate sorgular:
+      * Kartlar: GMV, rezervasyon sayısı, komisyon geliri, aktif acente
+        (her biri toplam + bu ay).
+      * Aylık trend: son 12 ay (TruncMonth + Sum) — GMV / komisyon / adet.
+      * Acente performans tablosu: ledger'dan ciro/komisyon/net + adet (top 10).
+      * Son rezervasyonlar (son 8).
+      * Bekleyen hakediş talebi özeti (onay kuyruğu rozeti için).
+    """
+    permission_classes = [IsAdminUser]
+
+    def get(self, request):
+        now = timezone.now()
+        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
+        # ── Kartlar ────────────────────────────────────────────────────────
+        # GMV = onaylı rezervasyonların brüt cirosu (müşterinin ödediği).
+        confirmed = Booking.objects.filter(status='confirmed')
+        gmv_total = confirmed.aggregate(t=Sum('total_price'))['t'] or Decimal('0')
+        gmv_month = confirmed.filter(created_at__gte=month_start).aggregate(
+            t=Sum('total_price'))['t'] or Decimal('0')
+
+        reservations_total = confirmed.count()
+        reservations_month = confirmed.filter(created_at__gte=month_start).count()
+
+        # Komisyon geliri = platformun kesintisi (ledger'daki commission_amount;
+        # iade satırları negatif olduğu için toplam kendiliğinden netlenir).
+        commission_total = AgentFinanceLedger.objects.aggregate(
+            t=Sum('commission_amount'))['t'] or Decimal('0')
+        commission_month = AgentFinanceLedger.objects.filter(
+            created_at__gte=month_start).aggregate(t=Sum('commission_amount'))['t'] or Decimal('0')
+
+        active_agencies = Agency.objects.filter(is_active=True, is_verified=True).count()
+        active_agencies_month = Agency.objects.filter(
+            is_active=True, is_verified=True, created_at__gte=month_start).count()
+
+        # ── Aylık trend (son 12 ay) ────────────────────────────────────────
+        trend_start = (month_start - timedelta(days=365)).replace(day=1)
+        trend_qs = (
+            AgentFinanceLedger.objects
+            .filter(created_at__gte=trend_start)
+            .annotate(month=TruncMonth('created_at'))
+            .values('month')
+            .annotate(
+                gmv=Sum('gross_amount'),
+                commission=Sum('commission_amount'),
+                count=Count('id'),
+            )
+            .order_by('month')
+        )
+        monthly_trend = [
+            {
+                'month': row['month'].strftime('%Y-%m'),
+                'gmv': float(row['gmv'] or 0),
+                'commission': float(row['commission'] or 0),
+                'count': row['count'],
+            }
+            for row in trend_qs
+        ]
+
+        # ── Acente performans tablosu ──────────────────────────────────────
+        perf_qs = (
+            AgentFinanceLedger.objects
+            .values('agency_id', 'agency__name')
+            .annotate(
+                gross=Sum('gross_amount'),
+                commission=Sum('commission_amount'),
+                net=Sum('net_amount'),
+                count=Count('id'),
+            )
+            .order_by('-gross')[:10]
+        )
+        agency_performance = [
+            {
+                'agency_id': row['agency_id'],
+                'agency_name': row['agency__name'],
+                'gross': float(row['gross'] or 0),
+                'commission': float(row['commission'] or 0),
+                'net': float(row['net'] or 0),
+                'count': row['count'],
+            }
+            for row in perf_qs
+        ]
+
+        # ── Son rezervasyonlar ─────────────────────────────────────────────
+        recent = (
+            Booking.objects
+            .select_related('tour', 'shuttle_route', 'spa_service', 'user')
+            .order_by('-created_at')[:8]
+        )
+        recent_bookings = [
+            {
+                'id': str(b.id),
+                'user': b.user.username if b.user else '—',
+                'service': self._service_label(b),
+                'service_type': b.service_type,
+                'amount': float(b.total_price),
+                'status': b.status,
+                'created_at': b.created_at.isoformat(),
+            }
+            for b in recent
+        ]
+
+        # ── Bekleyen hakediş özeti ─────────────────────────────────────────
+        pending_payouts = AgentPayoutRequest.objects.filter(status='pending').aggregate(
+            count=Count('id'), total=Sum('amount'))
+
+        return Response({
+            'cards': {
+                'gmv': {'total': float(gmv_total), 'month': float(gmv_month)},
+                'reservations': {'total': reservations_total, 'month': reservations_month},
+                'commission_revenue': {'total': float(commission_total), 'month': float(commission_month)},
+                'active_agencies': {'total': active_agencies, 'month': active_agencies_month},
+            },
+            'monthly_trend': monthly_trend,
+            'agency_performance': agency_performance,
+            'recent_bookings': recent_bookings,
+            'pending_payouts': {
+                'count': pending_payouts['count'] or 0,
+                'total': float(pending_payouts['total'] or 0),
+            },
+        })
+
+    @staticmethod
+    def _service_label(booking):
+        service = booking.tour or booking.shuttle_route or booking.spa_service
+        if service:
+            return getattr(service, 'title', None) or getattr(service, 'name', 'Bilinmeyen hizmet')
+        return 'Bilinmeyen hizmet'
+
+
+class AdminPayoutViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """
+    Hakediş onay kuyruğu (F2-07 taleplerini onayla/reddet).
+      GET  /api/v1/admin/payouts/                 → Talepler (varsayılan: pending)
+      POST /api/v1/admin/payouts/<id>/approve/    → Onayla (opsiyonel admin_notes)
+      POST /api/v1/admin/payouts/<id>/reject/     → Reddet (sebep zorunlu)
+    """
+    permission_classes = [IsAdminUser]
+    serializer_class = AdminPayoutRequestSerializer
+    queryset = AgentPayoutRequest.objects.select_related('agency').all()
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        status_filter = self.request.query_params.get('status', 'pending')
+        if status_filter and status_filter != 'all':
+            qs = qs.filter(status=status_filter)
+        return qs
+
+    @action(detail=True, methods=['post'], url_path='approve')
+    def approve(self, request, pk=None):
+        note = (request.data.get('admin_notes') or '').strip()
+        # Para durum değişimi: talep satırı kilitlenir, yalnız 'pending'
+        # durumdaki bir talep onaylanabilir (çift işleme karşı).
+        with transaction.atomic():
+            payout = AgentPayoutRequest.objects.select_for_update().get(pk=pk)
+            if payout.status != 'pending':
+                return Response(
+                    {'error': f'Yalnız bekleyen talepler onaylanabilir (mevcut: {payout.get_status_display()}).'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            payout.status = 'approved'
+            payout.admin_notes = note or payout.admin_notes
+            payout.resolved_at = timezone.now()
+            payout.save(update_fields=['status', 'admin_notes', 'resolved_at'])
+
+        self._notify(
+            payout,
+            title='Hakediş Talebiniz Onaylandı 💸',
+            message=f'₺{payout.amount} tutarındaki hakediş talebiniz onaylandı, ödemeye alındı.',
+            icon='💸',
+        )
+        logger.info(
+            f"[PAYOUT] Approved: agency='{payout.agency.name}' amount=₺{payout.amount} by {request.user.username}"
+        )
+        return Response(AdminPayoutRequestSerializer(payout).data)
+
+    @action(detail=True, methods=['post'], url_path='reject')
+    def reject(self, request, pk=None):
+        reason = (request.data.get('reason') or request.data.get('admin_notes') or '').strip()
+        if not reason:
+            return Response({'error': 'Red sebebi zorunludur.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            payout = AgentPayoutRequest.objects.select_for_update().get(pk=pk)
+            if payout.status != 'pending':
+                return Response(
+                    {'error': f'Yalnız bekleyen talepler reddedilebilir (mevcut: {payout.get_status_display()}).'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            payout.status = 'rejected'
+            payout.admin_notes = reason
+            payout.resolved_at = timezone.now()
+            payout.save(update_fields=['status', 'admin_notes', 'resolved_at'])
+
+        self._notify(
+            payout,
+            title='Hakediş Talebiniz Reddedildi',
+            message=f'₺{payout.amount} tutarındaki hakediş talebiniz reddedildi.',
+            icon='❌',
+            reason=reason,
+        )
+        logger.info(
+            f"[PAYOUT] Rejected: agency='{payout.agency.name}' amount=₺{payout.amount} by {request.user.username}"
+        )
+        return Response(AdminPayoutRequestSerializer(payout).data)
+
+    @staticmethod
+    def _notify(payout, title, message, icon, reason=''):
+        owner = payout.agency.owner
+        if not owner:
+            return
+        Notification.objects.create(
+            user=owner, title=title, icon=icon,
+            message=f'{message} Sebep: {reason}' if reason else message,
+            type='payout_status', action_url='/dashboard/agency/finance',
+        )
 
 
 class AdminAgencyViewSet(viewsets.ModelViewSet):

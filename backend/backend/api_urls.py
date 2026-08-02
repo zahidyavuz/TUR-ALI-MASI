@@ -9,7 +9,7 @@ from reviews.views import ReviewViewSet
 from bookings.views import BookingViewSet
 from blogs.views import BlogViewSet, TagViewSet
 from agencies.dashboard import AgencyDashboardView
-from agencies.admin_views import AdminDashboardView, AdminAgencyViewSet
+from agencies.admin_views import AdminDashboardView, AdminAgencyViewSet, AdminMetricsView, AdminPayoutViewSet
 from users.views import UserMeView, WishlistViewSet, NotificationViewSet, UserCouponViewSet
 from users.auth_views import ThrottledLoginView, ThrottledRegisterView, ClaimAccountView
 from contacts.views import ContactMessageViewSet, LeadViewSet
@@ -51,6 +51,7 @@ router.register(r'users/wishlist', WishlistViewSet, basename='wishlist')
 router.register(r'users/notifications', NotificationViewSet, basename='notification')
 router.register(r'users/coupons', UserCouponViewSet, basename='usercoupon')
 router.register(r'admin/agencies', AdminAgencyViewSet, basename='admin-agency')
+router.register(r'admin/payouts', AdminPayoutViewSet, basename='admin-payout')
 router.register(r'menus', MenuViewSet, basename='menu')
 router.register(r'restaurant/reservations', DiningReservationViewSet, basename='restaurant-reservation')
 # ── Acenta Tur Yönetimi (RLS korumalı) ───────────────────────────────────────
@@ -67,6 +68,7 @@ urlpatterns = [
     path('agencies/onboarding/submit/', OnboardingSubmitView.as_view(), name='agency-onboarding-submit'),
     path('agencies/onboarding/', OnboardingUpdateView.as_view(), name='agency-onboarding-update'),
     path('admin/dashboard/', AdminDashboardView.as_view(), name='admin-dashboard'),
+    path('admin/metrics/', AdminMetricsView.as_view(), name='admin-metrics'),
     path('users/me/', UserMeView.as_view(), name='user-me'),
     # ── Genel Döviz Kuru Servisi (F4-03) ──────────────────────────────────────
     path('exchange-rates/', ExchangeRateView.as_view(), name='exchange-rates'),

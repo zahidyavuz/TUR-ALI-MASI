@@ -349,3 +349,104 @@ class PayoutRequestTestCase(FinanceTestBase):
         self.agency.is_verified = False
         self.agency.save(update_fields=['status', 'is_verified'])
         self.assertEqual(self.client.post(PAYOUT_URL, {}, format='json').status_code, 403)
+
+
+METRICS_URL = '/api/v1/admin/metrics/'
+ADMIN_PAYOUTS_URL = '/api/v1/admin/payouts/'
+
+
+class AdminMetricsTestCase(FinanceTestBase):
+    """F5-09: admin operasyon paneli metrikleri (gerçek aggregate'ler)."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = User.objects.create_user(username='ops_admin', password='pw', is_staff=True)
+        self.client.force_authenticate(user=self.admin)
+
+    def test_requires_staff(self):
+        self.client.force_authenticate(user=self.owner)  # normal kullanıcı
+        self.assertEqual(self.client.get(METRICS_URL).status_code, 403)
+        self.client.force_authenticate(user=None)
+        self.assertEqual(self.client.get(METRICS_URL).status_code, 401)
+
+    def test_metrics_aggregate_real_values(self):
+        # İki onaylı satış (₺2000 + ₺1000), %10 komisyon.
+        self._sale('MREF001', '2000.00')
+        self._sale('MREF002', '1000.00')
+
+        body = self.client.get(METRICS_URL).json()
+        cards = body['cards']
+        # GMV = onaylı booking brütü.
+        self.assertEqual(cards['gmv']['total'], 3000.0)
+        self.assertEqual(cards['reservations']['total'], 2)
+        # Komisyon geliri = ledger commission_amount toplamı (%10).
+        self.assertEqual(cards['commission_revenue']['total'], 300.0)
+        self.assertEqual(cards['active_agencies']['total'], 1)
+
+        # Acente performans tablosu ledger'dan gelir.
+        perf = body['agency_performance']
+        self.assertEqual(len(perf), 1)
+        self.assertEqual(perf[0]['gross'], 3000.0)
+        self.assertEqual(perf[0]['commission'], 300.0)
+        self.assertEqual(perf[0]['count'], 2)
+
+        # Aylık trend TruncMonth ile gruplanır — bu ayki satırda 2 kayıt.
+        self.assertTrue(any(row['count'] == 2 for row in body['monthly_trend']))
+        self.assertEqual(len(body['recent_bookings']), 2)
+
+
+class AdminPayoutQueueTestCase(FinanceTestBase):
+    """F5-09: hakediş onay kuyruğu (onayla/reddet)."""
+
+    def setUp(self):
+        super().setUp()
+        self.admin = User.objects.create_user(username='payout_admin', password='pw', is_staff=True)
+        self._sale('PREF001', '2000.00')  # net ₺1800 çekilebilir
+        self.payout = AgentPayoutRequest.objects.create(
+            agency=self.agency, amount=Decimal('1800.00'), iban=self.agency.iban,
+        )
+        self.client.force_authenticate(user=self.admin)
+
+    def test_list_defaults_to_pending(self):
+        body = self.client.get(ADMIN_PAYOUTS_URL).json()
+        rows = body.get('results', body)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]['agency_name'], 'Fin Acenta')
+        self.assertEqual(rows[0]['status'], 'pending')
+        # IBAN maskeli döner, ham IBAN sızmaz.
+        self.assertNotIn(VALID_IBAN, response_text(body))
+
+    def test_approve_marks_resolved_and_reduces_balance(self):
+        res = self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
+        self.assertEqual(res.status_code, 200)
+        self.payout.refresh_from_db()
+        self.assertEqual(self.payout.status, 'approved')
+        self.assertIsNotNone(self.payout.resolved_at)
+        # available = total_net - paid_out(approved) = 1800 - 1800 = 0
+        from agencies.finance_views import balance_snapshot
+        self.assertEqual(balance_snapshot(self.agency)['available'], Decimal('0'))
+
+    def test_double_approve_rejected(self):
+        self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
+        res = self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
+        self.assertEqual(res.status_code, 400)
+
+    def test_reject_requires_reason(self):
+        res = self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/reject/', {}, format='json')
+        self.assertEqual(res.status_code, 400)
+        res = self.client.post(
+            f'{ADMIN_PAYOUTS_URL}{self.payout.id}/reject/',
+            {'reason': 'IBAN doğrulanamadı'}, format='json',
+        )
+        self.assertEqual(res.status_code, 200)
+        self.payout.refresh_from_db()
+        self.assertEqual(self.payout.status, 'rejected')
+        self.assertEqual(self.payout.admin_notes, 'IBAN doğrulanamadı')
+        # Reddedilen talep bakiyeyi düşürmez (available yine 1800).
+        from agencies.finance_views import balance_snapshot
+        self.assertEqual(balance_snapshot(self.agency)['available'], Decimal('1800.00'))
+
+    def test_requires_staff(self):
+        self.client.force_authenticate(user=self.owner)
+        res = self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
+        self.assertEqual(res.status_code, 403)

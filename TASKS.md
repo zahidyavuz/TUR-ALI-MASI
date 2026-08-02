@@ -780,13 +780,25 @@ README create-next-app şablonundan gerçek proje README'sine çevrildi: mimari 
 
 ---
 
-### [ ] F5-09 · Admin operasyon paneli metrikleri
+### [x] F5-09 · Admin operasyon paneli metrikleri
 
 **Öncelik:** P2 · **Efor:** M
 
 **Adımlar:** `dashboard/admin`: GMV / rezervasyon sayısı / komisyon geliri / aktif acente kartları (aylık trend), payout onay kuyruğu (F2-07 taleplerini onayla/reddet), son rezervasyonlar, acente performans tablosu. Hepsi gerçek aggregate sorgular (`TruncMonth` + `Sum`).
 
-**Notlar:** _
+**Notlar:** İki yeni backend ucu (`IsAdminUser`/`is_staff` korumalı):
+- **`GET /api/v1/admin/metrics/`** (`AdminMetricsView`) — Kartlar (her biri toplam + bu ay): **GMV** = onaylı `Booking.total_price` toplamı; **rezervasyon** = onaylı booking adedi; **komisyon geliri** = `AgentFinanceLedger.commission_amount` toplamı (iade satırları negatif olduğu için kendiliğinden netlenir); **aktif acente** = `is_active & is_verified`. **Aylık trend** = son 12 ay `TruncMonth(created_at)` + `Sum(gross/commission)` + `Count`. **Acente performans tablosu** = ledger'ı `agency` bazında gruplayıp `Sum(gross/commission/net)` + adet, ciroya göre top 10. **Son rezervasyonlar** = son 8 (tour/shuttle/spa hizmet etiketiyle). **Bekleyen hakediş özeti** = kuyruk rozeti için count + toplam.
+- **`admin/payouts/`** (`AdminPayoutViewSet`, router'a kayıtlı) — `GET` liste (varsayılan `status=pending`, `?status=all|approved|...`), `POST <id>/approve/` ve `POST <id>/reject/` (sebep zorunlu). Onay/ret **para durum değişimi** olduğu için `transaction.atomic()` + `select_for_update()` ile yapılıyor ve yalnız `pending` talep işlenebiliyor (çift-işleme koruması). Onaylanan talep mevcut `balance_snapshot` mantığı gereği (`paid_out = approved+paid`) çekilebilir bakiyeyi otomatik düşürüyor; ret düşürmüyor. Acenta sahibine bildirim (`Notification`) gidiyor. IBAN yanıtlarda maskeli (`mask_iban`).
+
+Frontend `app/dashboard/admin/page.tsx` tamamen statik kart görselinden gerçek panele çevrildi: 4 metrik kartı, CSS-bar aylık ciro trendi, hakediş onay kuyruğu (Onayla/Reddet — reddederken `prompt` ile sebep), acente performans tablosu, son rezervasyonlar. `fetchAPI` ile `/admin/metrics/` + `/admin/payouts/` paralel çekiliyor; para `Intl.NumberFormat('tr-TR', TRY)` ile biçimleniyor.
+
+Yeni serializer: `AdminPayoutRequestSerializer` (agency adı + maskeli IBAN + durum etiketi).
+
+**Doğrulama:** `makemigrations --check` → "No changes detected" (yeni model yok). `agencies bookings` mevcut testleri: **190 passed**. Yeni testler `agencies/test_finance.py`: `AdminMetricsTestCase` (staff zorunluluğu + gerçek aggregate değerleri: GMV 3000, komisyon 300, rezervasyon 2, performans tablosu, TruncMonth trend) ve `AdminPayoutQueueTestCase` (pending listeleme + IBAN sızıntısı yok, onay→resolved+bakiye 0, çift onay 400, ret sebep zorunlu + bakiye korunur, staff zorunluluğu) → **7 passed**. Frontend: `tsc --noEmit` temiz, `lint` temiz, `build` başarılı.
+
+**Bulunan/düzeltilen:** Yerel dev DB'de iki uygulanmamış migration vardı (`spas.0001_initial`, `bookings.0011_*`) — ortam kayması, benim değişikliğimden değil (`makemigrations --check` temiz); `migrate` ile uygulandı, sonrası tüm testler geçti.
+
+**Bilinçli olarak yapılmayan:** Aylık trend basit CSS bar grafik olarak çizildi (yeni grafik bağımlılığı — recharts vb. — eklemekten kaçınıldı; bundle maliyeti + kapsam). Mevcut kullanılmayan `AdminDashboardView` (`/admin/dashboard/`) bozmamak için olduğu gibi bırakıldı; yeni panel ayrı `/admin/metrics/` ucunu kullanıyor. Onaylanan hakedişin `AgentFinanceLedger`'a `payout` tipi satır yazmaması hâlâ açık (F2-07 bulgusu, migration gerektiriyor) — bu görevde de dokunulmadı, kuyruk mevcut bakiye modeliyle tutarlı çalışıyor.
 
 ---
 
