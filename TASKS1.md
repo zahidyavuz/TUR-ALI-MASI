@@ -1,0 +1,416 @@
+# TASKS1.md — Kalan Sorunlar & Teknik Borç Yol Haritası
+
+Bu dosya, `TASKS.md`'nin (F1–F5) tamamlanmasının ardından `## BULUNAN YENİ SORUNLAR`
+bölümünde biriken **çözülmemiş** bulguların görevleştirilmiş halidir. Çözülmüş
+(~~üstü çizili~~) bulgular ile F5-08'de kapatılanlar (nodemailer/js-cookie uninstall,
+dev ortamı kurulumu) buraya alınmadı.
+
+## Çalışma Kuralları (özet — tam metin `CLAUDE.md`)
+1. Görevi anla → dosyaları incele → direkt uygula (planı onaya sunma).
+2. Ara kod adımlarında onay isteme.
+3. Kendi kendine doğrula: `makemigrations --check --dry-run` · `migrate --check` ·
+   duplicate method/field/route taraması · syntax/import çalıştırma · ilgili testler.
+4. Hata bulursan sormadan düzelt, tekrar doğrula.
+5. Temiz olunca **PUSH ETME** → kısa özet sun (değişen dosyalar, doğrulamalar+sonuç,
+   düzeltilen sorunlar, bilinçli ertelenenler).
+6. Kullanıcı "push et" dedikten sonra push. **Onay almadan asla push etme.**
+
+**STD-CHECK:** `cd backend && source venv/bin/activate && python manage.py makemigrations
+--check --dry-run && python manage.py migrate --check && python manage.py test`; `cd .. &&
+npx tsc --noEmit && npm run lint && npm run build`. (NOT: `npx next lint` Next 16'da
+kaldırıldı → `npm run lint` kullan.)
+
+**Commit formatı:** `feat|fix|chore(scope): açıklama [GÖREV-ID]` + `Co-Authored-By: Claude
+Opus 4.6 <noreply@anthropic.com>` (HEREDOC ile). Build artefaktlarını commit'e ekleme:
+`backend/logs/django.log`, `next-env.d.ts`, `public/sitemap.xml`, `tsconfig.tsbuildinfo`.
+
+**Değişmezler:** Frontend HTTP yalnız `app/lib/api.ts → fetchAPI`; her yeni DRF ucu açık
+permission sınıfı; para/kontenjan yazımı `transaction.atomic()`; fiyat her zaman sunucuda;
+hardcoded sır yok. Kapsam dışı sorunu düzeltme; bu dosyanın sonundaki
+`## BULUNAN YENİ SORUNLAR` bölümüne not düş.
+
+---
+
+# KATEGORİ 1 — Sahte / Yanıltıcı Veri (kullanıcıya yalan söyleyen yüzeyler)
+
+> En yüksek öncelik: bunlar kullanıcıya var olmayan hesap, sahte bilet, uydurma IBAN
+> veya desteklenmeyen ödeme yöntemi gösteriyor.
+
+### [x] T1-01 · Ana sayfadaki "Üye Ol" modalı gerçek kayıt yapmıyor
+**Öncelik:** P0 · **Efor:** S
+**Adımlar:** `app/page.tsx` (~958-1002) "Üye Ol" modalı backend'e hiç istek atmıyor;
+`setTimeout(1000)` + `alert('Üyeliğiniz başarıyla tamamlandı!')` ile sahte başarı gösterip
+yönlendiriyor ("Direct Success Simulation"). Kullanıcı hesabı olduğunu sanıp giriş
+yapamıyor. Gerçek uç hazır: `POST /api/v1/auth/registration/` (F3-01'de uçtan uca test
+edildi). Modal bu uca bağlanmalı (Toast ile geri bildirim) **veya** tamamen kaldırılıp
+`/register` sayfasına yönlendirmeli. Yorum satırına alınmış eski `fetch` + kullanılmayan
+`demoUrl` state'i de temizlenmeli.
+**YAPILDI:** Modal register formu artık `fetchAPI('/auth/registration/')` ile gerçek kayıt
+yapıyor: şifre alanı controlled hale getirildi, kullanıcı adı e-posta yerel bölümünden
+türetiliyor (`username`, `email`, `password1/2`), başarıda `login()` ile otomatik oturum +
+Toast + `/`'a yönlendirme, backend validasyon hataları Toast ile gösteriliyor. Sahte
+`setTimeout` başarı simülasyonu, yorumdaki eski `fetch`, kullanılmayan `demoUrl` state'i ve
+tamamı sahte olan e-posta doğrulama (`isVerifyingEmail`) dalı + 6 haneli kod ekranı silindi.
+Client-side min 6 karakter şifre kontrolü eklendi. tsc/lint/build temiz.
+
+### [ ] T1-02 · `app/tickets/*` sahte bilet sayfası hâlâ erişilebilir
+**Öncelik:** P1 · **Efor:** S
+**Adımlar:** `app/tickets/page.tsx` + `app/tickets/[id]/page.tsx` hardcoded (`TKT-8932`,
+"Kapadokya Balon Turu") sahte biletler gösteriyor; kullanıcının gerçek rezervasyonlarıyla
+ilgisi yok. Gerçek bilet artık `/dashboard/customer/tickets`'te. Hâlâ buraya link veren
+2 nokta var: `app/components/BottomTabBar.tsx:44` (mobil alt menü) ve `app/success/page.tsx:56`.
+İki linki `/dashboard/customer/tickets`'e çevir, sonra `app/tickets/*`'ı sil. (Not:
+`app/success/page.tsx` T1-03'te silinecekse oradaki link kendiliğinden gider.)
+
+### [ ] T1-03 · `app/success/page.tsx` sahipsiz + uydurma IBAN gösteriyor
+**Öncelik:** P1 · **Efor:** S
+**Adımlar:** Tek girişi (silinen `app/api/checkout/route.tsx`) kalktığı için sayfaya hiçbir
+yerden ulaşılamıyor. Sayfa "Havale/EFT" akışında **uydurma IBAN** (`TR12 0006 2000 0001
+2345 6789 00`) + "Tourkia Turizm ve Seyahat A.Ş." unvanını gösteriyor — müşteriye yanlış
+hesap gösterme riski. Karar: gerçek havale akışı yoksa **sayfayı sil** (önerilen). Gerçek
+havale planlanıyorsa ayrı görev + gerçek IBAN yapılandırması gerekir.
+
+### [ ] T1-04 · `app/lib/auditLog.ts` build sırasında sahte güvenlik olayları basıyor
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `seedDemoLogs()` modül import edilir edilmez koşulsuz çalışıyor ve
+`[AUDIT] ... WEBHOOK_SIGNATURE_FAILED | webhook#WHK-STRIPE-FAKE | IP: 185.220.101.47`
+gibi hiç yaşanmamış olayları gerçekmiş gibi basıyor (bellek içi, kalıcı değil). Ya gerçek
+bir denetim kaydı modeline bağla ya da `seedDemoLogs()` + sahte tohumları sil.
+
+### [ ] T1-05 · Footer'da desteklenmeyen ödeme yöntemleri listeleniyor
+**Öncelik:** P1 · **Efor:** S · **Bloklayan:** PSP kararı (T3-01)
+**Adımlar:** `app/components/Footer.tsx` "Ödeme Yöntemleri"nde VISA, Mastercard, MİR,
+UnionPay, WeChat Pay, Alipay rozetleri var; gerçekte yalnız Stripe. MİR/UnionPay/WeChat/
+Alipay desteklenmiyor. PSP (iyzico/PayTR) canlıya alındığında gerçek yöntem listesiyle
+değiştir. O zamana kadar en azından desteklenmeyenleri kaldır.
+
+---
+
+# KATEGORİ 2 — Eksik / Kırık Akışlar
+
+### [ ] T2-01 · Ödeme sonrası `/checkout-success` sayfası yok → 404
+**Öncelik:** P1 · **Efor:** M
+**Adımlar:** `app/checkout/page.tsx` Stripe onayından sonra `returnUrl`'i
+`/checkout-success?ref=<booking-uuid>`'e kuruyor ama `app/checkout-success/` sayfası yok →
+kart doğrulandıktan sonra kullanıcı 404 görüyor. Hem üye hem misafir için ödeme-sonrası
+onay sayfası oluştur: `ref` (üye) veya imzalı `token` (misafir, F4-07 deseni) ile Booking'i
+çekip durum + bilet linki göster.
+
+### [ ] T2-02 · Restoran menüsü checkout'u kırık
+**Öncelik:** P1 · **Efor:** L
+**Adımlar:** `/checkout?menuId=<id>&type=meal` (restoran-menu "Hemen Al") `tourId`
+göndermiyor; checkout `tourId` olmadan çalışamıyor. Şu an dürüst bir "henüz çevrimiçi ödemeye
+açık değildir" mesajı gösteriliyor. Yemek satın alma akışı baştan tasarlanmalı: `Menu` →
+Booking (`service_type='meal'`) köprüsü, sunucuda fiyat, `DiningReservation` ile ilişki.
+Backend `DiningReservationViewSet` var ama ödemesiz ayrı akış.
+
+### [ ] T2-03 · Acenta onaylandıktan sonra IBAN/banka bilgisi değiştiremiyor
+**Öncelik:** P1 · **Efor:** M
+**Adımlar:** IBAN yalnız onboarding sırasında yazılabiliyor; `OnboardingUpdateView`
+`status='onaylandi'` sonrası kapanıyor ve panelde banka düzenleme ekranı yok. Banka değiştiren
+acenta hakedişini eski hesaba talep etmek zorunda. Acenta profilinde IBAN güncelleme ucu ekle —
+**para yönlendirmesi olduğu için** değişiklik admin onayı veya yeniden doğrulamaya tabi
+olmalı (doğrudan serbest bırakma). Finans sayfası şu an "destek ile iletişime geçin" diyor.
+
+### [ ] T2-04 · Spa modülü frontend + B2B yönetim ucu yok
+**Öncelik:** P1 · **Efor:** L
+**Adımlar:** `spas` backend'i tam (public read-only + booking + finans + testler) ama:
+**(1) Frontend** — spa mekân/hizmet listeleme + detay + checkout yok; `app/checkout/page.tsx`
+`service_type='spa'` dalını taşımıyor (transfer/combo deseni gerekir). **(2) B2B** — acenta
+için `AgencySpaViewSet` (shuttles'taki `AgencyShuttleViewSet` deseni: RLS +
+`StrictMassAssignmentPermission` + toplu slot üretimi + görsel yükleme) yok; şu an yalnız
+Django admin'den girilebiliyor. İki alt-parça ayrı ele alınabilir.
+
+---
+
+# KATEGORİ 3 — Finans & Ödeme Dayanıklılığı
+
+### [ ] T3-01 · PayTR adapter yazılmadı, iyzico iskelet halinde
+**Öncelik:** P1 · **Efor:** L · **Bloklayan:** insan aksiyonu (PSP başvurusu)
+**Adımlar:** `PAYMENT_PROVIDER` arayüzü + seçimi hazır; `IyzicoProvider` yalnız
+`build_sub_merchant_payload()` gerçek, ağ çağrıları + PayTR adapter'ı yok. Sandbox anahtarı
+olmadan doğrulanamaz. iyzico Pazaryeri / PayTR Platform Transfer başvurusu tamamlanıp
+anahtarlar gelince adapterlar yazılıp test edilmeli. O zamana kadar `PAYMENT_PROVIDER=stripe`
+— gerçek TL tahsilatı henüz mümkün değil. (T1-05 ve mimari kararlar buna bağlı.)
+
+### [ ] T3-02 · Onaylanan hakediş talebi ledger'a yazılmıyor
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** `AgentPayoutRequest` `approved/paid` olunca bakiye `balance_snapshot` içinde talep
+tablosundan düşülüyor ama `AgentFinanceLedger`'da karşılık satır yok → CSV ekstresi ödemeleri
+göstermiyor, ekstre net toplamı ile panel bakiyesi tutmuyor. Çözüm: `entry_type='payout'`
+(yeni tip) negatif ledger satırı yaz ve bakiyeyi yalnız ledger'dan hesapla. Migration + hesap
+deseni değişikliği gerekir. (F5-09 onay kuyruğu bu satırı yazacak yeri sağlıyor.)
+
+### [ ] T3-03 · `Agency.commission_rate` varsayılanı float literali
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `backend/agencies/models.py:85` → `default=10.00` (float). F2-06'da `to_decimal()`
+ile etkisi giderildi ama kaynak duruyor: kaydedilmemiş her Agency nesnesinde oran Python
+`float`'ı ve bu alanı Decimal sanan yeni kod aynı tuzağa düşer. `default=Decimal('10.00')`
+yap + migration.
+
+### [ ] T3-04 · `booking_ref` Stripe intent id son 8 hanesinden türetiliyor
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** `bookings/payments/stripe_provider.py`. `Booking.booking_ref` **unique** →
+teorik çakışma `IntegrityError`/500 (uppercase'e çevirme büyük/küçük harf ayrımını da yok
+ediyor). Sunucuda çakışma kontrollü üret (`get_or_create` döngüsü veya sequence). Davranış
+değişikliği içerdiğinden regresyon testiyle korunmalı.
+
+### [ ] T3-05 · İade ledger kaydının `-REFUND` son eki alan genişliğini aşabilir
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `AgentFinanceLedger.booking_ref` `max_length=50`; ters kayıt `f'{ref}-REFUND'`.
+`Booking.booking_ref` 50 karaktere kadar izinli — 44+ karakterlik referansta PostgreSQL hata
+verir (SQLite sessizce kabul, testte yakalanmaz). Alanı genişlet **veya** ters kaydı ayrı bir
+alanla işaretle (`reverses_id` FK). T3-04 ile birlikte ele alınabilir.
+
+---
+
+# KATEGORİ 4 — Veri Modeli & Taksonomi
+
+### [ ] T4-01 · `Tour.category` serbest metin, tutarlı taksonomi yok
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** DB'de `Doğa/Eğlence/Macera`, testlerde `culture/romantic/adventure`,
+`app/lib/tours.ts`'te emoji'li etiketler karışık. Modelde hem legacy `category` (CharField)
+hem `category_obj` (FK) var, `Category` tablosunda tek satır (`kapadokya`). Taksonomiyi
+netleştir, `Category` tablosunu doldur, turları `category_obj`'e bağla, legacy `category`'yi
+göç ettir. **T4-02 (kategori filtresi) ve T4-05 (Tour.duration) ile aynı kök — birlikte.**
+
+### [ ] T4-02 · Kategori filtresi `Category` tablosu boş olduğu için çalışmıyor
+**Öncelik:** P2 · **Efor:** S · **Bağlı:** T4-01
+**Adımlar:** F4-01 filtresi `category_obj__slug` kullanıyor (doğru mimari) ama tablo boş +
+turlar FK'siz → kategori kutucukları ya görünmüyor ya çoğu turu eliyor. T4-01 çözülünce
+kendiliğinden düzelir; ayrı iş yalnız doğrulamadır.
+
+### [ ] T4-03 · Genel tur listesi sırasız sayfalanıyor
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `Tour` modelinde `Meta.ordering` yok; `TourViewSet` sırasız queryset üzerinde
+sayfalıyor (`UnorderedObjectListWarning`) → sayfalar arası kayıt tekrarı/atlaması olabilir.
+Deterministik bir sıra ekle (`Meta.ordering` veya viewset `order_by`). Ana sayfa/arama görünen
+sırasını etkilediğinden ürün kararına dikkat.
+
+### [ ] T4-04 · Tur rota noktaları (`TourItinerary`) hiçbir yerden düzenlenemiyor
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** `TourItinerary` yalnız `TourDetailSerializer` içinde `read_only`; yazma ucu yok →
+panelden eklenen her tur boş programla yayına giriyor (detay sayfası bu adımları gösteriyor).
+Yazma alt-ucu ekle (`/agency/tours/<slug>/itinerary/`, RLS korumalı) + panel UI.
+
+### [ ] T4-05 · `Tour.duration` serbest metin — süre filtresi kırılgan
+**Öncelik:** P2 · **Efor:** M · **Bağlı:** T4-01
+**Adımlar:** Filtre `duration icontains` ("Saat"/"Gün") ama DB değerleri karışık ("4 Saat"/
+"3 Gün" vs "2 Days"/"1 Day") → İngilizce "Days" turları "Gün" filtresine düşmüyor. Yapısal
+süre alanı ekle (sayısal + tip enum) ve serbest metni göç ettir. T4-01 ile aynı kök.
+
+### [ ] T4-06 · `inceleniyor` acenta durumuna hiçbir yoldan geçilemiyor
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `Agency.STATUS_CHOICES`'ta var, `OnboardingGate` + admin filtre sekmeleri
+gösteriyor ama `admin_views.py`'de yalnız approve/reject/request-more-info aksiyonları var —
+`beklemede → inceleniyor` geçiş ucu yok. Ya "incelemeye al" aksiyonu ekle ya durumu kaldırıp
+`beklemede` ile birleştir.
+
+---
+
+# KATEGORİ 5 — Performans & Altyapı
+
+### [ ] T5-01 · Genel katalogda önbellek katmanı yok (Redis)
+**Öncelik:** P1 · **Efor:** M
+**Adımlar:** F2-01'de `tours/views.py` `cache_page` kaldırıldı (invalidasyon yolu yoktu).
+Ayarlarda paylaşımlı `CACHES` yok → Django `LocMemCache`'e düşüyor (süreç başına ayrı, çok
+işçili sunumda tutarsız). Redis `CACHES` tanımla + yazma anında (tur/shuttle create/update/
+upload-image) hedefli invalidasyon. `shuttles/views.py:48` hâlâ eski `cache_page` desenini
+taşıyor (yeni rota 15 dk görünmez) — birlikte düzelt.
+
+### [ ] T5-02 · Nonce'lu CSP ISR'yi engelliyor (kararlaştırıldı, açık kalem)
+**Öncelik:** P1 · **Efor:** L
+**Adımlar:** `layout.tsx` istek-başına CSP nonce'u (`headers()`) tüm route'ları
+`ƒ (Dynamic)` yapıyor → statik/ISR yok. F5-07'de karar: **CSP korundu, ISR atlandı.** ISR
+gerçekten isteniyorsa: layout'u bölüp nonce'u yalnız gerekli segmentlerde uygula, **veya**
+statik sayfalarda `unsafe-inline`+hash'e dön. Ürün/güvenlik dengesi kararı gerektirir; bu
+görev yalnız gerçek statik LCP kazancı hedefleniyorsa açılmalı.
+
+### [ ] T5-03 · `next/image` optimize etmiyor (`images.unoptimized: true`)
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** F5-07'de tüm `<img>`'ler `next/image`'e taşındı ama `next.config.ts`
+`unoptimized: true` → yalnız lazy-load + CLS koruması var, resize/WebP/AVIF yok. Gerçek
+optimizasyon için Next image optimizer (sunucu/loader) **veya** harici CDN loader yapılandır.
+Deploy güvenliği sağlanınca `unoptimized` kaldır.
+
+### [ ] T5-04 · Lighthouse mobil LCP < 2.5s ölçümü alınmadı
+**Öncelik:** P2 · **Efor:** S · **Bloklayan:** çalışan sunucu (insan aksiyonu)
+**Adımlar:** F5-07 hedefi ölçüp rapora yazmaktı; bu ortamda çalışan sunucu + lighthouse yok.
+Staging/canlıda `lighthouse --preset=mobile` ile ölç, LCP'yi rapora yaz, gerekirse T5-02/T5-03
+ile iyileştir.
+
+### [ ] T5-05 · SQLite eşzamanlı yazmada tablo kilidi (DB seçimi netleşmeli)
+**Öncelik:** P2 · **Efor:** M · **Bloklayan:** dağıtım kararı
+**Adımlar:** `OverbookingRaceTestCase` 8 paralel istekte `database table is locked` üretiyor
+(bellek içi SQLite `cache=shared`, busy-timeout kilitlere uygulanmıyor). PostgreSQL'de sorun
+yok; **SQLite ile üretime çıkılırsa** eşzamanlı satışta müşteri 500 görür. Üretim DB'si
+PostgreSQL olarak netleştirilip `DATABASE_URL` + dağıtım yapılandırması sabitlenmeli.
+
+---
+
+# KATEGORİ 6 — Restoran Modülü Tamamlama
+
+### [ ] T6-01 · Restoran masa/zaman-slotu CRUD ucu yok — `availability/page.tsx` mock
+**Öncelik:** P2 · **Efor:** L
+**Adımlar:** Menü CRUD (`/menus/`) gerçek ama `app/dashboard/restaurant/availability/page.tsx`
+(slot bazlı `maxTables`/`maxPax`/`currentBookedPax`) backend karşılığı olmadığı için mock.
+Yeni model (ör. `RestaurantSlot`: date/time/max_tables/max_pax/booked_pax) + migration + RLS
+korumalı ViewSet (F2-01 deseni) + panel UI. T2-02 (yemek checkout) ile ilişkili.
+
+### [ ] T6-02 · (Opsiyonel) Restoran menüsü gerçek çapraz satış (cross-sell)
+**Öncelik:** P2 · **Efor:** M · **Yalnızca istenirse**
+**Adımlar:** F5-02'de sahte "Ekstra İstekler / Cross-Sell" UI'dan çıkarıldı (`Menu` modelinde
+karşılığı yoktu). Gerçek çapraz satış istenirse: yeni model + menüye bağlama + checkout'ta
+fiyata ekleme + sunucu doğrulaması. Ürün kararı gerektirir.
+
+---
+
+# KATEGORİ 7 — Gerçek-Zamanlı Bildirim
+
+### [ ] T7-01 · Acenteye canlı rezervasyon bildirimi yok
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** F2-03 adım 5 ertelendi. Channels'ta yalnız `RestaurantConsumer` var
+(`backend/agencies/routing.py`). Acente için ayrı consumer + JWT'li grup üyeliği
+(`agency_<id>`) + rezervasyon oluşumunda grup yayını + frontend reconnect gerekir. O zamana
+kadar acenta yeni rezervasyonu ancak sayfa yenileyerek görüyor.
+
+---
+
+# KATEGORİ 8 — Güvenlik Sertleştirme
+
+### [ ] T8-01 · Gerçek 2FA (iki faktörlü kimlik doğrulama)
+**Öncelik:** P1 · **Efor:** L · **Ürün kararı**
+**Adımlar:** F3-04'te sahte 2FA UI'dan söküldü (`requires2FA()` hep `false`, backend karşılığı
+yoktu). Gerçek 2FA: kullanıcı sırrı üretimi/saklaması (`pyotp` veya SMS sağlayıcı), kurtarma
+kodları, giriş akışına entegrasyon. Şu an giriş yalnız parola ile. İstenirse tam görev olarak
+planla.
+
+### [ ] T8-02 · CSP `style-src` hâlâ `unsafe-inline` içeriyor
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** `script-src` temiz (nonce+strict-dynamic) ama `style-src 'unsafe-inline'` korundu:
+11 dosyada 21 satır-içi `style={{}}` + `next/font`/`styled-jsx` var, nonce satır-içi `style`
+özniteliğine uygulanamaz. Sıkılaştırmak için: satır-içi stilleri Tailwind/`data-*`+CSS'e taşı
+(21 nokta + font stratejisi) veya CSP3 `'unsafe-hashes'` + hash (kırılgan). Kazanç düşük (CSS
+enjeksiyonu script yürütmez), efor yüksek.
+
+### [ ] T8-03 · Bilet QR'ı imzalı değil (yalnız `booking_ref`)
+**Öncelik:** P2 · **Efor:** M · **Ürün kararı**
+**Adımlar:** QR içeriği düz `booking_ref`. Çift-okutma koruması + acenta kapsamı/tarih/durum
+kontrolü olduğundan başka acentanın/günün bileti işe yaramıyor; asıl risk meşru misafirin
+reddi. Daha sıkı model isteniyorsa kısa ömürlü HMAC token (`booking_ref.exp.sig`) üretip
+check-in'de doğrula.
+
+### [ ] T8-04 · QR okuma yalnız `BarcodeDetector` destekleyen tarayıcılarda
+**Öncelik:** P2 · **Efor:** M
+**Adımlar:** `app/components/TicketScanner.tsx` yerleşik `BarcodeDetector` kullanıyor
+(Chrome/Edge/Android var; **iOS Safari + Firefox yok** → kamera açılmıyor, elle giriş çalışıyor).
+Rehber/şoförlerde iPhone yaygın → sahada QR okutulamıyor. `jsQR`/`zxing-wasm` WASM decoder'ı
+yalnız desteklemeyen tarayıcılara dinamik `import()` ile yükle (bundle'a sabit maliyet bindirme).
+
+---
+
+# KATEGORİ 9 — Ölü Kod Temizliği
+
+> Tek bir "ölü kod temizliği" turunda toplu ele alınabilir. Her biri sıfır-importer teyitli.
+
+### [ ] T9-01 · Sahipsiz frontend dosyaları
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** Sıfır importer teyidiyle sil/temizle:
+- `app/components/CheckoutForm.tsx` (sahipsiz; `StripePaymentSection` ile çakışıyor; içinde
+  `open.er-api.com` döviz çağrısı var).
+- `app/components/RouteGuard.tsx` (kullanılmıyor + mantığı çelişkili: `/dashboard/customer`
+  panelini kırardı).
+- `app/lib/apiShield.ts` + `app/lib/ssrfShield.ts` (güvenlik-tiyatrosu, sıfır importer).
+- `app/lib/secureVault.ts` kart yardımcıları (`formatCardInput/formatCvvInput/
+  formatExpiryInput/maskCardNumber/storePaymentToken` ölü; **ama** `isSessionValid`/
+  `secureClear` `app/lib/auth.ts` tarafından kullanılıyor → dosyayı bütün silme, cerrahi
+  çıkar).
+- `app/checkout/page.tsx:8` kullanılmayan `recordFailedAttempt` importu (rate-limit sayacı
+  hiç artırılmıyor; ödeme hata yolu gerçekleşince gözden geçir).
+
+### [ ] T9-02 · Backend ölü kod: kayıtsız `DiningReservationViewSet`
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `agencies/views.py::DiningReservationViewSet` hiçbir router'a kayıtlı değil
+(`restaurant/reservations` → `agencies/restaurant_views.py`'deki sınıfı kullanıyor). Kayıtsız
+kopyayı sil (aynı isim iki modülde kafa karıştırıcı; perms yalnız `[IsAuthenticated]`,
+docstring var olmayan `/api/v1/table-reservations/`'a atıf yapıyor).
+
+### [ ] T9-03 · Ana sayfa kullanılmayan `tours` fetch'i
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `app/page.tsx` `tours` state'ini fetch ediyor ama vitrinler hardcoded diziden
+besleniyor → fetch hiç render edilmiyor (ölü ağ isteği). Ya vitrinleri gerçek `tours`'a bağla
+(ürün kararı) ya fetch'i kaldır.
+
+### [ ] T9-04 · `vip_membership` okuma dalları ölü
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** Tek yazan yer (checkout simülasyonu) F1-04'te silindi; `app/tour/[slug]/page.tsx:93`
++ `app/taste/page.tsx:115` hâlâ okuyor → VIP indirimi/rozeti hiç tetiklenmiyor. Gerçek üyelik
+modeli backend'e eklenmeyecekse okuma dallarını sil.
+
+### [ ] T9-05 · `backend/` altındaki tek-seferlik/yıkıcı betikler
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `backend/fix_images.py`, `backend/fix_images_2.py`, `backend/update_tours.py`
+(hepsi `Tour.objects.all().delete()` + Wikimedia indirme), `backend/seed_availabilities.py`,
+`backend/seed_cap_tours.py` versiyon kontrolünde. Seed'ler tutulacaksa `backend/scripts/` veya
+management command'e (`python manage.py seed_demo`) taşı; değilse sil. **Yıkıcı `delete()`
+içerenler yanlış ortamda çalışırsa veri kaybı riski.**
+
+---
+
+# KATEGORİ 10 — Yapılandırma & Süreç (çoğu insan aksiyonu)
+
+### [ ] T10-01 · CI branch protection elle açılmalı
+**Öncelik:** P1 · **Efor:** S · **Bloklayan:** GitHub repo ayarı (insan)
+**Adımlar:** `.github/workflows/ci.yml` var (backend+frontend PR/main'de koşuyor) ama
+"geçmeden merge edilemez" bir repo ayarı. Settings → Branches → `main` → "Require status checks
+to pass before merging" aç, `backend` + `frontend` check'lerini zorunlu işaretle (ideal:
+"Require branches to be up to date" + PR review).
+
+### [ ] T10-02 · `django.contrib.sites` kaydı "example.com"
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `SITE_ID = 1` ama DB'deki `Site` satırı Django varsayılanında. Mailler
+`FRONTEND_URL`/`SITE_NAME` ile bağımsızlaştırıldı ama `Site`'ı okuyan başka yer (sosyal giriş
+callback'leri, `allauth.socialaccount`) "example.com" görür. Dağıtımda `Site`'ı gerçek alan
+adıyla güncelle veya data migration ekle.
+
+### [ ] T10-03 · allauth doğrulama maili yeniden gönderiminde sessiz başarısızlık
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** allauth `confirm_email` adres başına hız sınırlı; sınır dolunca "tekrar gönder"
+**sessizce hiçbir şey yapmıyor**, arayüzde geri bildirim yok. UI'da rate-limit durumunu
+kullanıcıya bildir (bekleme süresi veya "biraz sonra tekrar deneyin").
+
+### [ ] T10-04 · STD-CHECK tanımı `next lint`'i güncellemeli
+**Öncelik:** P2 · **Efor:** S
+**Adımlar:** `TASKS.md` STD-CHECK'i `npx next lint` diyor ama Next 16 komutu kaldırdı. Doğru
+komut `npm run lint` (`package.json` `"lint": "eslint"`). Doküman güncellemesi. (Bu dosyanın
+STD-CHECK bölümünde zaten düzeltildi.)
+
+---
+
+# KATEGORİ 11 — Tasarım Sistemi Migrasyonu
+
+### [ ] T11-01 · Tasarım sistemi sayfa-sayfa migrasyonu + `DashboardShell`
+**Öncelik:** P2 · **Efor:** L
+**Adımlar:** F5-06 temeli (token'lar + `app/components/ui/` primitive'leri + Toast) atıldı.
+Kalan: **(1)** ~258× keyfi `#008cb3`/`#0B132B` değerini token'a taşı ve elle yazılmış buton/
+input/kart işaretlemesini primitive'lerle değiştir — **kademeli, tek PR'da her şey değil.**
+**(2) `DashboardShell`** — agency + restaurant dashboard layout'ları %95 duplike
+(sidebar+topbar+bildirim); ortak shell'e çıkar (riskli refactor, ayrı PR). Not: `--card-bg`
+her iki modda bilerek beyaz (kod yorumu), dokunma.
+
+---
+
+## Önerilen Sıra (kısaca)
+1. **T1-01** (P0 sahte kayıt) → **T1-03/T1-02** (sahte IBAN/bilet) → **T2-01** (checkout 404).
+2. Finans dayanıklılığı hızlı kazanımlar: **T3-03, T3-05** (S efor).
+3. Veri modeli kökü: **T4-01** → T4-02/T4-05 kendiliğinden.
+4. **T5-01** (Redis cache) performans.
+5. Ölü kod turu: **T9-01…T9-05** tek PR.
+6. İnsan-bloklu kalemler (T3-01, T5-04, T5-05, T10-01) sahibine iletilsin.
+
+---
+
+## BULUNAN YENİ SORUNLAR
+_(Bu dosyadaki görevler işlenirken çıkan yeni sorunlar buraya eklenir.)_
+
+* _

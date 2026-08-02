@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { fetchTours } from '@/app/lib/tours';
 import { fetchCombos, Combo } from '@/app/lib/combos';
+import { fetchAPI } from '@/app/lib/api';
 import Calendar from 'react-calendar';
 import 'react-calendar/dist/Calendar.css';
 import Link from 'next/link';
@@ -156,10 +157,9 @@ export default function Home() {
   // Login / Register Modal state
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [loginTab, setLoginTab] = useState<'login' | 'register'>('login');
-  const [isVerifyingEmail, setIsVerifyingEmail] = useState(false);
   const [registerEmail, setRegisterEmail] = useState('');
+  const [registerPassword, setRegisterPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [demoUrl, setDemoUrl] = useState('');
   const [showAgencyModal, setShowAgencyModal] = useState(false);
   const [agencyTab, setAgencyTab] = useState<'login' | 'register' | 'pricing'>('login');
   const [agencyBusinessType, setAgencyBusinessType] = useState('acenta');
@@ -911,41 +911,37 @@ export default function Home() {
             onClick={(e) => {
               if (e.target === e.currentTarget) {
                 setShowLoginModal(false);
-                setIsVerifyingEmail(false);
               }
             }}
           >
             <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-[420px] overflow-hidden relative animate-in zoom-in-95 duration-200 border border-gray-100">
               {/* Kapat Butonu */}
               <button
-                onClick={() => { setShowLoginModal(false); setIsVerifyingEmail(false); }}
+                onClick={() => { setShowLoginModal(false); }}
                 className="absolute top-4 right-4 text-gray-400 hover:text-red-500 transition-all bg-gray-100/50 hover:bg-red-50 p-3.5 rounded-full z-20 shadow-sm active:scale-90"
               >
                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
 
-              {/* Sekmeler (Tabs) Sadece Doğrulama Aşamasında Değilse Göster */}
-              {!isVerifyingEmail && (
-                <div className="flex w-full bg-slate-50 pt-2 px-4 md:px-6">
-                  <button
-                    onClick={() => setLoginTab('login')}
-                    className={`flex-1 py-5 text-[15px] font-black cursor-pointer transition-colors border-b-[3px] ${loginTab === 'login' ? 'text-[#008cb3] border-[#008cb3]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
-                  >
-                    Giriş Yap
-                  </button>
-                  <button
-                    onClick={() => setLoginTab('register')}
-                    className={`flex-1 py-5 text-[15px] font-black cursor-pointer transition-colors border-b-[3px] ${loginTab === 'register' ? 'text-[#008cb3] border-[#008cb3]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
-                  >
-                    Üye Ol
-                  </button>
-                </div>
-              )}
+              {/* Sekmeler (Tabs) */}
+              <div className="flex w-full bg-slate-50 pt-2 px-4 md:px-6">
+                <button
+                  onClick={() => setLoginTab('login')}
+                  className={`flex-1 py-5 text-[15px] font-black cursor-pointer transition-colors border-b-[3px] ${loginTab === 'login' ? 'text-[#008cb3] border-[#008cb3]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+                >
+                  Giriş Yap
+                </button>
+                <button
+                  onClick={() => setLoginTab('register')}
+                  className={`flex-1 py-5 text-[15px] font-black cursor-pointer transition-colors border-b-[3px] ${loginTab === 'register' ? 'text-[#008cb3] border-[#008cb3]' : 'text-gray-400 border-transparent hover:text-gray-600'}`}
+                >
+                  Üye Ol
+                </button>
+              </div>
 
               {/* Form İçeriği */}
               <div className="p-8">
-                {!isVerifyingEmail ? (
-                  <>
+                <>
                     <h2 className="text-[22px] font-black text-slate-800 mb-6 text-center tracking-tight">
                       {loginTab === 'login' ? 'Tekrar Hoş Geldiniz! 👋' : 'Aramıza Katılın! 🚀'}
                     </h2>
@@ -953,44 +949,56 @@ export default function Home() {
                     <form className="flex flex-col gap-5" onSubmit={async (e) => {
                       e.preventDefault();
                       if (loginTab === 'register') {
-                        if (!registerEmail) {
-                          toast.warning('Lütfen e-posta adresinizi girin.');
+                        if (!registerEmail || !registerPassword) {
+                          toast.warning('Lütfen e-posta ve şifrenizi girin.');
+                          return;
+                        }
+                        if (registerPassword.length < 6) {
+                          toast.warning('Şifre en az 6 karakter olmalıdır.');
                           return;
                         }
 
                         setIsLoading(true);
-                        // --- EMAIL VERIFICATION ARCHIVED (TEMPORARILY DISABLED) ---
-                        /*
                         try {
-                          const response = await fetch('/api/verify-email', {
+                          // dj-rest-auth kaydı e-posta + kullanıcı adı ister; kullanıcı adını
+                          // e-posta yerel bölümünden türetiyoruz (çakışırsa backend 400 döner).
+                          const username =
+                            registerEmail.split('@')[0].replace(/[^a-zA-Z0-9_.+-]/g, '').slice(0, 30) ||
+                            `user${Date.now()}`;
+                          const response = await fetchAPI('/auth/registration/', {
                             method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ email: registerEmail })
+                            body: JSON.stringify({
+                              username,
+                              email: registerEmail,
+                              password: registerPassword,
+                              password1: registerPassword,
+                              password2: registerPassword,
+                            }),
                           });
 
-                          const data = await response.json();
-
-                          if (data.success) {
-                            setDemoUrl(data.previewUrl || '');
-                            setIsVerifyingEmail(true);
+                          if (response?.access) {
+                            await login({ access: response.access, refresh: response.refresh });
+                            toast.success('Üyeliğiniz başarıyla tamamlandı! Hoş geldiniz.');
+                            setShowLoginModal(false);
+                            setRegisterEmail('');
+                            setRegisterPassword('');
+                            router.push('/');
+                          } else if (response?.user || response?.detail) {
+                            toast.success('Kayıt başarılı! Lütfen giriş yapın.');
+                            setShowLoginModal(false);
+                            router.push('/login?registered=true');
                           } else {
-                            alert('Hata: ' + data.error);
+                            throw new Error('Kayıt başarısız oldu.');
                           }
-                        } catch (err) {
-                          alert('Mail sunucusuna bağlanılamadı.');
+                        } catch (err: any) {
+                          const data = err?.data;
+                          const msg = data
+                            ? Object.values(data).flat().join(' ')
+                            : (err?.message || '');
+                          toast.error(msg || 'Kayıt yapılamadı, lütfen tekrar deneyin.');
                         } finally {
                           setIsLoading(false);
                         }
-                        */
-                        
-                        // Direct Success Simulation
-                        setTimeout(() => {
-                          setIsLoading(false);
-                          toast.success('Üyeliğiniz başarıyla tamamlandı! Hoş geldiniz.');
-                          setShowLoginModal(false);
-                          router.push('/'); // Kayıt sonrası ana sayfada bırak
-                        }, 1000);
-
                       } else {
                         setShowLoginModal(false);
                         router.push('/login'); // Giriş için login sayfasına yönlendir
@@ -1017,7 +1025,13 @@ export default function Home() {
                           <label className="block text-[11px] font-bold text-gray-400 uppercase tracking-widest">Şifre</label>
                           {loginTab === 'login' && <a href="#" className="text-xs text-[#008cb3] hover:underline font-bold mr-1">Şifremi Unuttum?</a>}
                         </div>
-                        <input type="password" placeholder="••••••••" className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400" />
+                        <input
+                          type="password"
+                          value={loginTab === 'register' ? registerPassword : undefined}
+                          onChange={(e) => loginTab === 'register' && setRegisterPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="w-full px-5 py-3.5 rounded-2xl border border-gray-200 focus:border-[#008cb3] outline-none transition bg-slate-50 focus:bg-white text-[15px] font-medium placeholder-gray-400"
+                        />
                       </div>
 
                       <button
@@ -1038,42 +1052,7 @@ export default function Home() {
                         Google ile Giriş Yap
                       </button>
                     </form>
-                  </>
-                ) : (
-                  <div className="flex flex-col items-center text-center animate-in fade-in zoom-in duration-300 py-4">
-                    <div className="w-16 h-16 bg-blue-50 text-[#008cb3] rounded-full flex items-center justify-center mb-5 shrink-0">
-                      <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                    </div>
-                    <h3 className="text-xl font-black text-slate-800 mb-2">E-Posta Doğrulama</h3>
-                    <p className="text-[13px] text-gray-500 font-medium mb-8 leading-relaxed max-w-[260px]">
-                      Güvenliğiniz için e-posta adresinize 6 haneli bir doğrulama kodu gönderdik.
-                    </p>
-
-                    <div className="flex gap-2 justify-center mb-8">
-                      {[1, 2, 3, 4, 5, 6].map((_, i) => (
-                        <input key={i} type="text" maxLength={1} className="w-10 h-12 text-center text-xl font-black text-slate-800 rounded-xl border-2 border-gray-200 focus:border-[#008cb3] focus:bg-blue-50 outline-none transition-colors" />
-                      ))}
-                    </div>
-
-                    {demoUrl && (
-                      <a href={demoUrl} target="_blank" rel="noopener noreferrer" className="mb-6 flex items-center justify-center gap-2 bg-yellow-100 text-yellow-800 px-4 py-2 rounded-xl text-xs font-bold w-full uppercase border border-yellow-200 hover:bg-yellow-200 transition">
-                        <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15h-2v-2h2v2zm0-4h-2V7h2v6z" /></svg>
-                        Gelen Kutusu (Test Mailini Gör)
-                      </a>
-                    )}
-
-                    <button
-                      onClick={() => { toast.success('E-posta başarıyla doğrulandı! Üyeliğiniz tamamlandı.'); setShowLoginModal(false); setIsVerifyingEmail(false); }}
-                      className="w-full bg-[#008cb3] text-white font-black text-[15px] py-4 rounded-2xl hover:bg-[#005e85] transition-colors shadow-lg hover:shadow-xl active:scale-[0.98] duration-200 flex items-center justify-center gap-2"
-                    >
-                      Kodu Doğrula ve Tamamla <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="3"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
-                    </button>
-
-                    <button type="button" onClick={() => setIsVerifyingEmail(false)} className="mt-6 text-[13px] font-bold text-gray-400 hover:text-gray-600">
-                      Kodu alamadınız mı? Geri dönün yada tekrar isteyin.
-                    </button>
-                  </div>
-                )}
+                </>
               </div>
             </div>
           </div>
