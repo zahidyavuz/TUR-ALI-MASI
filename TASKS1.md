@@ -231,12 +231,18 @@ deseni değişikliği gerekir. (F5-09 onay kuyruğu bu satırı yazacak yeri sa�
 > panel bakiyesi, idempotent tek satır. STD-CHECK backend temiz (313 test OK); frontend
 > dokunulmadı, API yanıt şekilleri değişmedi.
 
-### [ ] T3-03 · `Agency.commission_rate` varsayılanı float literali
+### [x] T3-03 · `Agency.commission_rate` varsayılanı float literali
 **Öncelik:** P2 · **Efor:** S
 **Adımlar:** `backend/agencies/models.py:85` → `default=10.00` (float). F2-06'da `to_decimal()`
 ile etkisi giderildi ama kaynak duruyor: kaydedilmemiş her Agency nesnesinde oran Python
 `float`'ı ve bu alanı Decimal sanan yeni kod aynı tuzağa düşer. `default=Decimal('10.00')`
 yap + migration.
+> **YAPILDI:** `models.py`'ye `from decimal import Decimal` eklendi, alan varsayılanı
+> `default=Decimal('10.00')` yapıldı. Kaydedilmemiş `Agency()` nesnesinde `commission_rate`
+> artık `Decimal` (önce `float`'tı) — doğrulandı. **Migration gerekmedi:** Django
+> `DecimalField` varsayılanını `10.00` float ile `Decimal('10.00')` için aynı deconstruct
+> ediyor; `makemigrations --check` "No changes" döndü, DB şeması değişmiyor (yalnız kaynak
+> tuzağı giderildi). STD-CHECK: agencies suite 130 test OK, makemigrations --check temiz.
 
 ### [ ] T3-04 · `booking_ref` Stripe intent id son 8 hanesinden türetiliyor
 **Öncelik:** P2 · **Efor:** M

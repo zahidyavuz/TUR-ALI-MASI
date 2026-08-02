@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -82,7 +84,7 @@ class Agency(models.Model):
     tursab_group = models.CharField(max_length=1, choices=TURSAB_GROUP_CHOICES, blank=True, null=True, verbose_name='Acenta Grubu')
     tursab_document = models.FileField(upload_to='agencies/tursab/', blank=True, null=True, verbose_name='TÜRSAB İşletme Belgesi')
 
-    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, verbose_name='Komisyon Oranı (%)')
+    commission_rate = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal('10.00'), verbose_name='Komisyon Oranı (%)')
     sub_merchant_id = models.CharField(max_length=100, blank=True, null=True, verbose_name='Iyzico Sub-Merchant ID')
 
     # Finance / payout
