@@ -76,19 +76,26 @@ havale planlanıyorsa ayrı görev + gerçek IBAN yapılandırması gerekir.
 `app/success/page.tsx` `git rm` ile silindi. Uydurma IBAN + banka bilgileri + placeholder
 WhatsApp numarası (`905555555555`) kaldırıldı. tsc/lint/build temiz.
 
-### [ ] T1-04 · `app/lib/auditLog.ts` build sırasında sahte güvenlik olayları basıyor
+### [x] T1-04 · `app/lib/auditLog.ts` build sırasında sahte güvenlik olayları basıyor
 **Öncelik:** P2 · **Efor:** S
 **Adımlar:** `seedDemoLogs()` modül import edilir edilmez koşulsuz çalışıyor ve
 `[AUDIT] ... WEBHOOK_SIGNATURE_FAILED | webhook#WHK-STRIPE-FAKE | IP: 185.220.101.47`
 gibi hiç yaşanmamış olayları gerçekmiş gibi basıyor (bellek içi, kalıcı değil). Ya gerçek
 bir denetim kaydı modeline bağla ya da `seedDemoLogs()` + sahte tohumları sil.
+**YAPILDI (önceden çözülmüş):** `app/lib/auditLog.ts` zaten `e7424e7` (F3-04 "sahte
+güvenlik katmanlarını kaldır") ile silinmiş. HEAD'de dosya + `seedDemoLogs` +
+`WHK-STRIPE-FAKE` referansı yok (grep temiz). Bu bulgu güncelliğini yitirmiş; ek işlem
+gerekmedi.
 
-### [ ] T1-05 · Footer'da desteklenmeyen ödeme yöntemleri listeleniyor
+### [~] T1-05 · Footer'da desteklenmeyen ödeme yöntemleri listeleniyor
 **Öncelik:** P1 · **Efor:** S · **Bloklayan:** PSP kararı (T3-01)
 **Adımlar:** `app/components/Footer.tsx` "Ödeme Yöntemleri"nde VISA, Mastercard, MİR,
 UnionPay, WeChat Pay, Alipay rozetleri var; gerçekte yalnız Stripe. MİR/UnionPay/WeChat/
 Alipay desteklenmiyor. PSP (iyzico/PayTR) canlıya alındığında gerçek yöntem listesiyle
 değiştir. O zamana kadar en azından desteklenmeyenleri kaldır.
+**KISMEN YAPILDI:** Desteklenmeyen MİR, UnionPay, WeChat Pay, Alipay rozetleri kaldırıldı;
+Stripe'ın işlediği VISA + Mastercard (kart ağları) bırakıldı. Nihai/kesin liste PSP kararı
+(T3-01) canlıya alınınca güncellenecek — bu yüzden görev [~] (kısmi) olarak işaretlendi.
 
 ---
 

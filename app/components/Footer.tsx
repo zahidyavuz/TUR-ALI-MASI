@@ -97,10 +97,6 @@ export default function Footer() {
               <div className="flex gap-2 flex-wrap items-center">
                 <span className="bg-white border border-gray-300 rounded px-2 py-0.5 text-blue-800 font-black italic text-[10px]">VISA</span>
                 <span className="bg-white border border-gray-300 rounded px-2 py-0.5 text-red-500 font-bold text-[10px]">mastercard</span>
-                <span className="bg-[#009b4d] border border-transparent rounded px-2 py-0.5 text-white font-bold text-[10px] italic">MİR</span>
-                <span className="bg-white border border-gray-200 rounded px-2 py-0.5 text-[#003C7A] font-bold text-[10px] uppercase">UnionPay</span>
-                <span className="bg-[#2DC100] border border-transparent rounded px-2 py-0.5 text-white font-bold text-[10px]">WeChat Pay</span>
-                <span className="bg-[#1677FF] border border-transparent rounded px-2 py-0.5 text-white font-bold text-[10px]">Alipay</span>
               </div>
             </div>
 
