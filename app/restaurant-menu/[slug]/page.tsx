@@ -197,11 +197,12 @@ export default function RestaurantMenuPage() {
     const hasMenu = restaurant.menus && restaurant.menus.length > 0;
 
     const handleBuyNow = (item: any) => {
+        // Çevrimiçi yemek siparişi henüz aktif değildir: gerçek bir Menü→Booking
+        // köprüsü ve public menü API'si yoktur (bu sayfa hâlâ mock veriyle çalışır).
+        // Sahte menuId ile kırık checkout'a yönlendirmek yerine dürüst bir "yakında"
+        // durumu gösterilir. Gerçek akış TASKS1.md'de ayrı görev olarak izlenir.
         setAddedToCart(item.id);
-        // Hızlı Seçim: Doğrudan checkout'a yönlendir (type=meal flag'i ile)
-        setTimeout(() => {
-            router.push(`/checkout?menuId=${item.id}&type=meal`);
-        }, 500);
+        setTimeout(() => setAddedToCart(null), 2500);
     };
 
     const openReviewModal = async (id: string, name: string, type: 'restaurant' | 'meal') => {
@@ -381,7 +382,7 @@ export default function RestaurantMenuPage() {
                                                 }`}
                                             >
                                                 {addedToCart === chefSpecial.id ? (
-                                                    <><span>⏳</span> Yönlendiriliyor</>
+                                                    <><span>🔒</span> Çevrimiçi Ödeme Yakında</>
                                                 ) : (
                                                     <><span>⚡</span> Hemen Sipariş Ver</>
                                                 )}
@@ -459,7 +460,7 @@ export default function RestaurantMenuPage() {
                                                     }`}
                                                 >
                                                     {addedToCart === item.id ? (
-                                                        <><span>⏳</span> Yönlendiriliyor</>
+                                                        <><span>🔒</span> Çevrimiçi Ödeme Yakında</>
                                                     ) : (
                                                         <><span>⚡</span> Hemen Al</>
                                                     )}

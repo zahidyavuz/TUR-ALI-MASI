@@ -119,13 +119,22 @@ sayfası `token` varsa `/bookings/guest-ticket/?token=` (AllowAny) ucundan, yoks
 guest-ticket ile çözülür; üye bookinginde token None. makemigrations temiz (model değişmedi),
 286 backend testi + tsc/lint/build temiz.
 
-### [ ] T2-02 · Restoran menüsü checkout'u kırık
+### [x] T2-02 · Restoran menüsü checkout'u kırık
 **Öncelik:** P1 · **Efor:** L
 **Adımlar:** `/checkout?menuId=<id>&type=meal` (restoran-menu "Hemen Al") `tourId`
 göndermiyor; checkout `tourId` olmadan çalışamıyor. Şu an dürüst bir "henüz çevrimiçi ödemeye
 açık değildir" mesajı gösteriliyor. Yemek satın alma akışı baştan tasarlanmalı: `Menu` →
 Booking (`service_type='meal'`) köprüsü, sunucuda fiyat, `DiningReservation` ile ilişki.
 Backend `DiningReservationViewSet` var ama ödemesiz ayrı akış.
+**YAPILDI (dürüst mesaj + kaldır yaklaşımı):** İnceleme, görevin öncülünün geçersiz
+olduğunu ortaya koydu. Hem `app/menu/[slug]/page.tsx` hem `app/restaurant-menu/[slug]/page.tsx`
+**tamamen mock** veriyle çalışıyor (menuId = sahte string 'm1'..'m30', gerçek DB Menu PK'si
+değil); backend'de public menü API'si YOK (yalnız agent-owner yönetim uçları), `Booking`'de
+`menu` FK'si yok ve yemek için kapasite/slot modeli yok. Uçtan uca gerçek akış "L" değil,
+CAT6 ölçeğinde çok parçalı bir iş (aşağıya yeni sorun olarak loglandı). Bu görevde: iki mock
+sayfadaki "Hemen Al"/"Hemen Sipariş Ver" butonlarının kırık `/checkout?menuId=...` yönlendirmesi
+kaldırıldı; tıklamada sahte checkout yerine dürüst "🔒 Çevrimiçi Ödeme Yakında" durumu gösteriliyor.
+`app/menu/[slug]` içinde kullanılmaz hâle gelen `useRouter` importu temizlendi.
 
 ### [ ] T2-03 · Acenta onaylandıktan sonra IBAN/banka bilgisi değiştiremiyor
 **Öncelik:** P1 · **Efor:** M
@@ -436,4 +445,16 @@ her iki modda bilerek beyaz (kod yorumu), dokunma.
 ## BULUNAN YENİ SORUNLAR
 _(Bu dosyadaki görevler işlenirken çıkan yeni sorunlar buraya eklenir.)_
 
-* _
+* **[YENİ] Restoran menü deneyimi tamamen mock — gerçek Menü→Booking akışı yok (T2-02'den).**
+  **Öncelik:** P1 · **Efor:** XL (CAT6 kapsamı). T2-02 incelemesinde çıktı. Müşteriye dönük
+  iki restoran sayfası (`app/menu/[slug]/page.tsx`, `app/restaurant-menu/[slug]/page.tsx`)
+  hardcoded mock veriyle çalışıyor; gerçek `Menu`/`Agency(restoran)` verisini çekmiyor.
+  Backend'de **public menü API'si yok** (yalnız agent-owner `restaurant_views.py` yönetim
+  uçları). Gerçek yemek satın alma için gerekenler: (1) public menü/restoran listeleme +
+  detay API'si (AllowAny serializer + permission), (2) iki mock sayfanın gerçek veriye
+  bağlanması, (3) `Booking.menu` FK'si (migration) veya combo_group benzeri gevşek bağ,
+  (4) `_create_meal_booking` backend yolu (menu_id → sunucu fiyatı `Menu.effective_price()`
+  → PaymentIntent → Booking(`service_type='meal'`) + `DiningReservation` linki), (5) checkout'ta
+  meal UI. **Ürün kararları:** yemek alımı tarih/saat slotu (masa) rezervasyonu mu içerir,
+  masa kapasitesi/availability modeli olacak mı, "yemek bileti" neyi temsil eder? Karar
+  gerektirdiği için ayrı görev olarak açılmalı.

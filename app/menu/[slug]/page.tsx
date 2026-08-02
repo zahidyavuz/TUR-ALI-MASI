@@ -1,7 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Image from 'next/image';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Navbar from '../../components/Navbar';
 import { useLocale } from '../../context/LocaleContext';
 
@@ -73,7 +73,6 @@ const MENU_PACKAGES = [
 
 export default function RestaurantMenuPage() {
     const params = useParams();
-    const router = useRouter();
     const slug = params.slug; // İleride API'den slug'a göre restoranı çekeceğiz
     const { formatPrice } = useLocale();
     const [addedToCart, setAddedToCart] = useState<string | null>(null);
@@ -88,11 +87,12 @@ export default function RestaurantMenuPage() {
     }, {} as Record<string, typeof MENU_PACKAGES>);
 
     const handleBuyNow = (item: typeof MENU_PACKAGES[0]) => {
+        // Çevrimiçi yemek siparişi henüz aktif değildir: gerçek bir Menü→Booking
+        // köprüsü ve public menü API'si yoktur (bu sayfa hâlâ mock veriyle çalışır).
+        // Sahte menuId ile kırık checkout'a yönlendirmek yerine dürüst bir "yakında"
+        // durumu gösterilir. Gerçek akış TASKS1.md'de ayrı görev olarak izlenir.
         setAddedToCart(item.id);
-        // Hızlı Seçim: Doğrudan checkout'a yönlendir (type=meal flag'i ile)
-        setTimeout(() => {
-            router.push(`/checkout?menuId=${item.id}&type=meal`);
-        }, 500);
+        setTimeout(() => setAddedToCart(null), 2500);
     };
 
     return (
@@ -190,7 +190,7 @@ export default function RestaurantMenuPage() {
                                                 }`}
                                             >
                                                 {addedToCart === item.id ? (
-                                                    <><span>⏳</span> Yönlendiriliyor</>
+                                                    <><span>🔒</span> Çevrimiçi Ödeme Yakında</>
                                                 ) : (
                                                     <><span>⚡</span> Hemen Al</>
                                                 )}
