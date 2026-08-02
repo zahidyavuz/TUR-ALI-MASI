@@ -611,6 +611,30 @@ class GuestCheckoutTestCase(TestCase):
         self.assertEqual(response.status_code, 200, response.data)
         self.assertEqual(response.data['booking_ref'], booking.booking_ref)
 
+    def test_guest_booking_response_includes_ticket_token(self, _intent):
+        """T2-01 — Misafir rezervasyonu oluşturma yanıtı, ödeme-sonrası onay
+        sayfasının (checkout-success) durumu kimlik doğrulamasız sorgulayabilmesi
+        için imzalı `ticket_token` içermeli ve token guest-ticket ucuyla çözülmeli."""
+        response = self._guest_book()
+        self.assertEqual(response.status_code, 201, response.data)
+        token = response.data['booking'].get('ticket_token')
+        self.assertTrue(token, 'Misafir rezervasyonu yanıtında ticket_token bekleniyor.')
+        # Token gerçekten guest-ticket ucuyla aynı rezervasyona çözülmeli.
+        ticket = self.client.get('/api/v1/bookings/guest-ticket/', {'token': token})
+        self.assertEqual(ticket.status_code, 200, ticket.data)
+        self.assertEqual(ticket.data['id'], response.data['booking']['id'])
+
+    def test_member_booking_ticket_token_is_null(self, _intent):
+        """Üye (parolalı) rezervasyonunda onay sayfası `ref` + panel ile çalışır;
+        gereksiz token sızıntısı olmaması için `ticket_token` None dönmeli."""
+        member = User.objects.create_user(
+            username='member1', email='member1@example.com', password='realpass123'
+        )
+        self.client.force_authenticate(user=member)
+        response = self._guest_book()
+        self.assertEqual(response.status_code, 201, response.data)
+        self.assertIsNone(response.data['booking'].get('ticket_token'))
+
     def test_guest_ticket_invalid_token(self, _intent):
         """Bozuk token 400 döner."""
         response = self.client.get('/api/v1/bookings/guest-ticket/', {'token': 'garbage'})

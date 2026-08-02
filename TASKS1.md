@@ -101,13 +101,23 @@ Stripe'ın işlediği VISA + Mastercard (kart ağları) bırakıldı. Nihai/kesi
 
 # KATEGORİ 2 — Eksik / Kırık Akışlar
 
-### [ ] T2-01 · Ödeme sonrası `/checkout-success` sayfası yok → 404
+### [x] T2-01 · Ödeme sonrası `/checkout-success` sayfası yok → 404
 **Öncelik:** P1 · **Efor:** M
 **Adımlar:** `app/checkout/page.tsx` Stripe onayından sonra `returnUrl`'i
 `/checkout-success?ref=<booking-uuid>`'e kuruyor ama `app/checkout-success/` sayfası yok →
 kart doğrulandıktan sonra kullanıcı 404 görüyor. Hem üye hem misafir için ödeme-sonrası
 onay sayfası oluştur: `ref` (üye) veya imzalı `token` (misafir, F4-07 deseni) ile Booking'i
 çekip durum + bilet linki göster.
+**YAPILDI:** `/checkout-success` sayfası aslında mevcuttu (üye `ref` akışı çalışıyordu),
+ama **misafir** için kırıktı: `GET /bookings/<id>/` `IsAuthenticated` istediğinden ve
+anonim queryset `none()` döndüğünden misafir ödeme sonrası "Rezervasyon bulunamadı"
+görüyordu. Düzeltme: (1) `BookingSerializer`'a yalnız misafir bookinglerine dolan salt-okunur
+`ticket_token` (imzalı) alanı eklendi (üyede None). (2) `checkout/page.tsx` misafir
+rezervasyonunda `returnUrl`'i `?token=<ticket_token>` ile kuruyor. (3) `checkout-success`
+sayfası `token` varsa `/bookings/guest-ticket/?token=` (AllowAny) ucundan, yoksa `ref` ile
+`/bookings/<id>/`'den durumu poll ediyor. Yeni testler: misafir yanıtı token içerir +
+guest-ticket ile çözülür; üye bookinginde token None. makemigrations temiz (model değişmedi),
+286 backend testi + tsc/lint/build temiz.
 
 ### [ ] T2-02 · Restoran menüsü checkout'u kırık
 **Öncelik:** P1 · **Efor:** L

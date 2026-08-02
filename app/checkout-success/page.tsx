@@ -20,15 +20,23 @@ const MAX_POLLS = 20; // ~1 dakika
 
 function SuccessContent() {
     const searchParams = useSearchParams();
-    // `ref` Booking'in UUID id'sidir (DRF router bu alanla lookup yapar).
+    // Üye rezervasyonunda `ref` Booking'in UUID id'sidir (DRF router bu alanla
+    // lookup yapar). Misafir rezervasyonunda ise kimlik doğrulaması yapılamadığı
+    // için imzalı `token` gelir ve durum guest-ticket ucundan (AllowAny) çekilir.
     const bookingId = searchParams.get('ref');
+    const token = searchParams.get('token');
+    const endpoint = token
+        ? `/bookings/guest-ticket/?token=${encodeURIComponent(token)}`
+        : bookingId
+          ? `/bookings/${bookingId}/`
+          : null;
 
     const [booking, setBooking] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
     const [timedOut, setTimedOut] = useState(false);
 
     useEffect(() => {
-        if (!bookingId) {
+        if (!endpoint) {
             setError('Rezervasyon referansı bulunamadı.');
             return;
         }
@@ -40,7 +48,7 @@ function SuccessContent() {
         const poll = async () => {
             attempts += 1;
             try {
-                const data = await fetchAPI(`/bookings/${bookingId}/`, {
+                const data = await fetchAPI(endpoint, {
                     throwOnHttpError: true,
                 });
                 if (cancelled) return;
@@ -70,7 +78,7 @@ function SuccessContent() {
             cancelled = true;
             clearTimeout(timer);
         };
-    }, [bookingId]);
+    }, [endpoint]);
 
     if (error) {
         return (

@@ -178,11 +178,17 @@ function CheckoutLogic() {
     : tour.price * guests;
   const totalPrice = booking ? Number(booking.total_price) : estimatedPrice;
 
-  // Stripe onay sonrası dönülecek mutlak URL. `ref` parametresi Booking'in
-  // UUID id'sidir (booking_ref değil) — DRF router UUID ile lookup yapıyor.
+  // Stripe onay sonrası dönülecek mutlak URL. Üye rezervasyonunda `ref`
+  // Booking'in UUID id'sidir (booking_ref değil) — DRF router UUID ile lookup
+  // yapar ve onay sayfası `/bookings/<id>/` ile durumu çeker. Misafir (üyeliksiz)
+  // rezervasyonda ise onay sayfası kimlik doğrulaması yapamaz; bu yüzden backend
+  // yalnız misafir bookinglerine imzalı `ticket_token` döner ve onay sayfası
+  // `/bookings/guest-ticket/?token=` ucundan (AllowAny) durumu çeker.
   const returnUrl =
     typeof window !== "undefined" && booking
-      ? `${window.location.origin}/checkout-success?ref=${booking.id}`
+      ? booking.ticket_token
+        ? `${window.location.origin}/checkout-success?token=${encodeURIComponent(booking.ticket_token)}`
+        : `${window.location.origin}/checkout-success?ref=${booking.id}`
       : "";
 
   return (
