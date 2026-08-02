@@ -106,21 +106,33 @@ class AgentPayoutRequestAdmin(admin.ModelAdmin):
     date_hierarchy = 'requested_at'
     actions = ['mark_paid', 'mark_rejected']
 
-    def _resolve(self, queryset, new_status):
-        # `resolved_at` durumla birlikte yazılır; aksi halde ödenmiş görünen
-        # ama ne zaman ödendiği bilinmeyen kayıtlar oluşur.
-        return queryset.filter(status='pending').update(
-            status=new_status, resolved_at=timezone.now(),
-        )
-
     @admin.action(description='Seçili talepleri ÖDENDİ olarak işaretle')
     def mark_paid(self, request, queryset):
-        count = self._resolve(queryset, 'paid')
+        # Ödeme çıkışı ledger'a negatif satır olarak yazılmalı; bakiye artık
+        # yalnız ledger'dan hesaplandığı için (T3-02) bunsuz ödenen hakediş
+        # bakiyeyi düşürmez. Bu yüzden bulk update yerine satır satır işlenir;
+        # her talep + ledger yazımı tek kritik bölgede yapılır.
+        count = 0
+        for payout in queryset.filter(status='pending'):
+            with transaction.atomic():
+                locked = AgentPayoutRequest.objects.select_for_update().get(pk=payout.pk)
+                if locked.status != 'pending':
+                    continue
+                locked.status = 'paid'
+                locked.resolved_at = timezone.now()
+                locked.save(update_fields=['status', 'resolved_at'])
+                AgentFinanceLedger.create_payout_entry(locked)
+                count += 1
         self.message_user(request, f'{count} talep ödendi olarak işaretlendi.')
 
     @admin.action(description='Seçili talepleri REDDET')
     def mark_rejected(self, request, queryset):
-        count = self._resolve(queryset, 'rejected')
+        # `resolved_at` durumla birlikte yazılır; aksi halde reddedilmiş
+        # görünen ama ne zaman çözüldüğü bilinmeyen kayıtlar oluşur. Red
+        # bakiyeyi etkilemediği için ledger satırı yazılmaz.
+        count = queryset.filter(status='pending').update(
+            status='rejected', resolved_at=timezone.now(),
+        )
         self.message_user(request, f'{count} talep reddedildi.')
 
 

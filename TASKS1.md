@@ -211,13 +211,25 @@ olmadan doğrulanamaz. iyzico Pazaryeri / PayTR Platform Transfer başvurusu tam
 anahtarlar gelince adapterlar yazılıp test edilmeli. O zamana kadar `PAYMENT_PROVIDER=stripe`
 — gerçek TL tahsilatı henüz mümkün değil. (T1-05 ve mimari kararlar buna bağlı.)
 
-### [ ] T3-02 · Onaylanan hakediş talebi ledger'a yazılmıyor
+### [x] T3-02 · Onaylanan hakediş talebi ledger'a yazılmıyor
 **Öncelik:** P2 · **Efor:** M
 **Adımlar:** `AgentPayoutRequest` `approved/paid` olunca bakiye `balance_snapshot` içinde talep
 tablosundan düşülüyor ama `AgentFinanceLedger`'da karşılık satır yok → CSV ekstresi ödemeleri
 göstermiyor, ekstre net toplamı ile panel bakiyesi tutmuyor. Çözüm: `entry_type='payout'`
 (yeni tip) negatif ledger satırı yaz ve bakiyeyi yalnız ledger'dan hesapla. Migration + hesap
 deseni değişikliği gerekir. (F5-09 onay kuyruğu bu satırı yazacak yeri sağlıyor.)
+> **YAPILDI:** `AgentFinanceLedger`'a `('payout','Hakediş Ödemesi')` tipi + idempotent
+> `create_payout_entry(payout)` (ref `PAYOUT-<id>`, negatif `net_amount`, gross/komisyon 0)
+> eklendi. Bakiye artık YALNIZ ledger'dan hesaplanıyor: `balance_snapshot` ve
+> `AgentPayoutRequest.available_balance` `total_net - pending_payout` döner; onaylı/ödenen
+> talep artık ledger satırı olduğu için `paid_out` bakiyeden AYRICA düşülmez (çift sayım
+> giderildi, `paid_out` yalnız bilgi amaçlı). Admin onay ucu (`AdminPayoutViewSet.approve`)
+> ve admin aksiyonu (`AgentPayoutRequestAdmin.mark_paid`, bulk update → satır-satır
+> `select_for_update` + ledger yazımı) `transaction.atomic` içinde payout satırını yazıyor;
+> `mark_rejected` ledger'a dokunmuyor. Migration `0015_alter_agentfinanceledger_entry_type`.
+> Regresyon: onay ledger satırı yazıyor, CSV ekstresinde görünüyor ve ekstre net toplamı =
+> panel bakiyesi, idempotent tek satır. STD-CHECK backend temiz (313 test OK); frontend
+> dokunulmadı, API yanıt şekilleri değişmedi.
 
 ### [ ] T3-03 · `Agency.commission_rate` varsayılanı float literali
 **Öncelik:** P2 · **Efor:** S

@@ -23,6 +23,7 @@ class AgentFinanceLedger(models.Model):
         ('sale',       'Satış Hakedişi'),
         ('refund',     'İade Kesintisi'),
         ('adjustment', 'Manuel Düzeltme'),
+        ('payout',     'Hakediş Ödemesi'),
     ]
 
     agency         = models.ForeignKey(Agency, on_delete=models.CASCADE, related_name='ledger_entries')
@@ -53,6 +54,10 @@ class AgentFinanceLedger(models.Model):
     # İade kaydı aynı rezervasyona ait ikinci bir satırdır; `booking_ref`
     # unique olduğu için ters kayıt bu son ekle ayrılır.
     REFUND_REF_SUFFIX = '-REFUND'
+
+    # Hakediş ödemesi bir rezervasyona değil bir talebe bağlıdır; `booking_ref`
+    # unique alanında talep id'siyle işaretlenir (PAYOUT-<id>).
+    PAYOUT_REF_PREFIX = 'PAYOUT-'
 
     @staticmethod
     def _agency_of(booking):
@@ -149,6 +154,34 @@ class AgentFinanceLedger(models.Model):
         )
         return obj
 
+    @classmethod
+    def create_payout_entry(cls, payout_request):
+        """
+        Onaylanan/ödenen hakediş talebi için negatif ledger satırı.
+
+        Bakiye artık yalnız ledger'dan hesaplandığı için (talep tablosundan
+        DEĞİL), ödeme çıkışı da ledger'da yer almalı; aksi halde CSV ekstresi
+        ödemeyi göstermez ve ekstre net toplamı ile panel bakiyesi tutmaz.
+        Idempotent: aynı talep önce onaylanıp sonra ödendi işaretlense de
+        (PAYOUT-<id> unique) tek satır oluşur.
+        """
+        amount = Decimal(payout_request.amount)
+        obj, _ = cls.objects.get_or_create(
+            booking_ref=f'{cls.PAYOUT_REF_PREFIX}{payout_request.id}',
+            defaults={
+                'agency':            payout_request.agency,
+                'tour_title':        'Hakediş Ödemesi',
+                'tour_date':         None,
+                'gross_amount':      Decimal('0.00'),
+                'commission_rate':   Decimal('0.00'),
+                'commission_amount': Decimal('0.00'),
+                'net_amount':        -amount,
+                'entry_type':        'payout',
+                'notes':             f'Hakediş talebi #{payout_request.id} ödemeye alındı (₺{amount}).',
+            }
+        )
+        return obj
+
 
 class AgentPayoutRequest(models.Model):
     """
@@ -181,16 +214,20 @@ class AgentPayoutRequest(models.Model):
     def available_balance(self):
         """Bu acentanın mevcut çekilebilir net bakiyesi."""
         from django.db.models import Sum
-        paid_out = AgentPayoutRequest.objects.filter(
-            agency=self.agency, status__in=['approved', 'paid']
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
-
-        # Tüm kayıt tipleri toplanır: iade satırları negatif tutarlıdır.
+        # Bakiye YALNIZ ledger'dan hesaplanır: satış (+), iade (-) ve onaylanan
+        # hakediş ödemeleri (-) hepsi ledger satırıdır (T3-02). Böylece talep
+        # tablosundan ayrıca düşülen `paid_out` ile çift sayım oluşmaz.
         total_net = AgentFinanceLedger.objects.filter(
             agency=self.agency
         ).aggregate(total=Sum('net_amount'))['total'] or Decimal('0')
 
-        return total_net - paid_out
+        # Bekleyen talep henüz ledger'a yazılmadığından yumuşak rezervasyon
+        # olarak düşülür (acenta aynı parayı ikinci kez talep edemesin).
+        pending_payout = AgentPayoutRequest.objects.filter(
+            agency=self.agency, status='pending'
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        return total_net - pending_payout
 
 
 class BankAccountChangeRequest(models.Model):

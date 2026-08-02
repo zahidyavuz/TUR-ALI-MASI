@@ -287,6 +287,10 @@ class AdminPayoutViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
             payout.admin_notes = note or payout.admin_notes
             payout.resolved_at = timezone.now()
             payout.save(update_fields=['status', 'admin_notes', 'resolved_at'])
+            # Ödeme çıkışı ledger'a negatif satır olarak yazılır; bakiye artık
+            # yalnız ledger'dan hesaplandığı için (T3-02) bu satır olmadan
+            # onaylanan hakediş bakiyeyi düşürmez ve CSV ekstresinde görünmez.
+            AgentFinanceLedger.create_payout_entry(payout)
 
         self._notify(
             payout,

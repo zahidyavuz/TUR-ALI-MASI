@@ -77,10 +77,15 @@ def balance_snapshot(agency):
         total_net=Sum('net_amount'),
         total_count=Count('id'),
     )
+    # Onaylanan/ödenen talepler artık ledger'da negatif satır olarak durur
+    # (T3-02); bilgi amaçlı gösterilir ama bakiyeden AYRICA düşülmez, aksi
+    # halde ledger'daki payout satırıyla çift sayım oluşurdu.
     paid_out = AgentPayoutRequest.objects.filter(
         agency=agency, status__in=['approved', 'paid']
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
 
+    # Bekleyen talep henüz ledger'a yazılmadığından yumuşak rezervasyon olarak
+    # düşülür (acenta aynı parayı ikinci kez talep edemesin).
     pending_payout = AgentPayoutRequest.objects.filter(
         agency=agency, status='pending'
     ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
@@ -93,7 +98,7 @@ def balance_snapshot(agency):
         'total_count': ledger_agg['total_count'] or 0,
         'paid_out': paid_out,
         'pending_payout': pending_payout,
-        'available': total_net - paid_out - pending_payout,
+        'available': total_net - pending_payout,
     }
 
 

@@ -113,13 +113,21 @@ class FinanceSummaryTestCase(FinanceTestBase):
         self.assertEqual(body['pending_request']['amount'], 800.0)
 
     def test_paid_request_is_subtracted(self):
+        # T3-02: ödenen talep artık ledger'a negatif satır yazar; bakiye yalnız
+        # ledger'dan hesaplandığı için düşüş bu satırdan gelir (talep tablosundan
+        # ayrıca düşülmez → çift sayım yok).
         self._sale('FIN00005')
-        AgentPayoutRequest.objects.create(
+        payout = AgentPayoutRequest.objects.create(
             agency=self.agency, amount=Decimal('1800.00'), status='paid',
         )
+        AgentFinanceLedger.create_payout_entry(payout)
+
         body = self.client.get(SUMMARY_URL).json()
         self.assertEqual(body['balance']['paid_out'], 1800.0)
         self.assertEqual(body['balance']['available'], 0.0)
+        # Toplam net (ledger) = satış 1800 - ödeme 1800 = 0; panel bakiyesiyle
+        # tutar.
+        self.assertEqual(body['summary']['total_net'], 0.0)
 
     def test_bank_account_iban_is_masked(self):
         body = self.client.get(SUMMARY_URL).json()
@@ -422,9 +430,49 @@ class AdminPayoutQueueTestCase(FinanceTestBase):
         self.payout.refresh_from_db()
         self.assertEqual(self.payout.status, 'approved')
         self.assertIsNotNone(self.payout.resolved_at)
-        # available = total_net - paid_out(approved) = 1800 - 1800 = 0
+        # T3-02: onay ledger'a negatif payout satırı yazar; bakiye yalnız
+        # ledger'dan hesaplandığı için available = total_net = 1800 - 1800 = 0.
         from agencies.finance_views import balance_snapshot
         self.assertEqual(balance_snapshot(self.agency)['available'], Decimal('0'))
+
+    def test_approve_writes_payout_ledger_row(self):
+        # Onaylanan hakediş ledger'a negatif bir 'payout' satırı olarak yazılmalı
+        # (yoksa CSV ekstresi ödemeyi göstermez, ekstre net toplamı bakiyeyle
+        # tutmaz — T3-02'nin asıl semptomu).
+        self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
+        entry = AgentFinanceLedger.objects.get(
+            booking_ref=f'PAYOUT-{self.payout.id}', entry_type='payout',
+        )
+        self.assertEqual(entry.net_amount, Decimal('-1800.00'))
+        self.assertEqual(entry.agency_id, self.agency.id)
+
+    def test_payout_appears_in_csv_export_and_reconciles(self):
+        # Onaydan sonra CSV ekstresindeki net toplam ile panel bakiyesi tutmalı.
+        self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
+
+        from agencies.finance_views import balance_snapshot
+        ledger_net = sum(
+            e.net_amount for e in AgentFinanceLedger.objects.filter(agency=self.agency)
+        )
+        self.assertEqual(ledger_net, balance_snapshot(self.agency)['available'])
+
+        # Acenta kendi ekstresini indirince ödeme satırı görünmeli.
+        self.client.force_authenticate(user=self.owner)
+        content = self.client.get(EXPORT_URL).content.decode('utf-8')
+        self.assertIn(f'PAYOUT-{self.payout.id}', content)
+        self.assertIn('Hakediş Ödemesi', content)
+
+    def test_approve_is_idempotent_on_ledger(self):
+        # İkinci onay uçta reddedilir; ama create_payout_entry doğrudan iki kez
+        # çağrılsa bile (PAYOUT-<id> unique) tek satır oluşur.
+        self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
+        AgentFinanceLedger.create_payout_entry(self.payout)
+        self.assertEqual(
+            AgentFinanceLedger.objects.filter(
+                booking_ref=f'PAYOUT-{self.payout.id}',
+            ).count(),
+            1,
+        )
 
     def test_double_approve_rejected(self):
         self.client.post(f'{ADMIN_PAYOUTS_URL}{self.payout.id}/approve/', {}, format='json')
